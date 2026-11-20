@@ -373,7 +373,7 @@ end
 --- The grey line under the X-Ray creation form's Build rows. Pure. One short
 --- sentence for the pick, the book's protection case under a checkpoint row,
 --- and the facts that change a decision about money or about the saved X-Ray.
---- Everything else is behind the form's "About these choices" row
+--- Everything else is behind the info icon in the form's title bar
 --- (xrayFormAbout): the form had grown to eleven lines of grey text and
 --- needed scrolling on an e-reader's screen (the maintainer, 2026-11-20: "too
 --- much information ... must be more concise"). tests/unit/test_book_settings
@@ -425,11 +425,37 @@ function BookSettings.xrayFormHint(pick)
     return hint
 end
 
---- What the form's "About these choices" row shows: what each way to build
---- gives, said once and in full, a tap away from the rows. Pure.
+--- What the form's info icon shows (the one in its title bar): what each way
+--- to build gives, said once and in full, a tap away from the rows. Pure. A
+--- rebuild's form opens it with what a rebuild does to the X-Ray that is
+--- there: the form said so in grey lines above its first row until the
+--- maintainer asked for them to go (2026-11-20; the rebuild's own confirm
+--- says it again before anything is replaced).
+--- @param ctx table|nil { rebuild = "forced" (the reader picked Rebuild) |
+---   "whole" | "ai_knowledge" | "older" (why this X-Ray cannot be extended),
+---   covers_pct = number|nil, archived = boolean (false: version archiving
+---   is off) }
 --- @return string
-function BookSettings.xrayFormAbout()
-    return table.concat({
+function BookSettings.xrayFormAbout(ctx)
+    local parts = {}
+    local why = ctx and ctx.rebuild
+    if why then
+        local first
+        if why == "whole" then
+            first = _("Your current X-Ray was analyzed as a whole, so it cannot be extended.")
+        elseif why == "ai_knowledge" then
+            first = _("Your current X-Ray was made from AI knowledge, so it cannot be extended.")
+        elseif why == "older" then
+            first = _("Your current X-Ray is in an older format, so it cannot be extended.")
+        elseif ctx.covers_pct then
+            first = T(_("Your X-Ray covers to %1%."), ctx.covers_pct)
+        end
+        local kept = ctx.archived == false
+            and _("A rebuild makes a new one from scratch. The current one is kept until the new one is saved, then replaced: version archiving is off, so it will be gone.")
+            or _("A rebuild makes a new one from scratch. The current one is kept until the new one is saved, then archived under \"All versions\".")
+        parts[#parts + 1] = first and (first .. " " .. kept) or kept
+    end
+    for _idx, text in ipairs({
         _("Coverage is how far into the book the X-Ray reads. Build is how it is made:"),
         _("In one request: the cheapest way. The text goes to the AI once, and every entry is written with the whole range in view. Over the whole book it covers the ending too. You can update it later as you read on, by hand or automatically."),
         _("In one request, in background: the same request. A notification arrives when it is ready. The book must stay open."),
@@ -438,7 +464,10 @@ function BookSettings.xrayFormAbout()
         _("Spoiler protection decides which checkpoint you see. On: the X-Ray up to your position. Off: the newest one built."),
         _("A fast, small model tends to mix up people who share a name when it builds in checkpoints. One request keeps them apart better."),
         _("Preset, categories, depth and type apply to new builds and rebuilds. Spacing applies to checkpoints."),
-    }, "\n\n")
+    }) do
+        parts[#parts + 1] = text
+    end
+    return table.concat(parts, "\n\n")
 end
 
 --- Forget the per-book state that described a DELETED X-Ray lineage: the
@@ -2378,14 +2407,17 @@ function BookSettings.resolveXrayStatus(doc_settings, features)
     return nil, nil
 end
 
---- Label for what a new X-Ray tracks: the category set, and the status block
---- when it is off ("Characters only, no status block").
+--- Label for what a new X-Ray tracks: the categories, and the status section
+--- when it is off ("People, no Current State"). The reader's name for that
+--- section is Current State, the browser's own row (B757: "status block" was
+--- no word a reader knows, and the picker called it by a third name).
+--- @param short boolean|nil the short form of the categories (a button's)
 --- @param categories string|nil stored or resolved category value
 --- @param status string|nil "off" | anything else = on
-function BookSettings.xrayTrackLabel(categories, status)
-    local label = BookSettings.xrayCategoriesLabel(categories)
+function BookSettings.xrayTrackLabel(categories, status, short)
+    local label = BookSettings.xrayCategoriesLabel(categories, short)
     if status == "off" then
-        return T(_("%1, no status block"), label)
+        return T(_("%1, no Current State"), label)
     end
     return label
 end
@@ -2453,10 +2485,10 @@ end
 BookSettings.XRAY_PRESETS = {
     { id = "whoswho", categories = "people", status = "off", depth = "light",
       label = _("Who's who"),
-      desc = _("the cast alone, one line each, no status block: the shortest and cheapest") },
+      desc = _("the cast alone, one line each, no Current State: the shortest and cheapest") },
     { id = "characters", categories = "people", status = "off", depth = "standard",
       label = _("Characters only"),
-      desc = _("the cast alone, a few sentences each, no status block") },
+      desc = _("the cast alone, a few sentences each, no Current State") },
     { id = "story", categories = "people,events", status = "on", depth = "standard",
       label = _("Characters and story"),
       desc = _("the cast and the story arc") },
@@ -2468,7 +2500,7 @@ BookSettings.XRAY_PRESETS = {
       desc = _("all five categories, the story arc included: the largest") },
     { id = "light", categories = "people,places", status = "off", depth = "light",
       label = _("Light companion"),
-      desc = _("who and where, one line each, no status block") },
+      desc = _("who and where, one line each, no Current State") },
     { id = "deep", categories = "full", status = "on", depth = "deep",
       label = _("Deep study"),
       desc = _("everything, longer entries, richer connections") },
@@ -2515,16 +2547,18 @@ function BookSettings.xraySmallModelNote(tier, delivery, depth, model)
     return nil
 end
 
---- That note as the form's warning row, or nil: a short title on the row, the
---- sentence a tap away (the form's text budget, xrayFormHint). The model is
---- the one the X-Ray action runs on (its own pin or tier, else the main
---- model: the run options' own resolver), the depth the one the build will
---- use (a continued X-Ray's own stamp, else the standing pick).
+--- That note as the form's warning, or nil: one grey line under the hint, the
+--- sentence a tap away (the form's text budget, xrayFormHint; a warning is
+--- no choice, so it is no button among the dials: the maintainer,
+--- 2026-11-20). The model is the one the X-Ray action runs on (its own pin or
+--- tier, else the main model: the run options' own resolver), the depth the
+--- one the build will use (a continued X-Ray's own stamp, else the standing
+--- pick).
 --- @param plugin table the plugin instance
 --- @param action table|nil the X-Ray action
 --- @param delivery string|nil the form's pick
 --- @param lineage_entry table|nil the saved X-Ray a plain update continues
---- @return table|nil { title = string, text = string, case = string }
+--- @return table|nil { line = string, text = string, case = string }
 function BookSettings.xraySmallModelWarning(plugin, action, delivery, lineage_entry)
     if not (plugin and plugin.getCurrentProvider and plugin.getCurrentModel and plugin.settings) then return nil end
     local base = require("koassistant.request.run_options").stateFor(plugin, action or {}, {}).base
@@ -2540,7 +2574,8 @@ function BookSettings.xraySmallModelWarning(plugin, action, delivery, lineage_en
     local note, case = BookSettings.xraySmallModelNote(tier, delivery, depth, base.model)
     if not note then return nil end
     return { text = note, case = case,
-        title = case == "deep" and _("Fast model and Deep depth") or _("Fast model and checkpoints") }
+        line = case == "deep" and _("⚠ Fast model and Deep depth. Tap for more.")
+            or _("⚠ Fast model and checkpoints. Tap for more.") }
 end
 
 local function xrayPresetById(id)
@@ -2591,7 +2626,7 @@ function BookSettings.showXrayPresetPicker(opts)
             local now = BookSettings.resolveXrayPreset(ctx.is_book_target and ctx.doc_settings or nil,
                 ctx.features)
             return _("Preset for new X-Rays") .. "\n"
-                .. _("One tap sets what is tracked, the status block and the depth. Each can still be changed on its own afterwards; the preset then reads Custom. Applies to new builds and rebuilds.")
+                .. _("One tap sets the categories, Current State and the depth. Each can still be changed on its own afterwards; the preset then reads Custom. Applies to new builds and rebuilds.")
                 .. (now and "" or ("\n" .. _("Now: Custom (the dials match no preset).")))
         end,
         key = BookSettings.KEY_XRAY_CATEGORIES,
@@ -2797,24 +2832,36 @@ function BookSettings.showXrayTypePicker(opts)
     }, opts)
 end
 
---- Short label for a stored category selection (row/button text).
+-- The categories by one word each, for a label that lists a selection
+local XRAY_CATEGORY_WORDS = {
+    people = _("People"),
+    places = _("Places"),
+    ideas = _("Ideas"),
+    terms = _("Terms"),
+    events = _("Timeline"),
+}
+
+--- Label for a stored category selection (row/button text): the categories
+--- that are ticked, by one word each ("People, Places, Ideas, Terms"), or
+--- "All categories". Never a preset's name (B757): the form read "Preset:
+--- Reference" above "Categories: Reference", two dials under one word, and
+--- which of them a tap changes was a guess. Timeline is the heaviest block of
+--- an X-Ray (bench: 25-32 events at Standard depth); cost lives on the depth
+--- dial.
 --- @param value string|nil raw stored value (normalized internally)
---- @return string "All" / "Characters only" / "Characters and story" / "Reference" / "N of 5"
---- Preset names (2026-08-25, depth-axis session): "All" frees "Full" for the
---- document scope; "Light" left this axis because the timeline is the single
---- heaviest block of an X-Ray (bench: 25-32 events at Standard depth), so a
---- people+events preset is a PURPOSE preset, not a cheap one. Cost now lives on
---- the depth dial. "Reference" = every static entry, no timeline.
-function BookSettings.xrayCategoriesLabel(value)
+--- @param short boolean|nil a button's label: three categories or more are
+---   counted ("4 of 5"), all five are "All"
+--- @return string
+function BookSettings.xrayCategoriesLabel(value, short)
     local Actions = require("koassistant.prompts.actions")
     local sel = Actions.normalizeXrayCategories(value)
-    if not sel then return _("All categories") end
-    if sel == "people" then return _("Characters only") end
-    if sel == "people,events" then return _("Characters and story") end
-    if sel == "people,places,ideas,terms" then return _("Reference") end
-    local n = 0
-    for _id in sel:gmatch("[^,]+") do n = n + 1 end
-    return T(_("%1 of %2"), n, #Actions.XRAY_CATEGORY_ORDER)
+    if not sel then return short and _("All") or _("All categories") end
+    local names = {}
+    for id in sel:gmatch("[^,]+") do names[#names + 1] = XRAY_CATEGORY_WORDS[id] or id end
+    if short and #names > 2 then
+        return T(_("%1 of %2"), #names, #Actions.XRAY_CATEGORY_ORDER)
+    end
+    return table.concat(names, ", ")
 end
 
 --- implicitly. Book mode (default) writes KEY_XRAY_CATEGORIES on the spot
@@ -2998,7 +3045,7 @@ function BookSettings.showXrayCategoriesPicker(opts)
     else
         status_on = BookSettings.resolveXrayStatus(doc_settings, features) ~= "off"
     end
-    buttons[#buttons + 1] = {{ text = mark(status_on) .. _("Where things stand (current state, conclusion)"),
+    buttons[#buttons + 1] = {{ text = mark(status_on) .. _("Current State (Current Position, Conclusion)"),
         callback = function()
             local value = status_on and "off" or "on"
             if is_global then
@@ -3017,7 +3064,7 @@ function BookSettings.showXrayCategoriesPicker(opts)
     local title = (is_global and _("What new X-Rays track (global)")
             or is_group and _("What new X-Rays track (this group)")
             or _("What new X-Rays track (this book)")) .. "\n"
-        .. _("Applies to new builds and rebuilds. Fewer categories are faster and cheaper; without \"Where things stand\" every update is shorter.")
+        .. _("Applies to new builds and rebuilds. Fewer categories are faster and cheaper; without Current State every update is shorter.")
     dialog = ButtonDialog:new{
         title = title,
         buttons = buttons,
@@ -3790,8 +3837,10 @@ function BookSettings.showXrayConfig(opts)
     -- here so closed books can set it before their first build (the creation
     -- chooser's button needs the form).
     local cat_sel, cat_layer = BookSettings.resolveXrayCategories(doc_settings, features)
+    -- A button's label: three categories or more are counted, so the row
+    -- stays one line (the picker it opens lists them)
     local track_label = BookSettings.xrayTrackLabel(cat_sel,
-        (BookSettings.resolveXrayStatus(doc_settings, features)))
+        (BookSettings.resolveXrayStatus(doc_settings, features)), true)
     table.insert(buttons, {{ text = T(_("New X-Ray categories: %1"),
             cat_layer == "book"
                 and (BookSettings.followGroupLabel(doc_settings, BookSettings.KEY_XRAY_CATEGORIES,

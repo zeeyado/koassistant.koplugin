@@ -67,7 +67,7 @@ function GroupSettings.keyLabel(key)
         [BS.KEY_RESEARCH] = _("Research mode"),
         [BS.KEY_XRAY_AUTO] = _("Automatic X-Ray"),
         [BS.KEY_XRAY_CATEGORIES] = _("New X-Ray categories"),
-        [BS.KEY_XRAY_STATUS] = _("New X-Ray status block"),
+        [BS.KEY_XRAY_STATUS] = _("New X-Ray Current State"),
         [BS.KEY_XRAY_DEPTH] = _("New X-Ray depth"),
         [BS.KEY_XRAY_TYPE] = _("New X-Ray type"),
         [BS.KEY_XRAY_CARRIED] = _("Carried entries"),
@@ -492,7 +492,7 @@ function GroupSettings.show(opts)
     -- status block (B271), edited in the same picker
     local group_track = value(BS.KEY_XRAY_CATEGORIES)
     if facade:readSetting(BS.KEY_XRAY_STATUS) == "off" then
-        group_track = T(_("%1, no status block"), group_track)
+        group_track = T(_("%1, no Current State"), group_track)
     end
     row(T(_("New X-Ray categories: %1"), group_track), picker(BS.showXrayCategoriesPicker))
     row(T(_("New X-Ray depth: %1"), value(BS.KEY_XRAY_DEPTH)), picker(BS.showXrayDepthPicker))

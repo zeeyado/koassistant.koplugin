@@ -11888,6 +11888,20 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
     local info_face = Font:getFace("cfont", 16)
 
     local vgroup = VerticalGroup:new{ align = "left" }
+    -- A rebuild's form: what a rebuild does to the X-Ray that is there, said
+    -- in the info text (it was up to three grey lines above the first row;
+    -- the rebuild's own confirm says it again before anything is replaced)
+    local about_ctx
+    if force_rebuild or mode == "rebuild" then
+      local why = "forced"
+      if not force_rebuild and base_entry then
+        why = base_entry.full_document and "whole"
+          or base_entry.source_mode == "ai_knowledge" and "ai_knowledge" or "older"
+      end
+      about_ctx = { rebuild = why,
+        covers_pct = force_rebuild and math.floor((base_progress or 0) * 100 + 0.5) or nil,
+        archived = require("koassistant.artifacts.action_cache").checkpointLimitFromFeatures(features) ~= 0 }
+    end
     local title_bar = TitleBar:new{
       width = dialog_width,
       align = "left",
@@ -11898,6 +11912,13 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
         or mode == "extend" and _("Extend X-Ray")
         or _("Create X-Ray"),
       title_shrink_font_to_fit = true,
+      -- What each way to build gives, a tap away and no row of the form's own
+      -- (B759; the maintainer, 2026-11-20: help belongs in the window "in a
+      -- more subtle and elegant way" than a button among the dials)
+      left_icon = "info",
+      left_icon_tap_callback = function()
+        UIManager:show(InfoMessage:new{ text = BookSettings.xrayFormAbout(about_ctx) })
+      end,
       close_callback = function() UIManager:close(current_dialog) end,
     }
     local function addLabel(text)
@@ -11909,12 +11930,11 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
       table.insert(vgroup, VerticalSpan:new{ width = Size.padding.small })
     end
 
-    -- Round 23: state line — what exists, and what picking here does to it
+    -- The state line of an update: what the saved X-Ray covers, which the
+    -- rows below are read against. A rebuild has none (its facts are in the
+    -- info text, about_ctx above).
     local state_line
-    if force_rebuild then
-      state_line = T(_("Your X-Ray covers to %1%. Building here replaces it from scratch (the outgoing version is archived under \"All versions\")."),
-        math.floor((base_progress or 0) * 100 + 0.5))
-    elseif mode == "extend" then
+    if mode == "extend" and not force_rebuild then
       -- Name BOTH numbers when they differ (device 2026-08-14: "covers to
       -- 60%" while the reader's viewer showed the installed 50% read as a
       -- contradiction)
@@ -11929,11 +11949,6 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
         state_line = T(_("Your X-Ray covers to %1%."),
           math.floor((base_progress or 0) * 100 + 0.5))
       end
-    elseif mode == "rebuild" and base_entry then
-      local flavor = base_entry.full_document and _("analyzed as a whole")
-        or base_entry.source_mode == "ai_knowledge" and _("made from AI knowledge")
-        or _("in an older format")
-      state_line = T(_("Your current X-Ray was %1, so it can't be extended. Building here replaces it (the outgoing version is archived under \"All versions\")."), flavor)
     end
     -- Round 2 (device: "it says auto is on, but no next checkpoint or
     -- anything"): with automatic building on, the state line names where the
@@ -12115,9 +12130,9 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
     -- Gray hint under the Build group: one short sentence for the pick, the
     -- book's protection case under a checkpoint row (B717), and the facts
     -- that change a decision about money or about the saved X-Ray. What each
-    -- way to build gives is behind the "About these choices" row below, and a
-    -- fast model's note behind its own warning row (B747): the form had grown
-    -- to eleven lines of grey text and scrolled on an e-reader's screen (the
+    -- way to build gives is behind the info icon in the title bar, and a fast
+    -- model's note behind its own grey line (B747): the form had grown to
+    -- eleven lines of grey text and scrolled on an e-reader's screen (the
     -- maintainer, 2026-11-20). BookSettings.xrayFormHint holds the words and
     -- its test their budget.
     local hint = BookSettings.xrayFormHint({
@@ -12141,6 +12156,29 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
       text = hint, face = info_face, width = content_width,
       fgcolor = Blitbuffer.COLOR_DARK_GRAY,
     })
+    -- A fast model with a big ask (B747): one more grey line, its sentence a
+    -- tap away. A warning, not a choice, so it is no button among the dials
+    -- (the maintainer, 2026-11-20)
+    local model_warning = BookSettings.xraySmallModelWarning(self_ref, action, cr.delivery,
+      (mode == "extend" and not pick_rebuild and not force_rebuild) and base_entry or nil)
+    if model_warning then
+      local warn_line = require("ui/widget/container/inputcontainer"):new{
+        TextBoxWidget:new{
+          text = model_warning.line, face = info_face, width = content_width,
+          fgcolor = Blitbuffer.COLOR_DARK_GRAY,
+        },
+      }
+      warn_line.ges_events = { TapWarning = { GestureRange:new{
+        ges = "tap",
+        range = function() return warn_line.dimen or Geom:new{ w = 0, h = 0 } end,
+      } } }
+      function warn_line:onTapWarning()
+        UIManager:show(InfoMessage:new{ text = model_warning.text, icon = "notice-warning" })
+        return true
+      end
+      table.insert(vgroup, VerticalSpan:new{ width = Size.padding.small })
+      table.insert(vgroup, warn_line)
+    end
 
     -- Options row (2026-08-25 redesign, ref #90): the two sticky per-book
     -- settings the form can change sit on ONE small-font row right above
@@ -12235,7 +12273,9 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
           end,
       }
     option_buttons[#option_buttons + 1] = {
-      text = T(_("Categories: %1 ▾"), BookSettings.xrayCategoriesLabel(cat_value)),
+      -- What is ticked, never a preset's name (B757: "Preset: Reference"
+      -- stood above "Categories: Reference")
+      text = T(_("Categories: %1 ▾"), BookSettings.xrayCategoriesLabel(cat_value, true)),
       font_size = 16, font_bold = false,
       enabled = categories_on,
       callback = function()
@@ -12273,13 +12313,13 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
       end,
     }
     -- B383: the preset the three dials amount to, one tap to set them all.
-    -- "Custom" names what the dials hold, the status block included (the
+    -- "Custom" names what the dials hold, Current State included (the
     -- Categories button below has no room for it).
     local preset_now = BookSettings.xrayPresetFor(cat_value, status_value, depth_value)
     local preset_row = {{
       text = preset_now and T(_("Preset: %1 ▾"), preset_now.label)
         or T(_("Preset: Custom (%1, %2) ▾"),
-          BookSettings.xrayTrackLabel(cat_value, status_value),
+          BookSettings.xrayTrackLabel(cat_value, status_value, true),
           BookSettings.xrayDepthLabel(depth_value)),
       font_size = 16, font_bold = false,
       enabled = categories_on,
@@ -12291,31 +12331,9 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
         })
       end,
     }}
-    -- The row that opens the longer texts: what each way to build gives, and
-    -- beside it a warning when the model the X-Ray action runs on is a fast
-    -- one and the pick asks a lot of it. Both stay over the form.
-    local about_row = {{
-      text = "ⓘ " .. _("About these choices"),
-      font_size = 16, font_bold = false,
-      callback = function()
-        UIManager:show(InfoMessage:new{ text = BookSettings.xrayFormAbout() })
-      end,
-    }}
-    local model_warning = BookSettings.xraySmallModelWarning(self_ref, action, cr.delivery,
-      (mode == "extend" and not pick_rebuild and not force_rebuild) and base_entry or nil)
-    if model_warning then
-      about_row[2] = {
-        text = "⚠ " .. model_warning.title,
-        font_size = 16, font_bold = false,
-        callback = function()
-          UIManager:show(InfoMessage:new{ text = model_warning.text, icon = "notice-warning" })
-        end,
-      }
-    end
     local options_row = ButtonTableO:new{
       width = content_width,
       buttons = {
-        about_row,
         preset_row,
         { option_buttons[1], option_buttons[2] },
         { option_buttons[3], option_buttons[4] },
@@ -24666,6 +24684,28 @@ end
 
 -- Patch DocSettings.updateLocation() to handle sidecar files and indices on move/copy/delete
 -- Mirrors KOReader's own behavior: move on cut, copy on copy, delete on delete
+-- The notebooks kept from books deleted in one go (one book, a selection),
+-- said once on the next tick: where they are and where they are listed
+local kept_notebooks = {}
+local function announceKeptNotebooks()
+  local n = #kept_notebooks
+  if n == 0 then return end
+  local first = kept_notebooks[1]
+  kept_notebooks = {}
+  local text
+  if n == 1 then
+    text = T(_("The deleted book's KOAssistant notebook was kept. Browse Notebooks lists it. Its file:\n%1"), first)
+  else
+    text = T(_("The KOAssistant notebooks of %1 deleted books were kept. Browse Notebooks lists them. Their folder:\n%2"),
+      n, first:match("^(.*)/[^/]*$") or first)
+  end
+  UIManager:show(InfoMessage:new{ text = text })
+end
+local function noteKeptNotebook(path)
+  kept_notebooks[#kept_notebooks + 1] = path
+  if #kept_notebooks == 1 then UIManager:nextTick(announceKeptNotebooks) end
+end
+
 function AskGPT:patchDocSettingsForChatIndex()
   local DocSettings = require("docsettings")
 
@@ -24716,11 +24756,31 @@ function AskGPT:patchDocSettingsForChatIndex()
         end
       end
     else
-      -- Delete: remove our sidecar files so KOReader's purge() can rmdir the .sdr
+      -- Delete. The notebook first: it outlives its book (B756), moved to the
+      -- KOAssistant notebooks folder. It is the one file here that can hold
+      -- the reader's own writing, and KOReader's own notebook file survives a
+      -- deletion too. A notebook that could not be moved stays where it is:
+      -- never removed unsaved.
+      local Notebook = require("koassistant.chat.notebook")
+      local notebook_file = old_sidecar_dir .. "/" .. Notebook.SIDECAR_FILE
+      local notebook_stays = false
+      if lfs.attributes(notebook_file, "mode") == "file" then
+        local ok, kept, why = pcall(Notebook.keepDeleted, old_path, notebook_file)
+        if ok and kept then
+          logger.info("KOAssistant: Kept the notebook of a deleted book")
+          noteKeptNotebook(kept)
+        elseif not ok or why ~= "empty" then
+          notebook_stays = true
+          logger.warn("KOAssistant: could not move a deleted book's notebook, left in place:",
+            tostring(ok and why or kept))
+        end
+      end
+      -- Then remove our sidecar files so KOReader's purge() can rmdir the .sdr
       -- (purge only removes its own known files, then rmdir which needs empty dir)
       for _idx, filename in ipairs(KOASSISTANT_SIDECAR_FILES) do
         local sidecar_file = old_sidecar_dir .. "/" .. filename
-        if lfs.attributes(sidecar_file, "mode") == "file" then
+        if lfs.attributes(sidecar_file, "mode") == "file"
+            and not (notebook_stays and filename == Notebook.SIDECAR_FILE) then
           os.remove(sidecar_file)
           logger.dbg("KOAssistant: Removed sidecar file:", filename)
         end
@@ -25019,6 +25079,30 @@ function AskGPT:openNotebookViewer(notebook_path, document_path)
   else
     self:openNotebookInChatViewer(notebook_path, document_path)
   end
+end
+
+--- A notebook whose book is not on this device (B756), shown as it is: the
+--- file by its own path. No editor and no chat about it: both work on a book.
+--- @param kept table a row of Notebook.keptNotebooks()
+function AskGPT:openKeptNotebook(kept)
+  local features = self.settings:readSetting("features") or {}
+  if (features.notebook_viewer or "chatviewer") == "reader" then
+    require("apps/reader/readerui"):showReader(kept.path)
+    return
+  end
+  local content = require("koassistant.chat.notebook").readKept(kept.path)
+  if not content or content == "" then
+    UIManager:show(InfoMessage:new{ text = _("Notebook is empty"), timeout = 2 })
+    return
+  end
+  UIManager:show(require("koassistant.ui.chatgptviewer"):new{
+    title = T(_("Notebook - %1"), kept.title or ""),
+    text = content,
+    simple_view = true,
+    configuration = { features = features },
+    _plugin = self,
+    _ui = self.ui,
+  })
 end
 
 --- Open notebook in ChatGPTViewer simple_view mode

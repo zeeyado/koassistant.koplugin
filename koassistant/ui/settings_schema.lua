@@ -1049,7 +1049,7 @@ local SettingsSchema = {
                             text = _("Preset for New X-Rays"),
                             callback = "showXrayDefaultPresetPicker",
                             keep_menu_open = true,
-                            help_text = _("One tap for the three settings below it: what a new X-Ray tracks, whether it keeps the status block (\"Where things stand\"), and how much each entry carries. Who's who is the shortest and cheapest (the cast, one line each, no status block); Characters only gives the cast a few sentences each; Reference is the default (people, places, ideas and terms); Everything adds the story arc; Light companion and Deep study change the depth as well. Each setting can still be changed on its own; the preset then reads Custom. A book can pick its own preset in Book Settings and a group in its Group Settings. Applies when an X-Ray is created or rebuilt."),
+                            help_text = _("One tap for the three settings below it: the categories a new X-Ray tracks, whether it keeps Current State (the section that says where things stand), and how much each entry carries. Who's who is the shortest and cheapest (the cast, one line each, no Current State); Characters only gives the cast a few sentences each; Reference is the default (people, places, ideas and terms); Everything adds the story arc; Light companion and Deep study change the depth as well. Each setting can still be changed on its own; the preset then reads Custom. A book can pick its own preset in Book Settings and a group in its Group Settings. Applies when an X-Ray is created or rebuilt."),
                         },
                         {
                             id = "xray_default_categories_picker",
@@ -1057,7 +1057,7 @@ local SettingsSchema = {
                             text = _("Categories for New X-Rays"),
                             callback = "showXrayDefaultCategoriesPicker",
                             keep_menu_open = true,
-                            help_text = _("Which category groups a new X-Ray tracks by default. Reference (everything except the timeline) unless changed here; All categories adds the timeline or argument development, Characters only is the lightest. The last checkbox, \"Where things stand\", is the status block (current state, or the conclusion of a whole-book X-Ray): every update rewrites it, so an X-Ray without it has shorter updates. Applies when an X-Ray is created or rebuilt; individual books can pick their own categories in Book Settings."),
+                            help_text = _("Which categories a new X-Ray tracks by default: people, places, ideas and terms unless changed here. The timeline (the story arc or the argument's development) can be added, and people alone is the lightest. The last checkbox, Current State, is the section that says where things stand (Current Position in nonfiction, the Conclusion of a whole-book X-Ray): every update rewrites it, so an X-Ray without it has shorter updates. Applies when an X-Ray is created or rebuilt; individual books can pick their own categories in Book Settings."),
                         },
                         {
                             id = "xray_default_depth_picker",

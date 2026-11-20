@@ -80,7 +80,7 @@ Other ways in: the **Group** row of a book's Book Settings or Book Hub (a **Whic
 A group can hold values for many of the settings a book can, so a series is set up once:
 
 - **Domain**, **Research mode**, **Background** and **Spoiler protection**;
-- under **X-Ray ▸**: **Automatic X-Ray**, **New X-Ray preset**, **New X-Ray categories** (with the status block), **New X-Ray depth**, **New X-Ray type**, **Checkpoint spacing** and **Carried entries**;
+- under **X-Ray ▸**: **Automatic X-Ray**, **New X-Ray preset**, **New X-Ray categories** (with Current State), **New X-Ray depth**, **New X-Ray type**, **Checkpoint spacing** and **Carried entries**;
 - under **Privacy & Data ▸**: **Book text**, **Highlights**, **Annotation notes**, **Notebook** and **Text around what you tap**, each Not set, Allow or Never. A group's Never keeps that kind of every member out of every request, trusted providers included, as a book's own Never does ([Privacy and Data](Privacy-and-Data#group-values));
 - under **Languages ▸**: the AI response language, translation language, dictionary language and book text language.
 
@@ -103,7 +103,7 @@ Carried entries are what the other books of a group know that this book has not 
 - In a series, a book's list comes from the nearest earlier book with an X-Ray, and that book's own carried list comes along with it, so one book passes on everything before it. In a project it comes from every other book with an X-Ray.
 - A book holds a carried list once it has its own main X-Ray. A book whose text is set to Never contributes nothing; a book on Ask is carried too, since carrying sends nothing (see [Privacy and Data](Privacy-and-Data)).
 - An entry this book already has gets what the other book says about it attached as a line naming that book, also at no cost. "Already has" means an entry of the same kind (a person as a person, a place as a place): the earlier book's character "the Warden" is carried even when this book has the term "Warden".
-- A book's timeline (or argument development) and its status block are never carried: they belong to that book.
+- A book's timeline (or argument development) and its Current State are never carried: they belong to that book.
 - When the earlier books name one character differently (a short name in one volume, the full name in the next), the list still shows one row, with the other volume's description as a "From earlier books" line. When two books carry the same entry, each book's text is kept as that book's line.
 - Japanese names that a model wrote with "_" or "-" in place of "・" are read as one name, so one character does not become two entries.
 - An update request lists only the carried names its new text mentions, and an AI merge request only those the other X-Ray mentions, so a long carried list does not make every request bigger.
@@ -162,7 +162,7 @@ An AI merge asks the model to combine two X-Rays. It matches entries by name, al
 ### What is sent and what changes
 
 - One request per book: the two X-Rays are sent, never the books.
-- This book's entries are kept exactly as they are. What the other book knew is attached to each shared entry as a background line naming that book. Entities of the other book that matter for this one can arrive as new entries, and the rest go on this book's carried list. This book's timeline and status block are never touched.
+- This book's entries are kept exactly as they are. What the other book knew is attached to each shared entry as a background line naming that book. Entities of the other book that matter for this one can arrive as new entries, and the rest go on this book's carried list. This book's timeline and Current State are never touched.
 - It brings in everything the other X-Ray covers, later events included. A book that comes later in the series can be merged in; the confirm cautions that its background includes events beyond this book.
 - The receiving X-Ray is archived first, so an AI merge can be undone from **All versions**.
 - Every confirm says how many requests it will send, and whether a book was merged in before. Merging one book again sends both X-Rays again, which is worth it only when one of them has changed. The series and project merges skip the books already merged and up to date (**AI merge new only**), run again the ones whose X-Ray changed, and can run everything again (**Re-run all**, **AI merge all**).

@@ -1402,7 +1402,7 @@ function XrayBrowser.buildLines(entry, academic)
     if not preset then
         lines[#lines + 1] = _("Categories:") .. " " .. BookSettings.xrayCategoriesLabel(entry.xray_categories)
         lines[#lines + 1] = _("Depth:") .. " " .. BookSettings.xrayDepthLabel(entry.xray_depth)
-        lines[#lines + 1] = _("Status block:") .. " " .. (entry.xray_status == "off" and _("Off") or _("On"))
+        lines[#lines + 1] = _("Current State:") .. " " .. (entry.xray_status == "off" and _("Off") or _("On"))
     end
     return lines
 end

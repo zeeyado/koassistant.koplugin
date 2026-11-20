@@ -1350,6 +1350,9 @@ TestRunner:test("xraySmallModelNote: the form names a fast model only where the 
     end
 end)
 
+-- The warning is one line of the form's grey text at an e-reader's width
+local WARN_LINE_MAX = 60
+
 TestRunner:test("xraySmallModelWarning: the form's own call, the model the X-Ray action runs on", function()
     local saved = package.loaded["koassistant.request.run_options"]
     local base = { provider = "anthropic", model = nil }
@@ -1367,12 +1370,14 @@ TestRunner:test("xraySmallModelWarning: the form's own call, the model the X-Ray
     local w = warning(plugin, {}, "checkpoints", nil)
     truthy(w and w.case == "checkpoints" and w.text:find(fast, 1, true) ~= nil,
         "the provider's fast model in checkpoints: a warning that names the model")
-    truthy(w and #w.title <= 30 and w.title:find("checkpoints", 1, true) ~= nil,
-        "its row carries a short title, the sentence is a tap away")
+    truthy(w and #w.line <= WARN_LINE_MAX and w.line:find("^\226\154\160 Fast model and checkpoints") ~= nil,
+        "its grey line is short and starts with the warning sign, the sentence is a tap away: " .. tostring(w and w.line))
+    truthy(w and w.title == nil, "no button title: a warning is a line of the form, not a button among the dials")
     TestRunner:assertEqual(warning(plugin, {}, nil, nil), nil, "in one request at the standing depth: nothing")
     -- a plain update continues its X-Ray's own depth, whatever the standing pick
     w = warning(plugin, {}, nil, { xray_depth = "deep" })
-    truthy(w and w.case == "deep" and w.title:find("Deep", 1, true) ~= nil, "an update of a Deep X-Ray in one request")
+    truthy(w and w.case == "deep" and w.line:find("Deep depth", 1, true) ~= nil and #w.line <= WARN_LINE_MAX,
+        "an update of a Deep X-Ray in one request")
     plugin.settings.readSetting = function() return { xray_default_depth = "deep" } end
     TestRunner:assertEqual(warning(plugin, {}, nil, { xray_depth = "light" }), nil,
         "an update of a Light X-Ray, though new ones would be Deep")
@@ -1390,15 +1395,20 @@ TestRunner:test("xraySmallModelWarning: the form's own call, the model the X-Ray
     local src = fh:read("*a")
     fh:close()
     truthy(src:find('xraySmallModelWarning(self_ref, action, cr.delivery,\n      (mode == "extend" and not pick_rebuild and not force_rebuild) and base_entry or nil)', 1, true) ~= nil,
-        "the creation form builds its warning row from it")
+        "the creation form builds its warning from it")
+    truthy(src:find("text = model_warning.line, face = info_face, width = content_width,\n          fgcolor = Blitbuffer.COLOR_DARK_GRAY,", 1, true) ~= nil,
+        "as grey text of the form")
+    truthy(src:find("TapWarning", 1, true) ~= nil, "that takes a tap")
+    truthy(not src:find("about_row", 1, true) and not src:find('"\226\154\160 " ..', 1, true),
+        "and no button of the dials carries help or a warning")
 end)
 
 -- The form's text budget (the maintainer, 2026-11-20: "too much information,
 -- causing you to have to scroll. explanatory text is too long, must be more
 -- concise"). The form's grey line is one short sentence for the pick plus the
 -- few facts that change a decision; what each way to build gives is behind
--- the "About these choices" row. A sentence added to the hint has to fit
--- these numbers or go into the About text.
+-- the info icon in the form's title bar. A sentence added to the hint has to
+-- fit these numbers or go into the About text.
 local HINT_SENTENCE_MAX = 90     -- one line and a third of the form at an e-reader's width
 local HINT_COMMON_MAX = 200      -- three lines: the cases a reader meets on a first build
 local HINT_WORST_MAX = 330       -- five lines: every note at once
@@ -1467,13 +1477,47 @@ TestRunner:test("xrayFormAbout: what left the form is said once, in full", funct
         truthy(about:find(words, 1, true) ~= nil, "it covers: " .. words)
     end
     truthy(not about:find("\226\128\148", 1, true), "no em dash")
+    truthy(not about:find("rebuild makes", 1, true), "a first build's text says nothing of a rebuild")
     -- the form reads both from this module: no sentence of the old hint is left in main.lua
     local fh = assert(io.open("main.lua", "r"))
     local src = fh:read("*a")
     fh:close()
     truthy(src:find("BookSettings.xrayFormHint({", 1, true) ~= nil, "the form's hint is xrayFormHint's")
-    truthy(src:find("BookSettings.xrayFormAbout()", 1, true) ~= nil, "and its info row shows xrayFormAbout's")
+    truthy(src:find('left_icon = "info",\n      left_icon_tap_callback = function()\n        UIManager:show(InfoMessage:new{ text = BookSettings.xrayFormAbout(about_ctx) })',
+        1, true) ~= nil, "and the info icon of its title bar shows xrayFormAbout's")
     truthy(not src:find("bounded background steps", 1, true), "the long sentences left the form's source")
+end)
+
+TestRunner:test("xrayFormAbout: a rebuild's form says first what a rebuild does to the X-Ray that is there", function()
+    local about = BookSettings.xrayFormAbout
+    local plain = about()
+    -- the reader picked Rebuild: what the X-Ray covers, then the promise
+    local forced = about({ rebuild = "forced", covers_pct = 34, archived = true })
+    truthy(forced:find("^Your X%-Ray covers to 34%%%. A rebuild makes a new one from scratch%.") ~= nil, "it opens with the X-Ray's own state: " .. forced:sub(1, 90))
+    truthy(forced:find("kept until the new one is saved, then archived under \"All versions\"", 1, true) ~= nil,
+        "the current one is kept until the new one is saved, then archived")
+    TestRunner:assertEqual(forced:sub(-#plain), plain, "what each way to build gives follows, unchanged")
+    -- version archiving off: the outgoing X-Ray will be gone, and the text says so
+    local gone = about({ rebuild = "forced", covers_pct = 34, archived = false })
+    truthy(gone:find("version archiving is off, so it will be gone", 1, true) ~= nil and not gone:find("All versions", 1, true),
+        "with archiving off it never promises an archive")
+    truthy(gone:find("kept until the new one is saved", 1, true) ~= nil, "it is still kept until the new one is saved")
+    -- an X-Ray that cannot be extended: why, in a sentence of its own per reason
+    local seen = {}
+    for _i, why in ipairs({ "whole", "ai_knowledge", "older" }) do
+        local text = about({ rebuild = why, archived = true })
+        local first = text:match("^(.-cannot be extended%.)")
+        truthy(first ~= nil, why .. ": it says why the X-Ray cannot be extended: " .. text:sub(1, 80))
+        truthy(first and not seen[first], why .. ": in its own words")
+        if first then seen[first] = true end
+        truthy(text:find("A rebuild makes a new one from scratch.", 1, true) ~= nil, why .. ": then what a rebuild does")
+    end
+    -- the form's source: no grey line above a rebuild's rows any more
+    local fh = assert(io.open("main.lua", "r"))
+    local src = fh:read("*a")
+    fh:close()
+    truthy(not src:find("Building here replaces it", 1, true), "the rebuild's state lines left the form")
+    truthy(src:find('if mode == "extend" and not force_rebuild then', 1, true) ~= nil, "the state line is an update's alone")
 end)
 
 TestRunner:test("xrayCheckpointNote: the creation form's sentence follows the installs' own rule (B717)", function()
@@ -1801,8 +1845,31 @@ TestRunner:test("on by default; off and on at either layer; a book's on beats a 
     TestRunner:assertEqual(s, "off", "book off"); TestRunner:assertEqual(layer, "book", "layer")
     s = BookSettings.resolveXrayStatus(makeDocSettings({ [BookSettings.KEY_XRAY_STATUS] = "junk" }), { xray_default_status = 7 })
     TestRunner:assertEqual(s, nil, "junk on both layers is on")
-    TestRunner:assertEqual(BookSettings.xrayTrackLabel("people", "off"), "Characters only, no status block", "label")
-    TestRunner:assertEqual(BookSettings.xrayTrackLabel("people", nil), "Characters only", "label, status on")
+    -- the reader's name for the section is the browser's own row, Current State (B757)
+    TestRunner:assertEqual(BookSettings.xrayTrackLabel("people", "off"), "People, no Current State", "label")
+    TestRunner:assertEqual(BookSettings.xrayTrackLabel("people", nil), "People", "label, status on")
+    -- the categories label lists what is ticked and never borrows a preset's name (B757)
+    local label = BookSettings.xrayCategoriesLabel
+    TestRunner:assertEqual(label("people,places,ideas,terms"), "People, Places, Ideas, Terms", "the default four, by name")
+    TestRunner:assertEqual(label("people,events"), "People, Timeline", "two, by name")
+    TestRunner:assertEqual(label(nil), "All categories", "all five")
+    TestRunner:assertEqual(label("full"), "All categories", "the explicit sentinel too")
+    -- a button's label: three or more are counted, so it fits half a row
+    TestRunner:assertEqual(label("people,places,ideas,terms", true), "4 of 5", "a button counts four")
+    TestRunner:assertEqual(label("people,events", true), "People, Timeline", "and still names two")
+    TestRunner:assertEqual(label(nil, true), "All", "all five on a button")
+    TestRunner:assertEqual(BookSettings.xrayTrackLabel("people,places,ideas", "off", true), "3 of 5, no Current State",
+        "the Custom preset's words on the form's button")
+    for _i, p in ipairs(BookSettings.XRAY_PRESETS) do
+        for _j, value in ipairs({ p.categories, nil }) do
+            for _k, short in ipairs({ false, true }) do
+                TestRunner:assertEqual(label(value, short) ~= p.label, true,
+                    "no categories label is the preset name " .. p.label)
+            end
+        end
+        TestRunner:assertEqual(p.desc:find("status block", 1, true), nil,
+            p.label .. ": its row says Current State, not status block")
+    end
     local group_keys = {}
     for _i, key in ipairs(require("koassistant.books.group_settings").keys()) do group_keys[key] = true end
     TestRunner:assertEqual(group_keys[BookSettings.KEY_XRAY_STATUS], true, "a group can set it")
@@ -1975,14 +2042,14 @@ TestRunner:test("the categories picker is one checkbox per category plus the sta
     presetTrue(not all:find("Category sets", 1, true), "no sets header")
     presetTrue(not all:find("Characters and story", 1, true), "no set rows")
     presetTrue(not all:find("Pick one by one", 1, true), "no second header")
-    TestRunner:assertEqual(checks, 6, "five categories and Where things stand")
+    TestRunner:assertEqual(checks, 6, "five categories and Current State")
     TestRunner:assertEqual(#captured.buttons, 9, "layer tabs, Follow global, six checkboxes, Done")
-    presetTrue(texts[2]:find("\u{25CF} Follow global (Reference)", 1, true) ~= nil,
+    presetTrue(texts[2]:find("\u{25CF} Follow global (People, Places, Ideas, Terms)", 1, true) ~= nil,
         "a book with no pick of its own follows global: " .. texts[2])
     -- A checkbox still writes the book's own pick: Reference plus the timeline is all five
     tapRow(captured, "Timeline")
     TestRunner:assertEqual(ds._data[BookSettings.KEY_XRAY_CATEGORIES], "full", "all five checked = the explicit sentinel")
-    tapRow(captured, "Where things stand")
+    tapRow(captured, "Current State")
     TestRunner:assertEqual(ds._data[BookSettings.KEY_XRAY_STATUS], "off", "the status block is its own key")
 end)
 

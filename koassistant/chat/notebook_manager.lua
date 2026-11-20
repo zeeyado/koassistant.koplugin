@@ -20,6 +20,7 @@ local UIManager = require("ui/uimanager")
 local logger = require("koassistant.core.logger")
 local Constants = require("koassistant.core.constants")
 local _ = require("koassistant.core.gettext")
+local T = require("ffi/util").template
 
 local NotebookManager = {}
 
@@ -66,6 +67,19 @@ function NotebookManager:showNotebookBrowser(opts)
         end
     end
 
+    -- The notebooks whose book is not on this device (B756): a deleted book's
+    -- notebook is kept, and it is listed here so it can be read or deleted
+    for _idx, kept in ipairs(Notebook.keptNotebooks()) do
+        table.insert(docs, {
+            kept = kept,
+            path = kept.book_path,
+            title = kept.title,
+            author = kept.author,
+            modified = kept.modified or 0,
+            size = kept.size or 0,
+        })
+    end
+
     -- Persist cleanup if needed
     if needs_cleanup then
         G_reader_settings:saveSetting("koassistant_notebook_index", index)
@@ -75,6 +89,12 @@ function NotebookManager:showNotebookBrowser(opts)
 
     -- Handle empty state
     if #docs == 0 then
+        -- The list on screen held the notebook that was just deleted: close it
+        -- (it stayed open under this message, its last row leading nowhere)
+        if self.current_menu then
+            UIManager:close(self.current_menu)
+            self.current_menu = nil
+        end
         UIManager:show(InfoMessage:new{
             text = _("No notebooks yet.\n\nUse the Notebook button in chat viewer to save conversations to a per-book notebook."),
             timeout = 5,
@@ -98,6 +118,9 @@ function NotebookManager:showNotebookBrowser(opts)
         if doc.author and doc.author ~= "" then
             display_text = display_text .. " \u{00B7} " .. doc.author
         end
+        if doc.kept then
+            display_text = T(_("%1 (book not on this device)"), display_text)
+        end
         display_text = Constants.getEmojiText("\u{1F4D3}", display_text, enable_emoji)
 
         table.insert(menu_items, {
@@ -106,7 +129,11 @@ function NotebookManager:showNotebookBrowser(opts)
             mandatory_dim = true,
             help_text = doc.path,
             callback = function()
-                self_ref:showNotebookOptions(captured_doc.path, captured_doc.title)
+                if captured_doc.kept then
+                    self_ref:showKeptNotebookOptions(captured_doc.kept, opts)
+                else
+                    self_ref:showNotebookOptions(captured_doc.path, captured_doc.title)
+                end
             end,
         })
     end
@@ -236,6 +263,61 @@ function NotebookManager:showNotebookOptions(doc_path, doc_title)
                                 end
                                 -- Refresh view (re-show browser)
                                 self_ref:showNotebookBrowser()
+                            end,
+                        })
+                    end,
+                },
+            },
+            {
+                {
+                    text = _("Cancel"),
+                    callback = function()
+                        UIManager:close(dialog)
+                    end,
+                },
+            },
+        },
+    }
+    self._current_options_dialog = dialog
+    UIManager:show(dialog)
+end
+
+--- Options for a notebook whose book is not on this device (B756): read it or
+--- delete it. Nothing here works on a book: there is none.
+--- @param kept table a row of Notebook.keptNotebooks()
+--- @param opts table|nil the browser's options, for its refresh
+function NotebookManager:showKeptNotebookOptions(kept, opts)
+    local self_ref = self
+    if self._current_options_dialog then
+        UIManager:close(self._current_options_dialog)
+        self._current_options_dialog = nil
+    end
+    local dialog
+    dialog = ButtonDialog:new{
+        title = T(_("%1\nThe book is not on this device. Its notebook was kept."), kept.title or ""),
+        buttons = {
+            {
+                {
+                    text = _("View"),
+                    callback = function()
+                        UIManager:close(dialog)
+                        local AskGPT = self_ref:getAskGPTInstance()
+                        if AskGPT then AskGPT:openKeptNotebook(kept) end
+                    end,
+                },
+                {
+                    text = _("Delete Notebook"),
+                    callback = function()
+                        UIManager:close(dialog)
+                        UIManager:show(ConfirmBox:new{
+                            text = _("Delete this notebook?\n\nThis cannot be undone."),
+                            ok_text = _("Delete"),
+                            ok_callback = function()
+                                local ok, err = os.remove(kept.path)
+                                if ok == nil and err then
+                                    logger.warn("KOAssistant Notebook: Failed to delete:", err)
+                                end
+                                self_ref:showNotebookBrowser(opts)
                             end,
                         })
                     end,

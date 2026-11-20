@@ -750,10 +750,10 @@ TestRunner:test("Info names the preset an X-Ray was built with, or Custom with i
     TestRunner:assertEqual(lines({}), "Preset: Everything",
         "an entry from before the dials carries no stamp: all categories, standard, the status block on")
     TestRunner:assertEqual(lines({ xray_categories = "people,places,ideas,terms", xray_depth = "deep" }),
-        "Preset: Custom | Categories: Reference | Depth: Deep | Status block: On",
+        "Preset: Custom | Categories: People, Places, Ideas, Terms | Depth: Deep | Current State: On",
         "dials that match no preset are listed themselves")
     TestRunner:assertEqual(lines({ xray_categories = "people,places", xray_status = "off" }),
-        "Preset: Custom | Categories: 2 of 5 | Depth: Standard | Status block: Off", "with the status block off")
+        "Preset: Custom | Categories: People, Places | Depth: Standard | Current State: Off", "with Current State off")
     TestRunner:assertEqual(lines({ xray_categories = "people" }, true), "", "the research track takes no dials: no lines")
     TestRunner:assertEqual(lines(nil), "", "no saved entry, no lines")
 end)

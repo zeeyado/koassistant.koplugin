@@ -72,9 +72,9 @@ Without an X-Ray, the popup shows **Create X-Ray…**, the Section X-Rays group,
 - **In checkpoints, now (N background steps)**: a set of [checkpoints](#checkpoints) built in bounded background steps while you keep reading.
 - **In checkpoints, as I read (automatic)**: turns [Automatic X-Ray](#automatic-x-ray) on for this book, which builds the checkpoints as you read. Offered for the whole book and for a section end; "up to my current position" is a snapshot, built now.
 
-A gray line under the picks says in a sentence what the chosen build does. Under either checkpoint row it also says what you will be shown: both rows build the same versions, and the book's [spoiler protection](Spoiler-Protection) decides which one you see. With protection on, each checkpoint appears when you reach it; with protection off for the book, the newest checkpoint is shown as soon as it is built, even ahead of you (unless the book's X-Ray updates are set to follow your position). Under the line, **ⓘ About these choices** opens the longer explanation of every way to build. A **⚠ Fast model…** button appears beside it when the model the X-Ray runs on is its provider's fast one and you pick checkpoints or Deep depth: tap it for what that means (see [Which way to build](#checkpoints)). The form starts on the whole book. For a long flowing book (four or more checkpoint steps) it also starts on checkpoints: **In checkpoints, as I read** while spoiler protection is on, **In checkpoints, now** while it is off. Shorter books start on one request. The background and checkpoint rows need a flowing book such as an EPUB; page-based documents (PDF, DjVu) are built in one request.
+A gray line under the picks says in a sentence what the chosen build does. Under either checkpoint row it also says what you will be shown: both rows build the same versions, and the book's [spoiler protection](Spoiler-Protection) decides which one you see. With protection on, each checkpoint appears when you reach it; with protection off for the book, the newest checkpoint is shown as soon as it is built, even ahead of you (unless the book's X-Ray updates are set to follow your position). The **ⓘ** in the form's title bar opens the longer explanation of every way to build; in a rebuild it starts with what a rebuild does to the X-Ray that is there (it is kept until the new one is saved). A gray line **⚠ Fast model…** appears under the sentence when the model the X-Ray runs on is its provider's fast one and you pick checkpoints or Deep depth: tap it for what that means (see [Which way to build](#checkpoints)). The form starts on the whole book. For a long flowing book (four or more checkpoint steps) it also starts on checkpoints: **In checkpoints, as I read** while spoiler protection is on, **In checkpoints, now** while it is off. Shorter books start on one request. The background and checkpoint rows need a flowing book such as an EPUB; page-based documents (PDF, DjVu) are built in one request.
 
-Below the picks sit the settings for a new X-Ray: a **Preset** button, then four buttons that each name a setting and show its pick, two to a row: **Spacing: every 10% ▾**, **Categories: Reference ▾**, **Depth: Standard ▾** and **Type: Auto ▾**. Each opens its picker, and a pick made here is saved for this book. Spacing applies to checkpoint builds. Preset, categories, depth and type apply when the pick starts a new X-Ray or rebuilds one; on a plain extend they are grayed and show what the X-Ray was built with, because an extend keeps them. [What an X-Ray tracks](#what-an-x-ray-tracks) explains each one.
+Below the picks sit the settings for a new X-Ray: a **Preset** button, then four buttons that each name a setting and show its pick, two to a row: **Spacing: every 10% ▾**, **Categories: 4 of 5 ▾**, **Depth: Standard ▾** and **Type: Auto ▾**. Each opens its picker, and a pick made here is saved for this book. Spacing applies to checkpoint builds. Preset, categories, depth and type apply when the pick starts a new X-Ray or rebuilds one; on a plain extend they are grayed and show what the X-Ray was built with, because an extend keeps them. [What an X-Ray tracks](#what-an-x-ray-tracks) explains each one.
 
 Finish with **Create** (it reads **Extend** or **Rebuild** when that is what the pick does). On a small or landscape screen the form scrolls between its title and the **Cancel** / **Create** row, which stay in view.
 
@@ -89,17 +89,17 @@ A new X-Ray is built on one of two tracks.
 - **Incremental** (the default). Spoiler-free: it extracts text only up to your reading position, and ends with a **Current State** (fiction) or **Current Position** (nonfiction) section: active conflicts, open questions, momentum. It updates as you read further: only the new text is sent, and the AI's additions are merged into the existing X-Ray. Updates are fast and cheap (about 200-500 output tokens, against 2,000-4,000 for a full regeneration). **Extend…** → **The whole book** takes it to the end of the book with the same spoiler-free prompt. It is the only track with [checkpoints](#checkpoints) and [Automatic X-Ray](#automatic-x-ray).
 - **Complete** (entire document). Holistic: it extracts and analyzes the whole document in one pass, and ends with a **Conclusion** section (resolutions and themes for fiction; key findings and implications for nonfiction). It always generates fresh: no incremental updates, no merging. Best for articles, research papers, short works, or finished books where spoiler-free scoping isn't needed. Build it with **Create X-Ray…** → **The whole book** → **In one request now**. **In one request, in background** on the same coverage builds the incremental track at full coverage instead.
 
-Both tracks use the same browser, the same structure for the categories they share and the same privacy gates; only the final status section differs (an X-Ray built without [Where things stand](#where-things-stand) has none). An X-Ray is never converted from one track to the other. To switch, rebuild it with the other pick (**Rebuild…**, or **Rebuild X-Ray…** on a complete X-Ray): the new one replaces it once saved, and the old one is archived. Deleting the X-Ray and creating a new one works too.
+Both tracks use the same browser, the same structure for the categories they share and the same privacy gates; only that final section differs (an X-Ray built without [Current State](#current-state) has none). An X-Ray is never converted from one track to the other. To switch, rebuild it with the other pick (**Rebuild…**, or **Rebuild X-Ray…** on a complete X-Ray): the new one replaces it once saved, and the old one is archived. Deleting the X-Ray and creating a new one works too.
 
 **Spoiler safety.** The incremental track sends text only up to your position (`{book_text_section}`); the whole-book one-request build sends the full document (`{full_document_section}`). Marking a book finished in KOReader stands [spoiler protection](Spoiler-Protection) down for that book (checkpoint installs and chat reminders stop following your position), but it does not change text extraction: an incremental X-Ray still extracts up to your actual page, not 100%, so you can jump back into a finished book and get an X-Ray up to that point. For a full analysis of a finished book, build the complete track: **The whole book** → **In one request now** (from **Rebuild…** if the book already has an X-Ray). For a spoiler-free custom action, use `{book_text_section}` instead of `{full_document_section}` (see [Template Variables](Template-Variables)).
 
 ## What an X-Ray tracks
 
-Four settings shape a new X-Ray: its **categories**, the **Where things stand** status block, its **depth** and its **type**. **Presets** set the first three in one tap. They apply when an X-Ray or a section X-Ray is created and when an X-Ray is rebuilt; checkpoints, updates and a plain extend keep what the X-Ray was built with.
+Four settings shape a new X-Ray: its **categories**, whether it keeps **Current State**, its **depth** and its **type**. **Presets** set the first three in one tap. They apply when an X-Ray or a section X-Ray is created and when an X-Ray is rebuilt; checkpoints, updates and a plain extend keep what the X-Ray was built with.
 
 ### Categories
 
-The categories picker has one checkbox per category, plus **Where things stand**. Each checkbox becomes the matching category of the X-Ray's type:
+The categories picker has one checkbox per category, plus **Current State**. Each checkbox becomes the matching category of the X-Ray's type:
 
 | Checkbox | Fiction | Nonfiction |
 |---|---|---|
@@ -109,11 +109,11 @@ The categories picker has one checkbox per category, plus **Where things stand**
 | Terms & vocabulary | Lexicon | Terminology |
 | Timeline & development | Story Arc | Argument Development |
 
-The default is **Reference**: everything except the timeline. The timeline is the single heaviest block of an X-Ray, so leaving it out is much cheaper on a long novel. At least one category must stay checked. The ready-made combinations are the [presets](#presets).
+The default is everything except the timeline (People, Places, Ideas, Terms). The timeline is the single heaviest block of an X-Ray, so leaving it out is much cheaper on a long novel. At least one category must stay checked. A button or row that shows this setting lists what is ticked (**Categories: People, Timeline**), or counts it where room is short (**Categories: 4 of 5**); it never shows a preset's name. The ready-made combinations are the [presets](#presets).
 
-### Where things stand
+### Current State
 
-The picker's last checkbox, **Where things stand**, is the status block: Current State or Current Position, or the Conclusion of a whole-book X-Ray. It is on by default. Every update rewrites it, so an X-Ray built without it has shorter updates, and an update that finds nothing new in its text leaves the X-Ray as it is. An existing X-Ray keeps what it was built with.
+The picker's last checkbox, **Current State**, is the section that says where things stand: Current State in fiction, Current Position in nonfiction, or the Conclusion of a whole-book X-Ray. It is on by default. Every update rewrites it, so an X-Ray built without it has shorter updates, and an update that finds nothing new in its text leaves the X-Ray as it is. An existing X-Ray keeps what it was built with.
 
 ### Depth
 
@@ -125,13 +125,13 @@ The picker's last checkbox, **Where things stand**, is the status block: Current
 
 - **Auto** (the default): the AI decides whether the work is fiction or nonfiction. It judges the work itself (a title and author it knows, otherwise the main text), never an editor's or translator's introduction, a chronology, or other front matter by someone other than the author.
 - **Fiction** (characters, places, story) or **Nonfiction** (people, concepts, argument): only that schema is sent, so the request is smaller.
-- **Academic** (concepts, methods, findings, cited works): the research template, which [Research Mode](Research-Mode) also picks when it is active for the book (for example after detecting a DOI). The academic template always tracks its own full set; the categories, depth and status block shape fiction and nonfiction X-Rays.
+- **Academic** (concepts, methods, findings, cited works): the research template, which [Research Mode](Research-Mode) also picks when it is active for the book (for example after detecting a DOI). The academic template always tracks its own full set; the categories, the depth and Current State shape fiction and nonfiction X-Rays.
 
 New X-Rays also see the table of contents of the text they receive. A very small model can still be misled when the first checkpoint ends inside an introduction: set the book's type and rebuild. Picking a type that the book's X-Ray does not have offers that rebuild (**Rebuild…** or **Not now**). Updates always keep an X-Ray's own type.
 
 ### Presets
 
-| Preset | Tracks | Where things stand | Depth |
+| Preset | Tracks | Current State | Depth |
 |---|---|---|---|
 | **Who's who** | the cast alone, one line each (the shortest and cheapest) | off | Light |
 | **Characters only** | the cast alone, a few sentences each | off | Standard |
@@ -246,7 +246,7 @@ The X-Ray browser's ☰ menu holds:
 - **Link and merge…**: the same group as in the X-Ray popup, here whether or not the book is in a group.
 - **→ Group**, in a book group: the group's books; tap one to switch to its X-Ray, at the same entry when it has one.
 - **Carried entries: …**, when the book has carried entries: whether they also show inside the categories.
-- **Info**: model, progress, date, type, what it was built with (the preset, or Custom with its categories, depth and status block), source, whether reasoning or web search was used, merges and the books background came from, how many checkpoints exist and which one is installed.
+- **Info**: model, progress, date, type, what it was built with (the preset, or Custom with its categories, depth and Current State), source, whether reasoning or web search was used, merges and the books background came from, how many checkpoints exist and which one is installed.
 - **Open Book**, when the X-Ray was opened from the file browser.
 
 A version you are viewing gets **Install or delete this version…** (**Install or delete this checkpoint…** for a checkpoint) and **Other versions…** instead. A section X-Ray's menu has **Delete Section X-Ray** and **Info**.
@@ -346,7 +346,7 @@ A confirmation names the plan (how many checkpoints, where) and the number of re
 | Requests | one, as large as the text | one small request per step |
 | Price | the lowest | about three times as much |
 
-**With a small or fast model.** The same two novels on the cheapest Claude model, one build each (a tendency, not a law). In checkpoints it confused people who share a name: in the novel with a mother and a daughter of one name, one of them took over the other's entry at two of the three presets tried. A people-only X-Ray at Light depth cost a half to two thirds of the default and was shorter, not more accurate. In one request the same model kept that cast apart. So with a small model, build in one request when the book fits. The creation form shows a **⚠ Fast model…** button when the model in use is its provider's fast one and you pick checkpoints or Deep depth. For a short, cheap X-Ray, the **Who's who** preset is the one to pick: it is smaller, not safer.
+**With a small or fast model.** The same two novels on the cheapest Claude model, one build each (a tendency, not a law). In checkpoints it confused people who share a name: in the novel with a mother and a daughter of one name, one of them took over the other's entry at two of the three presets tried. A people-only X-Ray at Light depth cost a half to two thirds of the default and was shorter, not more accurate. In one request the same model kept that cast apart. So with a small model, build in one request when the book fits. The creation form shows a gray **⚠ Fast model…** line when the model in use is its provider's fast one and you pick checkpoints or Deep depth; a tap on it says why. For a short, cheap X-Ray, the **Who's who** preset is the one to pick: it is smaller, not safer.
 
 **This part is still changing.** Today a version for every position needs checkpoints, and how a checkpoint step brings the entries up to date (the table's second row) is being reworked for a later release. If an X-Ray of yours comes out wrong (two people in one entry, an entry that describes someone else, a description that no longer says who the person is), a report with the model, the way it was built and the entry helps: see [Contributing](Contributing).
 
@@ -417,7 +417,7 @@ Section X-Rays are focused X-Rays of one chapter, part or section, chosen from t
 1. In the X-Ray popup, open **Section X-Rays…** → **Generate Section X-Ray…**.
 2. Pick the section in the table of contents tree.
 3. Name it if you like (**Section X-Ray Name**; the name defaults to the table of contents title, 80 characters at most) and tap **Generate**. A name already in use offers to replace that section X-Ray.
-4. Only the text of that page range is sent. The result is a complete X-Ray, built with the book's X-Ray categories, depth, type and status block, as a new X-Ray would be (Book Settings → X-Ray, or the defaults in Settings).
+4. Only the text of that page range is sent. The result is a complete X-Ray, built with the book's X-Ray categories, depth, type and Current State setting, as a new X-Ray would be (Book Settings → X-Ray, or the defaults in Settings).
 
 **Section ranges.** **Generate for a section range…** (in the same group) asks for the first and the last section, in either order, and builds one section X-Ray spanning everything between them (chapters 3 to 7 as one, for example). The name defaults to "First – Last". That is one request, instead of building each chapter and merging them.
 
@@ -472,7 +472,7 @@ This works for EPUB and PDF. The hidden content is simply invisible to KOAssista
 
 - **Output size.** An X-Ray is large structured output (often 10K to 30K+ tokens), and the action asks for up to 64K output tokens to avoid truncation. It is a demanding task: weaker models struggle to follow the format, and when they manage it, the content is weaker. Models with low output caps (some Groq models stop at 8K) give shorter, possibly cut-off X-Rays. Use larger models with higher output limits for the best results.
 - **A model for X-Ray only.** In Settings → Actions & Prompts → Manage Actions, hold **X-Ray**, tap **Edit Settings**, and set **Provider** and **Model**. Your global model stays for everything else: for example a fast model as your global default for lookups and chat, and a more capable one for X-Ray. You can also switch your global model for one run and back, or [run it once with another model](#the-creation-form). See [Actions and Menus](Actions-and-Menus).
-- **Cheaper X-Rays.** In one request the book's own text is nearly all of the bill, so a smaller X-Ray saves little there (a few percent); the model is the lever. In checkpoints the size counts: the Who's who preset cost a half to two thirds of the default in our runs. Also: leaving the timeline out (the default); Where things stand off (shorter updates); a set type (a smaller request than Auto).
+- **Cheaper X-Rays.** In one request the book's own text is nearly all of the bill, so a smaller X-Ray saves little there (a few percent); the model is the lever. In checkpoints the size counts: the Who's who preset cost a half to two thirds of the default in our runs. Also: leaving the timeline out (the default); Current State off (shorter updates); a set type (a smaller request than Auto).
 - **Start early.** Updates send only new text, so an X-Ray started at 10% and updated as you read keeps each request small; starting at 80% of a long novel sends the whole 80% at once. A one-request build of a long book is large: the large-extraction warning (over 500K characters) and the truncation warning appear before such a request is sent (see [Artifacts and Caching](Artifacts-and-Caching)).
 - **Checkpoints** read the book once in total plus a fixed overhead per checkpoint: somewhat more than one full run, in small requests. Skipped front-matter steps are still requests.
 - **Automatic X-Ray** spends without a per-request tap once a book's first build is confirmed.
