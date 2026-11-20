@@ -169,7 +169,9 @@ function InputDialogStub:new(o)
     o._input_widget = (o.inputtext_class or InputTextStub):new{ parent = o, width = 500, height = 400 }
     -- KOReader's Widget:new calls init; the stub classes do not (InputTextStub has none)
     if o._input_widget.init then o._input_widget:init() end
-    o.title_bar = { init = function() end }
+    -- setTitle is KOReader's TitleBar:setTitle: the title's moving dots go through it
+    o.title_bar = { init = function() end,
+        setTitle = function(bar, title) bar.titles = bar.titles or {}; bar.titles[#bar.titles + 1] = title end }
     last_dialog = o
     return o
 end
@@ -740,6 +742,60 @@ TestRunner:test("before the first words the waiting dots stand alone; the pause 
     for _idx, t in ipairs(shown) do
         TestRunner:assertTrue(not t:find("^\n\n"), "no pause dots before any word: " .. t)
     end
+end)
+
+-- A window that does not follow (the default) shows a page that stands still
+-- while the answer grows under it, and the pause dots stand after the text,
+-- off that page. The title's dots are the one thing that moves whatever the
+-- page shows: from the first words to the end, at the waiting pace.
+local function titlesDuring(segments, extra)
+    local ok, content = runStream(segments, extra)
+    return (last_dialog and last_dialog.title_bar.titles) or {}, ok, content
+end
+
+TestRunner:test("the title's dots move from the first words to the end", function()
+    local titles, ok, content = titlesDuring({ { text = chunk("First words."), delay = 0 },
+        { text = chunk(" More words."), delay = 12 }, { text = FINISH, delay = 1 } },
+        { request_title = "Explain" })
+    TestRunner:assertTrue(ok, "stream completed")
+    TestRunner:assertEqual(content, "First words. More words.", "the answer carries no dots")
+    TestRunner:assertTrue(#titles >= 3, "the title was set at several ticks: " .. #titles)
+    local frames, seen = {}, {}
+    for _f, frame in ipairs(require("koassistant.ui.waiting").FRAMES) do frames["Explain " .. frame] = true end
+    for _idx, t in ipairs(titles) do
+        TestRunner:assertTrue(frames[t] == true, "a title is the request's title and one waiting frame: " .. t)
+        seen[t] = true
+    end
+    local distinct = 0
+    for _t in pairs(seen) do distinct = distinct + 1 end
+    TestRunner:assertTrue(distinct >= 2, "the title changed: " .. table.concat(titles, " | "))
+end)
+
+TestRunner:test("the title stands still before the first words", function()
+    -- While the window shows only its waiting dots, that line is what moves
+    local saved_set = InputTextStub.setText
+    local waiting_ticks, set_while_waiting = 0, 0
+    InputTextStub.setText = function(_self, text)
+        if text:find("^%.+$") then
+            waiting_ticks = waiting_ticks + 1
+            set_while_waiting = math.max(set_while_waiting, #((last_dialog and last_dialog.title_bar.titles) or {}))
+        end
+    end
+    local titles = titlesDuring({ { text = chunk("Late."), delay = 10 }, { text = FINISH, delay = 6 } })
+    InputTextStub.setText = saved_set
+    TestRunner:assertTrue(waiting_ticks >= 2, "the waiting dots ticked: " .. waiting_ticks)
+    TestRunner:assertEqual(set_while_waiting, 0, "no title was set while the window showed only its waiting dots")
+    TestRunner:assertTrue(#titles >= 1, "and the dots moved once the words were there: " .. #titles)
+    TestRunner:assertTrue(titles[1]:find("^AI is responding %.+$") ~= nil,
+        "a request without a title keeps the window's own: " .. tostring(titles[1]))
+end)
+
+TestRunner:test("a hidden stream's title stands still: its own line moves", function()
+    local titles, ok = titlesDuring({ { text = chunk("Question one."), delay = 0 },
+        { text = chunk(" Question two."), delay = 8 }, { text = FINISH, delay = 1 } },
+        { hidden_streaming = true })
+    TestRunner:assertTrue(ok, "stream completed")
+    TestRunner:assertEqual(#titles, 0, "no title was set: " .. table.concat(titles, " | "))
 end)
 
 for _idx, k in ipairs(SAVED_KEYS) do package.loaded[k] = saved[k] end

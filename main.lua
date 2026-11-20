@@ -12112,84 +12112,35 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
     }
     table.insert(vgroup, del_table)
 
-    -- Gray hint under the Build group — every pick explains itself up front
-    -- (round 22, §25(f); previously only the follow pick had one)
-    local hint
-    -- Item 50(c): the forward story every extendable one-request pick carries
-    local later_line = _("You can update it manually anytime, or turn on automatic updates later; both build on top of what you have.")
-    if cr.delivery == "follow" and followIdle() then
-      hint = _("Automatic building is on and caught up. The next checkpoint builds by itself as you read on.")
-    elseif cr.delivery == "follow" then
-      hint = _("Builds checkpoints in the background as you read, keeping the next one ready ahead of you. Missing checkpoints up to your position build right away.")
-      if cr.coverage == "whole" then
-        hint = hint .. " " .. _("Coverage reaches 100% when you finish the book.")
-      elseif cr.coverage == "target" and cr.target_label then
-        hint = hint .. " " .. T(_("It stops at the end of \"%1\"."), cr.target_label)
-      end
-    elseif cr.delivery == "checkpoints" then
-      -- Item 33(1): checkpoints are a quality/size mechanism first, spoiler
-      -- safety second — the copy names both, in that order. Item 50(b): the
-      -- INDIVIDUAL-requests-stay-small fact, plainly (the total text read is
-      -- the same; only each request shrinks).
-      hint = (mode == "extend" and not pick_rebuild)
-        and _("Continues from your current coverage in bounded background steps, each a spoiler-safe version. Keep reading, cancel anytime, resume later.")
-        or _("Covers the range in bounded background steps, each a spoiler-safe version up to its position. A usable X-Ray installs after the first step; keep reading, cancel anytime, resume later. It finds more of the minor names and hard words than a single request, for several times the requests.")
-    elseif cr.delivery == "one_bg" then
-      hint = _("The same single request in the background; a notification arrives when it is ready. The book must stay open.")
-      if cr.coverage ~= "whole" then
-        hint = hint .. " " .. later_line
-      end
-    elseif mode == "extend" and not pick_rebuild then
-      if cr.coverage == "whole" then
-        hint = _("Updates your existing X-Ray to 100% in a single request.")
-      elseif cr.coverage == "position" then
-        hint = _("Updates your existing X-Ray up to your position in a single request.")
-          .. " " .. later_line
-      else
-        hint = _("Updates your existing X-Ray to the end of the chosen section in one background request; a notification arrives when it is ready.")
-      end
-    elseif cr.coverage == "whole" then
-      hint = _("Analyzes the whole book in a single request, shown as it streams in: the cheapest way, and every entry is written with the whole story in view. Large for long books, no spoiler-safe intermediate versions.")
-    elseif cr.coverage == "position" then
-      hint = _("Reads the book up to your position in a single request, shown as it streams in.")
-        .. " " .. later_line
-    else
-      hint = _("Reads the book up to the end of the chosen section in one background request; a notification arrives when it is ready.")
-        .. " " .. later_line
-    end
-    -- The two checkpoint rows build the same versions whatever the book's
-    -- spoiler protection; which one the reader is SHOWN depends on it. The
-    -- hint says which case this book is in (B717).
-    if cr.delivery == "follow" or cr.delivery == "checkpoints" then
-      hint = hint .. " " .. (require("koassistant.books.book_settings").xrayCheckpointNote(
-        self_ref.ui.doc_settings, self_ref.settings:readSetting("features") or {}))
-    end
-    -- A fast model with a big ask (checkpoints, or Deep depth): said where
-    -- the choice is made (B747)
-    hint = (hint or "") .. require("koassistant.books.book_settings").xraySmallModelLine(self_ref, action,
-      cr.delivery, (mode == "extend" and not pick_rebuild and not force_rebuild) and base_entry or nil)
-    -- Round 24: rebuild picks carry the replacement fact in the hint too
-    -- (forced rebuilds skip it — "already covered" would be wrong for a
-    -- whole-book force, and the state line above already names replacement)
-    if pick_rebuild and mode == "extend" and not force_rebuild then
-      hint = hint .. " " .. _("Rebuilds from scratch and replaces the current X-Ray (the outgoing version is archived).")
-    end
-    -- With a checkpoint already built ahead, "update to where I am" can read
-    -- as the mechanical/free install (device 2026-08-14) — say plainly that
-    -- this pick is a fresh paid request and the built checkpoint stays free
-    if mode == "extend" and not pick_rebuild and cr.coverage == "position"
-        and (base_progress or 0) > decimal + 0.005 then
-      hint = (hint and (hint .. " ") or "")
-        .. T(_("Note: this is a fresh AI request; the checkpoint already built to %1% still installs for free as you read past it."),
-          math.floor((base_progress or 0) * 100 + 0.5))
-    end
-    if hint then
-      table.insert(vgroup, VerticalSpan:new{ width = Size.padding.small })
-      table.insert(vgroup, TextBoxWidget:new{
-        text = hint, face = info_face, width = content_width,
-        fgcolor = Blitbuffer.COLOR_DARK_GRAY,
-      })
-    end
+    -- Gray hint under the Build group: one short sentence for the pick, the
+    -- book's protection case under a checkpoint row (B717), and the facts
+    -- that change a decision about money or about the saved X-Ray. What each
+    -- way to build gives is behind the "About these choices" row below, and a
+    -- fast model's note behind its own warning row (B747): the form had grown
+    -- to eleven lines of grey text and scrolled on an e-reader's screen (the
+    -- maintainer, 2026-11-20). BookSettings.xrayFormHint holds the words and
+    -- its test their budget.
+    local hint = BookSettings.xrayFormHint({
+      delivery = cr.delivery, coverage = cr.coverage,
+      extend = mode == "extend" and not pick_rebuild,
+      idle = cr.delivery == "follow" and followIdle(),
+      target_label = cr.target_label,
+      checkpoint_note = (cr.delivery == "follow" or cr.delivery == "checkpoints")
+        and BookSettings.xrayCheckpointNote(self_ref.ui.doc_settings,
+          self_ref.settings:readSetting("features") or {}) or nil,
+      replaces = pick_rebuild and mode == "extend" and not force_rebuild,
+      -- With a checkpoint already built ahead, "update to where I am" can
+      -- read as the free install (device 2026-08-14): the pick is a new paid
+      -- request and the built checkpoint stays free
+      built_ahead_pct = (mode == "extend" and not pick_rebuild and cr.coverage == "position"
+        and (base_progress or 0) > decimal + 0.005)
+        and math.floor((base_progress or 0) * 100 + 0.5) or nil,
+    })
+    table.insert(vgroup, VerticalSpan:new{ width = Size.padding.small })
+    table.insert(vgroup, TextBoxWidget:new{
+      text = hint, face = info_face, width = content_width,
+      fgcolor = Blitbuffer.COLOR_DARK_GRAY,
+    })
 
     -- Options row (2026-08-25 redesign, ref #90): the two sticky per-book
     -- settings the form can change sit on ONE small-font row right above
@@ -12340,9 +12291,31 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
         })
       end,
     }}
+    -- The row that opens the longer texts: what each way to build gives, and
+    -- beside it a warning when the model the X-Ray action runs on is a fast
+    -- one and the pick asks a lot of it. Both stay over the form.
+    local about_row = {{
+      text = "ⓘ " .. _("About these choices"),
+      font_size = 16, font_bold = false,
+      callback = function()
+        UIManager:show(InfoMessage:new{ text = BookSettings.xrayFormAbout() })
+      end,
+    }}
+    local model_warning = BookSettings.xraySmallModelWarning(self_ref, action, cr.delivery,
+      (mode == "extend" and not pick_rebuild and not force_rebuild) and base_entry or nil)
+    if model_warning then
+      about_row[2] = {
+        text = "⚠ " .. model_warning.title,
+        font_size = 16, font_bold = false,
+        callback = function()
+          UIManager:show(InfoMessage:new{ text = model_warning.text, icon = "notice-warning" })
+        end,
+      }
+    end
     local options_row = ButtonTableO:new{
       width = content_width,
       buttons = {
+        about_row,
         preset_row,
         { option_buttons[1], option_buttons[2] },
         { option_buttons[3], option_buttons[4] },

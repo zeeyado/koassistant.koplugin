@@ -1350,7 +1350,7 @@ TestRunner:test("xraySmallModelNote: the form names a fast model only where the 
     end
 end)
 
-TestRunner:test("xraySmallModelLine: the form's own call, the model the X-Ray action runs on", function()
+TestRunner:test("xraySmallModelWarning: the form's own call, the model the X-Ray action runs on", function()
     local saved = package.loaded["koassistant.request.run_options"]
     local base = { provider = "anthropic", model = nil }
     package.loaded["koassistant.request.run_options"] = { stateFor = function() return { base = base } end }
@@ -1362,39 +1362,125 @@ TestRunner:test("xraySmallModelLine: the form's own call, the model the X-Ray ac
         getCurrentModel = function() return fast end,
         settings = { readSetting = function() return {} end },
     }
+    local warning = BookSettings.xraySmallModelWarning
     base.model = fast
-    local line = BookSettings.xraySmallModelLine(plugin, {}, "checkpoints", nil)
-    truthy(line:sub(1, 1) == "\n" and line:find(fast, 1, true) ~= nil,
-        "the provider's fast model in checkpoints: the sentence, on a line of its own")
-    TestRunner:assertEqual(BookSettings.xraySmallModelLine(plugin, {}, nil, nil), "", "in one request at the standing depth: nothing")
+    local w = warning(plugin, {}, "checkpoints", nil)
+    truthy(w and w.case == "checkpoints" and w.text:find(fast, 1, true) ~= nil,
+        "the provider's fast model in checkpoints: a warning that names the model")
+    truthy(w and #w.title <= 30 and w.title:find("checkpoints", 1, true) ~= nil,
+        "its row carries a short title, the sentence is a tap away")
+    TestRunner:assertEqual(warning(plugin, {}, nil, nil), nil, "in one request at the standing depth: nothing")
     -- a plain update continues its X-Ray's own depth, whatever the standing pick
-    truthy(BookSettings.xraySmallModelLine(plugin, {}, nil, { xray_depth = "deep" }) ~= "",
-        "an update of a Deep X-Ray in one request")
+    w = warning(plugin, {}, nil, { xray_depth = "deep" })
+    truthy(w and w.case == "deep" and w.title:find("Deep", 1, true) ~= nil, "an update of a Deep X-Ray in one request")
     plugin.settings.readSetting = function() return { xray_default_depth = "deep" } end
-    TestRunner:assertEqual(BookSettings.xraySmallModelLine(plugin, {}, nil, { xray_depth = "light" }), "",
+    TestRunner:assertEqual(warning(plugin, {}, nil, { xray_depth = "light" }), nil,
         "an update of a Light X-Ray, though new ones would be Deep")
-    truthy(BookSettings.xraySmallModelLine(plugin, {}, nil, nil) ~= "", "a new X-Ray at the standing Deep")
+    truthy(warning(plugin, {}, nil, nil) ~= nil, "a new X-Ray at the standing Deep")
     base.model = standard
-    TestRunner:assertEqual(BookSettings.xraySmallModelLine(plugin, {}, "checkpoints", nil), "", "the standard model: nothing")
+    TestRunner:assertEqual(warning(plugin, {}, "checkpoints", nil), nil, "the standard model: nothing")
     -- a provider without curated tiers (a router, a custom one) is never called fast
     base.provider, base.model = "openrouter", "anything/small"
-    TestRunner:assertEqual(BookSettings.xraySmallModelLine(plugin, {}, "checkpoints", nil), "", "no tier, no sentence")
+    TestRunner:assertEqual(warning(plugin, {}, "checkpoints", nil), nil, "no tier, no warning")
     -- a plugin the form's tests build without the model helpers: nothing, no error
-    TestRunner:assertEqual(BookSettings.xraySmallModelLine({}, {}, "checkpoints", nil), "")
+    TestRunner:assertEqual(warning({}, {}, "checkpoints", nil), nil)
     package.loaded["koassistant.request.run_options"] = saved
-    -- and the form calls it where the hint is built
+    -- and the form asks for it where its rows are built
     local fh = assert(io.open("main.lua", "r"))
     local src = fh:read("*a")
     fh:close()
-    truthy(src:find('xraySmallModelLine(self_ref, action,\n      cr.delivery, (mode == "extend" and not pick_rebuild and not force_rebuild) and base_entry or nil)', 1, true) ~= nil,
-        "the creation form appends it to its hint")
+    truthy(src:find('xraySmallModelWarning(self_ref, action, cr.delivery,\n      (mode == "extend" and not pick_rebuild and not force_rebuild) and base_entry or nil)', 1, true) ~= nil,
+        "the creation form builds its warning row from it")
+end)
+
+-- The form's text budget (the maintainer, 2026-11-20: "too much information,
+-- causing you to have to scroll. explanatory text is too long, must be more
+-- concise"). The form's grey line is one short sentence for the pick plus the
+-- few facts that change a decision; what each way to build gives is behind
+-- the "About these choices" row. A sentence added to the hint has to fit
+-- these numbers or go into the About text.
+local HINT_SENTENCE_MAX = 90     -- one line and a third of the form at an e-reader's width
+local HINT_COMMON_MAX = 200      -- three lines: the cases a reader meets on a first build
+local HINT_WORST_MAX = 330       -- five lines: every note at once
+
+TestRunner:test("xrayFormHint: every pick's own sentence is short, and it is one sentence per pick", function()
+    local hint = BookSettings.xrayFormHint
+    local seen = {}
+    for _i, delivery in ipairs({ "follow", "checkpoints", "one_bg", "now" }) do
+        for _j, coverage in ipairs({ "whole", "position", "target" }) do
+            for _k, extend in ipairs({ false, true }) do
+                local text = hint({ delivery = delivery ~= "now" and delivery or nil, coverage = coverage, extend = extend })
+                truthy(type(text) == "string" and #text > 20, delivery .. "/" .. coverage .. ": a sentence")
+                truthy(#text <= HINT_SENTENCE_MAX, delivery .. "/" .. coverage .. (extend and "/extend" or "")
+                    .. ": " .. #text .. " characters, at most " .. HINT_SENTENCE_MAX .. ": " .. text)
+                truthy(not text:find("\226\128\148", 1, true), "no em dash: " .. text)
+                seen[text] = true
+            end
+        end
+    end
+    local idle = hint({ delivery = "follow", coverage = "whole", idle = true })
+    truthy(#idle <= HINT_SENTENCE_MAX and idle:find("caught up", 1, true) ~= nil, "automatic building on and caught up says so")
+    -- the picks that differ in what they do differ in what they say
+    truthy(hint({ coverage = "whole" }) ~= hint({ coverage = "position" }), "the whole book and up to the position")
+    truthy(hint({ coverage = "whole" }) ~= hint({ coverage = "whole", extend = true }), "a new X-Ray and an update")
+    truthy(hint({ delivery = "checkpoints", coverage = "whole" }) ~= hint({ delivery = "follow", coverage = "whole" }),
+        "checkpoints now and as I read")
+    -- the one-request build of a whole book is the one that holds the ending: said in the line itself
+    truthy(hint({ coverage = "whole" }):find("ending", 1, true) ~= nil, "the whole book in one request names the ending")
+    truthy(hint({ delivery = "checkpoints", coverage = "whole" }):find("cost", 1, true) ~= nil, "checkpoints name the cost")
+    truthy(hint({ delivery = "one_bg", coverage = "whole" }):find("stay open", 1, true) ~= nil, "a background request names its condition")
+end)
+
+TestRunner:test("xrayFormHint: with its notes the line stays inside the form's budget", function()
+    local hint = BookSettings.xrayFormHint
+    local notes = {}
+    for _i, features in ipairs({ {}, { spoiler_free_chat = false } }) do
+        notes[#notes + 1] = (BookSettings.xrayCheckpointNote(fakeDocSettings({}), features))
+    end
+    local held = (BookSettings.xrayCheckpointNote(
+        fakeDocSettings({ koassistant_book_xray_promotion = "position" }), { spoiler_free_chat = false }))
+    -- a first build, protection on or off: the two checkpoint rows
+    for _i, note in ipairs(notes) do
+        for _j, delivery in ipairs({ "follow", "checkpoints" }) do
+            local text = hint({ delivery = delivery, coverage = "whole", checkpoint_note = note })
+            truthy(text:find(note, 1, true) ~= nil, "the book's protection case is in the line")
+            truthy(#text <= HINT_COMMON_MAX, delivery .. ": " .. #text .. " characters, at most " .. HINT_COMMON_MAX .. ": " .. text)
+        end
+    end
+    -- every note at once: the longest protection case, a section's name, a rebuild picked inside an update
+    local worst = hint({ delivery = "follow", coverage = "target", target_label = string.rep("A long chapter title ", 3),
+        checkpoint_note = held, replaces = true })
+    truthy(#worst <= HINT_WORST_MAX, "the worst case: " .. #worst .. " characters, at most " .. HINT_WORST_MAX)
+    truthy(worst:find("replaces the current X-Ray", 1, true) ~= nil, "a rebuild says what it replaces")
+    -- an update to the position with a checkpoint already built ahead is a paid request: said, with the number
+    local ahead = hint({ coverage = "position", extend = true, built_ahead_pct = 60 })
+    truthy(ahead:find("new AI request", 1, true) ~= nil and ahead:find("60%", 1, true) ~= nil, "the new request is named")
+    truthy(#ahead <= HINT_COMMON_MAX, "and it fits: " .. #ahead)
+    -- a one-request row carries no protection sentence (it builds one version)
+    truthy(not hint({ coverage = "whole" }):find("Spoiler protection", 1, true), "one request: no protection sentence")
+end)
+
+TestRunner:test("xrayFormAbout: what left the form is said once, in full", function()
+    local about = BookSettings.xrayFormAbout()
+    for _i, words in ipairs({ "In one request", "in background", "In checkpoints, now", "In checkpoints, as I read",
+            "Spoiler protection", "share a name", "Spacing" }) do
+        truthy(about:find(words, 1, true) ~= nil, "it covers: " .. words)
+    end
+    truthy(not about:find("\226\128\148", 1, true), "no em dash")
+    -- the form reads both from this module: no sentence of the old hint is left in main.lua
+    local fh = assert(io.open("main.lua", "r"))
+    local src = fh:read("*a")
+    fh:close()
+    truthy(src:find("BookSettings.xrayFormHint({", 1, true) ~= nil, "the form's hint is xrayFormHint's")
+    truthy(src:find("BookSettings.xrayFormAbout()", 1, true) ~= nil, "and its info row shows xrayFormAbout's")
+    truthy(not src:find("bounded background steps", 1, true), "the long sentences left the form's source")
 end)
 
 TestRunner:test("xrayCheckpointNote: the creation form's sentence follows the installs' own rule (B717)", function()
     -- the same two reads the engine's installs make: the posture, then the hold
     local text, case = BookSettings.xrayCheckpointNote(fakeDocSettings({}), {})
     TestRunner:assertEqual(case, "follows", "protection on by default: the X-Ray follows the position")
-    TestRunner:assertEqual(text:find("up to your position", 1, true) ~= nil, true, "and the sentence says so")
+    TestRunner:assertEqual(text:find("when you reach it", 1, true) ~= nil, true, "and the sentence says so")
     text, case = BookSettings.xrayCheckpointNote(fakeDocSettings({}), { spoiler_free_chat = false })
     TestRunner:assertEqual(case, "newest", "protection off: the newest checkpoint is shown")
     TestRunner:assertEqual(text:find("ahead of you", 1, true) ~= nil, true, "the sentence names the consequence")

@@ -353,20 +353,92 @@ end
 
 --- What a reader is SHOWN of an X-Ray built in checkpoints (B717): the rows of
 --- the creation form build the same versions whatever the protection; the
---- book's spoiler protection decides which one is installed. One sentence, from
---- the two resolvers the engine's installs read (resolveXrayPosture and the
---- promotion hold), for the hint under the form's checkpoint rows.
+--- book's spoiler protection decides which one is installed. One short
+--- sentence, from the two resolvers the engine's installs read
+--- (resolveXrayPosture and the promotion hold), for the hint under the form's
+--- checkpoint rows (xrayFormHint; its test holds the length).
 --- @return string the sentence
 --- @return string "follows" | "newest" | "held" (the case, for tests)
 function BookSettings.xrayCheckpointNote(doc_settings, features)
     local posture = BookSettings.resolveXrayPosture(doc_settings, features)
     if posture == "track" then
-        return _("Spoiler protection is on for this book: you see the X-Ray up to your position, and each later checkpoint appears when you reach it."), "follows"
+        return _("Spoiler protection is on: each checkpoint appears when you reach it."), "follows"
     end
     if BookSettings.xrayPromotionHold(doc_settings) then
-        return _("Spoiler protection is off for this book, and its X-Ray updates are set to follow your position: each checkpoint appears when you reach it."), "held"
+        return _("Spoiler protection is off, but X-Ray updates follow your position: each checkpoint appears when you reach it."), "held"
     end
-    return _("Spoiler protection is off for this book: the newest checkpoint is shown as soon as it is built, also when it is ahead of you."), "newest"
+    return _("Spoiler protection is off: the newest checkpoint is shown as soon as it is built, even ahead of you."), "newest"
+end
+
+--- The grey line under the X-Ray creation form's Build rows. Pure. One short
+--- sentence for the pick, the book's protection case under a checkpoint row,
+--- and the facts that change a decision about money or about the saved X-Ray.
+--- Everything else is behind the form's "About these choices" row
+--- (xrayFormAbout): the form had grown to eleven lines of grey text and
+--- needed scrolling on an e-reader's screen (the maintainer, 2026-11-20: "too
+--- much information ... must be more concise"). tests/unit/test_book_settings
+--- holds the budget: a new sentence here goes into the About text unless it
+--- changes what the reader picks.
+--- @param pick table { delivery = "follow" | "checkpoints" | "one_bg" | nil
+---   (one request now), coverage = "whole" | "position" | "target",
+---   extend = boolean (a plain update of the saved X-Ray), idle = boolean
+---   (automatic building on and caught up), target_label = string|nil,
+---   checkpoint_note = string|nil (xrayCheckpointNote), replaces = boolean
+---   (a rebuild picked inside an update), built_ahead_pct = number|nil (a
+---   checkpoint already built past the position) }
+--- @return string
+function BookSettings.xrayFormHint(pick)
+    local hint
+    if pick.delivery == "follow" and pick.idle then
+        hint = _("Automatic building is on and caught up.")
+    elseif pick.delivery == "follow" then
+        hint = _("Builds each checkpoint as you read, the next one ready ahead of you.")
+        if pick.coverage == "target" and pick.target_label then
+            hint = hint .. " " .. T(_("It stops at the end of \"%1\"."), pick.target_label)
+        end
+    elseif pick.delivery == "checkpoints" then
+        hint = pick.extend and _("Continues from where your X-Ray ends, in background steps.")
+            or _("Builds it now in background steps: more detail than one request, at a higher cost.")
+    elseif pick.delivery == "one_bg" then
+        hint = _("One request in the background. The book must stay open.")
+    elseif pick.extend then
+        if pick.coverage == "whole" then
+            hint = _("Updates your X-Ray to 100% in one request.")
+        elseif pick.coverage == "position" then
+            hint = _("Updates your X-Ray to your position in one request.")
+        else
+            hint = _("Updates your X-Ray to the end of that section in one background request.")
+        end
+    elseif pick.coverage == "whole" then
+        hint = _("The whole book in one request: the cheapest way. It covers the ending too.")
+    elseif pick.coverage == "position" then
+        hint = _("Reads up to your position in one request. You can update it as you read on.")
+    else
+        hint = _("Reads up to the end of that section in one background request.")
+    end
+    if pick.checkpoint_note then hint = hint .. " " .. pick.checkpoint_note end
+    if pick.replaces then hint = hint .. " " .. _("It replaces the current X-Ray.") end
+    if pick.built_ahead_pct then
+        hint = hint .. " " .. T(_("This is a new AI request; the checkpoint built to %1% still installs for free as you read on."),
+            pick.built_ahead_pct)
+    end
+    return hint
+end
+
+--- What the form's "About these choices" row shows: what each way to build
+--- gives, said once and in full, a tap away from the rows. Pure.
+--- @return string
+function BookSettings.xrayFormAbout()
+    return table.concat({
+        _("Coverage is how far into the book the X-Ray reads. Build is how it is made:"),
+        _("In one request: the cheapest way. The text goes to the AI once, and every entry is written with the whole range in view. Over the whole book it covers the ending too. You can update it later as you read on, by hand or automatically."),
+        _("In one request, in background: the same request. A notification arrives when it is ready. The book must stay open."),
+        _("In checkpoints, now: the range in background steps, each a version up to its own position. It finds more of the minor names and hard words than one request, for more requests. A usable X-Ray installs after the first step. Keep reading, cancel any time, resume later."),
+        _("In checkpoints, as I read: each checkpoint is built in the background as you read, the next one ready ahead of you. Checkpoints missing up to your position are built right away."),
+        _("Spoiler protection decides which checkpoint you see. On: the X-Ray up to your position. Off: the newest one built."),
+        _("A fast, small model tends to mix up people who share a name when it builds in checkpoints. One request keeps them apart better."),
+        _("Preset, categories, depth and type apply to new builds and rebuilds. Spacing applies to checkpoints."),
+    }, "\n\n")
 end
 
 --- Forget the per-book state that described a DELETED X-Ray lineage: the
@@ -2433,28 +2505,30 @@ end
 function BookSettings.xraySmallModelNote(tier, delivery, depth, model)
     if tier ~= "fast" and tier ~= "ultrafast" then return nil end
     if delivery == "follow" or delivery == "checkpoints" then
-        return T(_("Note: %1 is a fast model. Built in checkpoints, such a model tends to mix up people who share a name; a single request keeps them apart better, and a stronger model is the safer pick for checkpoints."), model),
+        return T(_("%1 is a fast model. Built in checkpoints, such a model tends to mix up people who share a name. A single request keeps them apart better, and a stronger model is the safer pick for checkpoints."), model),
             "checkpoints"
     end
     if depth == "deep" then
-        return T(_("Note: %1 is a fast model, and Deep depth asks a lot of it: a stronger model writes fuller and more exact entries."), model),
+        return T(_("%1 is a fast model, and Deep depth asks a lot of it: a stronger model writes fuller and more exact entries."), model),
             "deep"
     end
     return nil
 end
 
---- That sentence for the form, on a line of its own under the hint, or "": the model the
---- X-Ray action runs on (its own pin or tier, else the main model: the run
---- options' own resolver) and the depth the build will use (a continued
---- X-Ray's own stamp, else the standing pick).
+--- That note as the form's warning row, or nil: a short title on the row, the
+--- sentence a tap away (the form's text budget, xrayFormHint). The model is
+--- the one the X-Ray action runs on (its own pin or tier, else the main
+--- model: the run options' own resolver), the depth the one the build will
+--- use (a continued X-Ray's own stamp, else the standing pick).
 --- @param plugin table the plugin instance
 --- @param action table|nil the X-Ray action
 --- @param delivery string|nil the form's pick
 --- @param lineage_entry table|nil the saved X-Ray a plain update continues
-function BookSettings.xraySmallModelLine(plugin, action, delivery, lineage_entry)
-    if not (plugin and plugin.getCurrentProvider and plugin.getCurrentModel and plugin.settings) then return "" end
+--- @return table|nil { title = string, text = string, case = string }
+function BookSettings.xraySmallModelWarning(plugin, action, delivery, lineage_entry)
+    if not (plugin and plugin.getCurrentProvider and plugin.getCurrentModel and plugin.settings) then return nil end
     local base = require("koassistant.request.run_options").stateFor(plugin, action or {}, {}).base
-    if not (base and base.provider and base.model) then return "" end
+    if not (base and base.provider and base.model) then return nil end
     local depth
     if lineage_entry then
         depth = require("koassistant.prompts.actions").normalizeXrayDepth(lineage_entry.xray_depth)
@@ -2463,8 +2537,10 @@ function BookSettings.xraySmallModelLine(plugin, action, delivery, lineage_entry
             plugin.settings:readSetting("features") or {})
     end
     local tier = require("koassistant.request.model_lists").getTierForModel(base.provider, base.model)
-    local note = BookSettings.xraySmallModelNote(tier, delivery, depth, base.model)
-    return note and ("\n" .. note) or ""
+    local note, case = BookSettings.xraySmallModelNote(tier, delivery, depth, base.model)
+    if not note then return nil end
+    return { text = note, case = case,
+        title = case == "deep" and _("Fast model and Deep depth") or _("Fast model and checkpoints") }
 end
 
 local function xrayPresetById(id)

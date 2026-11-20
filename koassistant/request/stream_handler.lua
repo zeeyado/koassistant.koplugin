@@ -1751,9 +1751,22 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
     -- After PAUSE_TICKS quiet ticks the dots show after the text and move;
     -- words arriving take them away
     pause.dots = self:createWaitingAnimation()
+    -- The title carries the waiting dots from the first words to the end
+    -- (B752). A window that does not follow shows a page that stands still
+    -- while the answer grows under it, and the pause dots stand after the
+    -- text, off that page: nothing on screen said whether the answer was
+    -- still arriving, and an e-reader that sleeps after its last screen
+    -- update could doze in the middle of one. KOReader's own way to change a
+    -- one-line title in place (TitleBar:setTitle: the text widget's text and
+    -- a "ui" refresh of the bar alone).
+    local title_dots = self:createWaitingAnimation()
     pause.stop = Waiting.tick(function()
         if completed or stream_finished then return false end
         if not first_content_received or hidden_streaming then return end
+        local bar = streamDialog and streamDialog.title_bar
+        if bar and bar.setTitle then
+            bar:setTitle(stream_title .. " " .. title_dots.getNextFrame())
+        end
         local n = #result_buffer + #reasoning_buffer
         if n ~= pause.n or web_search_status ~= pause.status then
             pause.n, pause.status, pause.quiet = n, web_search_status, 0

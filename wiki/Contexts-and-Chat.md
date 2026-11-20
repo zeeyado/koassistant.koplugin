@@ -332,7 +332,7 @@ The response window has its own page, [Chat Windows](Chat-Windows): its buttons 
 
 **Use cases:** save explanations of difficult passages for later reference; keep translations alongside foreign text; build a glossary of term definitions within your book; annotate with AI-generated insights that become part of your reading notes.
 
-**Note:** Save to Note works only in highlight chats (where you selected text). In book, library and general chats the button is grayed out.
+**Note:** Save to Note works only in highlight chats (where you selected text). In book, library and general chats the button is grayed out. It also works only in the window the answer arrives in: the selection is not saved with the chat, so the button is grayed out in a highlight chat reopened later from Chat History. Save the note when the answer arrives, or copy the answer and add it as a note in KOReader yourself.
 
 ## Related
 

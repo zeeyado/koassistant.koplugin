@@ -73,6 +73,30 @@ To turn the automatic check off: **Settings → Auto-check for updates on startu
 
 **Settings → Check for Updates** always shows a result, an update or "You are running the latest version", with a longer 15-second timeout. A version newer than the latest release says "You are running a development version". Pre-releases order as alpha < beta < rc < release, and a final release outranks its own pre-releases.
 
+## Where KOAssistant keeps your data
+
+Everything is on your device, in three places. KOReader's data folder is `.adds/koreader/` on a Kobo (a hidden folder when the device is plugged into a Mac or a Linux computer) and `koreader/` at the top of the storage on Android and Kindle; its settings folder is `settings/` inside it. A book's `.sdr` folder sits beside the book, or in KOReader's `docsettings` or `hashdocsettings` folder, by KOReader's Book metadata location setting.
+
+| What | Where | In a backup |
+|---|---|---|
+| Settings, and API keys entered in Settings | settings folder: `koassistant_settings.lua` | yes (API keys only when included) |
+| General and library chats | settings folder: `koassistant_general_chats.lua`, `koassistant_library_chats.lua` | with Chat History |
+| General and library pinned items, book groups | settings folder: `koassistant_pinned_general.lua`, `koassistant_pinned_library.lua`, `koassistant_book_groups.lua` | yes |
+| A book's chats | the book's `.sdr` folder: `koassistant_chats.lua` | with Chat History |
+| A book's settings (its Book Settings picks, its privacy values) | `.sdr`: `koassistant_book_settings.lua` | yes |
+| A book's saved results (X-Rays, summaries and the rest), its X-Ray checkpoints and versions, the names you gave X-Ray entries | `.sdr`: `koassistant_cache.lua`, `koassistant_xray_checkpoints.lua`, `koassistant_xray_ladder.lua`, `koassistant_user_aliases.lua` | no |
+| A book's pinned items | `.sdr`: `koassistant_pinned.lua` | no |
+| A book's notebook | `.sdr`: `koassistant_notebook.md` by default; or `koassistant_notebooks/` in the data folder; or a folder you pick ([Save Location](Conversations-Notebooks-and-Export)) | no |
+| The name index behind the X-Ray underlines | `.sdr`: `koassistant_xray_index.lua` (built again from the book when missing) | no |
+| Exported chats and results | data folder: `koassistant_exports/`, or a folder you pick | no |
+| Generated images | data folder: `koassistant_images/` | no |
+| Backups | data folder: `koassistant_backups/` | |
+| Your own files: `apikeys.lua`, `configuration.lua`, `custom_actions.lua`, `custom_models.lua`, `behaviors/`, `domains/` | the plugin folder | yes (`apikeys.lua` only when API keys are included) |
+
+**Moving a book.** When KOReader moves, renames or copies a book, or a folder of books, the files in its `.sdr` folder go with it and every browser follows. A move made outside KOReader (over USB, by a sync tool) carries them only if the tool moves the `.sdr` folder too; **Rebuild Data Indexes** below finds them again.
+
+**Deleting a book.** When you delete a book in KOReader, the KOAssistant files in its `.sdr` folder are deleted with it, as KOReader deletes the book's highlights and notes: its chats, saved results, pinned items, settings and, in its default place, its notebook. A notebook kept in the notebooks folder or in a folder of your own stays on disk, and so do generated images and exports. To keep a chat or a result from a book you are about to delete, export it first ([Conversations, Notebooks and Export](Conversations-Notebooks-and-Export)).
+
 ## Backup and restore
 
 ### What can be backed up

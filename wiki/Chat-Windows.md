@@ -82,7 +82,7 @@ The draft is cleared when you send the message or start a new chat. Closing the 
 
 ![Streaming response](https://raw.githubusercontent.com/zeeyado/koassistant.koplugin/main/screenshots/streaming.png)
 
-With streaming on (the default), responses appear in real time as the AI generates them. It works with all providers that support streaming. The window's title names the action being run, or reads "AI is responding" for a question you typed.
+With streaming on (the default), responses appear in real time as the AI generates them. It works with all providers that support streaming. The window's title names the action being run, or reads "AI is responding" for a question you typed. From the first words until the answer is complete, dots move after the title: with the page standing still under your eyes, they are the sign that the rest is still arriving.
 
 **Buttons:**
 
