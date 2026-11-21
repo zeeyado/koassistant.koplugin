@@ -118,6 +118,38 @@ local function itemText(item)
 end
 XrayCard.itemText = itemText
 
+--- The card's body at "Full entry": the entry as its own page words it
+--- (XrayParser.formatItemDetail: other names, the description, details,
+--- evidence, significance, what other books add), without the name line the
+--- card's head already carries and without the connections (names by the
+--- dozen, buttons on the entry's page). It was the description alone, so the
+--- Significance of a place, an idea or an argument never reached a card that
+--- was set to show the full entry. Pure.
+local function fullBody(hit)
+    local item = type(hit) == "table" and hit.item
+    if type(item) ~= "table" then return "" end
+    local plain = itemText(item)
+    local ok, body = pcall(require("koassistant.xray.xray_parser").formatItemDetail,
+        item, hit.category_key, { omit_connections = true })
+    if ok and type(body) == "string" then
+        body = body:gsub("^[^\n]*", "", 1):gsub("^%s+", ""):gsub("%s+$", "")
+        -- a category the formatter does not know prints no description: the
+        -- plain text is the better card then
+        if body ~= "" and (plain == "" or body:find(plain:sub(1, 40), 1, true)) then
+            return body
+        end
+    end
+    return plain
+end
+XrayCard._fullBody = fullBody
+
+--- What a card shows of an entry at or behind the reader: its first sentence,
+--- or the whole entry when the card is set to it.
+local function bodyFor(hit, opts)
+    if opts.card_length == "full" then return fullBody(hit) end
+    return XrayCard.firstSentence(itemText(hit.item))
+end
+
 --- "Category (Role)" — the classification half of the identity line.
 --- Role rides only when short (fiction-style "Protagonist"; the non-fiction
 --- schema allows sentence-length roles, which belong to the description).
@@ -236,21 +268,16 @@ local function cardContent(hit, opts)
         -- provenance line rides the ahead-warning slot, without the glyph.
         -- S3 parity: the same "Name · Category (role)" head as every other
         -- card (stubs store the role since S3); the line says "Carried from"
-        local text = itemText(hit.item)
-        if opts.card_length ~= "full" then text = XrayCard.firstSentence(text) end
         return { name = hit.name or "", kind = kindLabel(hit), line = carriedLine(hit),
-            body = text, hint = _("Tap for the full entry") }
+            body = bodyFor(hit, opts), hint = _("Tap for the full entry") }
     end
     if hit.source == "predecessor" then
         -- Earlier book's entry (S2): identity + provenance; the tap-through
         -- opens the read-only predecessor view (buttons live there)
-        local text = itemText(hit.item)
-        if opts.card_length ~= "full" then text = XrayCard.firstSentence(text) end
         return { name = hit.name or "", kind = kindLabel(hit), line = carriedLine(hit),
-            body = text, hint = _("Tap for the full entry") }
+            body = bodyFor(hit, opts), hint = _("Tap for the full entry") }
     end
-    local text = itemText(hit.item)
-    if opts.card_length ~= "full" then text = XrayCard.firstSentence(text) end
+    local text = bodyFor(hit, opts)
     local line, also = sectionLine(hit), alsoLine(hit)
     if line and also then
         line = line .. " \u{00B7} " .. also
@@ -499,6 +526,76 @@ local function showPopupCard(hit, opts)
     UIManager:show(popup)
 end
 
+--- KOReader's FootnoteWidget builds its page without a resource folder, and
+--- MuPDF since 1.28 loads a font that a page's own style sheet names from
+--- that folder alone (B694): the panel showed Arabic, Hebrew and Devanagari
+--- names in MuPDF's fallback face whatever the reader's Arabic font was. For
+--- the time the panel is constructed (one synchronous call, nothing else is
+--- built in between), the page widget it creates is handed the folder.
+--- @return boolean ok, any what `build` returned (or its error)
+local function withFontFolder(dir, build)
+    local ok_req, ScrollHtmlWidget = false, nil
+    if dir then ok_req, ScrollHtmlWidget = pcall(require, "ui/widget/scrollhtmlwidget") end
+    if not ok_req or type(ScrollHtmlWidget) ~= "table" or type(ScrollHtmlWidget.new) ~= "function" then
+        return pcall(build)
+    end
+    local own, inherited = rawget(ScrollHtmlWidget, "new"), ScrollHtmlWidget.new
+    ScrollHtmlWidget.new = function(class, o)
+        if type(o) == "table" and o.html_resource_directory == nil then
+            o.html_resource_directory = dir
+        end
+        return inherited(class, o)
+    end
+    local ok, result = pcall(build)
+    ScrollHtmlWidget.new = own   -- nil when the class had none of its own: the inherited one again
+    return ok, result
+end
+XrayCard._withFontFolder = withFontFolder  -- test seam
+
+--- The panel's page and its style sheet: the card's lines, every run of a
+--- script the panel's font lacks in its own face (the faces every KOAssistant
+--- window uses, script_fonts.lua), and the folder MuPDF reads those faces
+--- from. Pure but for the font files it looks up.
+--- @return string html, string css, string|nil font_dir
+local function footnotePage(c, features)
+    local function esc(s)
+        return s:gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;")
+    end
+    -- Ahead hits: the NAME line leads with the triangle too (device round
+    -- 2026-08-17); the warning line below stays
+    local html = "<div>" .. (c.warn and "\u{26A0} " or "") .. "<b>" .. esc(c.name) .. "</b>"
+        .. (c.kind ~= "" and (" · " .. esc(c.kind)) or "") .. "</div>"
+    if c.line then
+        html = html .. '<div class="koa-meta">' .. esc(c.line) .. "</div>"
+    end
+    -- One block per paragraph of the body (a full entry has several: the
+    -- description, the significance, the other names). As one block with line
+    -- breaks MuPDF moved the block's last lines to the panel's next page
+    -- together, and left the room under the first lines blank.
+    for para in (c.body .. "\n\n"):gmatch("(.-)\n\n+") do
+        if para:find("%S") then
+            html = html .. '<div class="koa-line">' .. (esc(para):gsub("\n", "<br/>")) .. "</div>"
+        end
+    end
+    -- Affordance: stock footnote panels do nothing on an inside tap, ours
+    -- advances the card / opens the full entry — say so, muted
+    html = html .. '<div class="koa-meta">' .. esc(c.hint) .. "</div>"
+    local css = ".koa-line { margin-top: 0.4em; } .koa-meta { margin-top: 0.5em; font-size: 80%; color: #555555; }"
+    local font_dir
+    local ok_sf, ScriptFonts = pcall(require, "koassistant.ui.script_fonts")
+    if ok_sf and type(ScriptFonts) == "table" then
+        local ok_mark, marked = pcall(ScriptFonts.markRuns, html)
+        if ok_mark and type(marked) == "string" and marked ~= html then
+            local ok_css, rules, dir = pcall(ScriptFonts.css, features or {}, marked)
+            if ok_css and type(rules) == "string" and rules ~= "" then
+                html, css, font_dir = marked, css .. rules, dir
+            end
+        end
+    end
+    return html, css, font_dir
+end
+XrayCard._footnotePage = footnotePage  -- test seam
+
 --- Footnote-panel style: KOReader's FootnoteWidget (the bottom panel from
 --- footnote popups), sized/margined like the book. Tap the panel, swipe
 --- west, or Press = full entry; tap outside / swipe south / Back = dismiss.
@@ -508,29 +605,14 @@ local function showFootnoteCard(hit, opts)
     if not ok_req or not FootnoteWidget then
         return showPopupCard(hit, opts)
     end
-    local function esc(s)
-        return s:gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;")
-    end
-    -- Ahead hits: the NAME line leads with the triangle too (device round
-    -- 2026-08-17); the warning line below stays
     local c = cardContent(hit, opts)
-    local html = "<div>" .. (c.warn and "\u{26A0} " or "") .. "<b>" .. esc(c.name) .. "</b>"
-        .. (c.kind ~= "" and (" · " .. esc(c.kind)) or "") .. "</div>"
-    if c.line then
-        html = html .. '<div class="koa-meta">' .. esc(c.line) .. "</div>"
-    end
-    if c.body ~= "" then
-        html = html .. '<div class="koa-line">' .. (esc(c.body):gsub("\n", "<br/>")) .. "</div>"
-    end
-    -- Affordance: stock footnote panels do nothing on an inside tap, ours
-    -- advances the card / opens the full entry — say so, muted
-    html = html .. '<div class="koa-meta">' .. esc(c.hint) .. "</div>"
+    local html, css, font_dir = footnotePage(c, opts.features)
 
     local ui = opts.ui
     local doc = ui and ui.document
     local params = {
         html = html,
-        css = ".koa-line { margin-top: 0.4em; } .koa-meta { margin-top: 0.5em; font-size: 80%; color: #555555; }",
+        css = css,
         dialog = ui and ui.dialog,
         follow_callback = nil, -- set below (needs the popup upvalue)
     }
@@ -559,7 +641,7 @@ local function showFootnoteCard(hit, opts)
         tapAction(hit, opts, c)
     end
     local ok_new
-    ok_new, popup = pcall(FootnoteWidget.new, FootnoteWidget, params)
+    ok_new, popup = withFontFolder(font_dir, function() return FootnoteWidget:new(params) end)
     if not ok_new or type(popup) ~= "table" then
         logger.warn("KOAssistant: footnote card construction failed, falling back to popup style", popup)
         popup = nil
@@ -582,7 +664,8 @@ local function showFootnoteCard(hit, opts)
     UIManager:show(popup)
 end
 
---- Show the card. opts = { style ("footnote"|"popup"), ui, sboxes,
+--- Show the card. opts = { style ("footnote"|"popup"), ui, sboxes, features
+--- (the Arabic font of the footnote panel is read from it),
 --- on_full(hit), card_length ("sentence"|"full"), ahead_card ("entry"|"name"),
 --- stage (internal: the staged card's current stage) } — on_full opens the
 --- full entry (router-owned).

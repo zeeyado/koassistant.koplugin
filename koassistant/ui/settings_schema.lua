@@ -1183,7 +1183,7 @@ local SettingsSchema = {
                                 { value = "sentence", text = _("First sentence only") },
                                 { value = "full", text = _("Full entry") },
                             },
-                            help_text = _("How much of an entry the card shows for entities already in your installed X-Ray. First sentence keeps the card to a one-line identification, with the full entry a tap away. Full entry shows the whole description (swipe to scroll it). Can be overridden per book."),
+                            help_text = _("How much of an entry the card shows for entities already in your installed X-Ray. First sentence keeps the card to a one-line identification, with the full entry a tap away. Full entry shows the entry's own text: its description and what its page has under it, such as its other names and its Significance (swipe to scroll it). Its connections stay on the entry's page. Can be overridden per book."),
                         },
                         {
                             id = "xray_card_landing",

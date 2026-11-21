@@ -355,8 +355,8 @@ end
 --- the creation form build the same versions whatever the protection; the
 --- book's spoiler protection decides which one is installed. One short
 --- sentence, from the two resolvers the engine's installs read
---- (resolveXrayPosture and the promotion hold), for the hint under the form's
---- checkpoint rows (xrayFormHint; its test holds the length).
+--- (resolveXrayPosture and the promotion hold), for the form's protection line
+--- (xrayProtectionLine; the test holds the length).
 --- @return string the sentence
 --- @return string "follows" | "newest" | "held" (the case, for tests)
 function BookSettings.xrayCheckpointNote(doc_settings, features)
@@ -370,37 +370,57 @@ function BookSettings.xrayCheckpointNote(doc_settings, features)
     return _("Spoiler protection is off: the newest checkpoint is shown as soon as it is built, even ahead of you."), "newest"
 end
 
---- The grey line under the X-Ray creation form's Build rows. Pure. One short
---- sentence for the pick, the book's protection case under a checkpoint row,
---- and the facts that change a decision about money or about the saved X-Ray.
---- Everything else is behind the info icon in the form's title bar
---- (xrayFormAbout): the form had grown to eleven lines of grey text and
---- needed scrolling on an e-reader's screen (the maintainer, 2026-11-20: "too
---- much information ... must be more concise"). tests/unit/test_book_settings
---- holds the budget: a new sentence here goes into the About text unless it
---- changes what the reader picks.
+--- The creation form's protection line: what the book's spoiler protection
+--- does with the checkpoints the pick builds, as ONE grey line of its own
+--- under the hint that takes a tap (the tap opens the book's Spoiler
+--- Protection picker, where it is changed). Shown under a checkpoint row
+--- alone, as the fast model's warning is shown only when it applies (the
+--- maintainer, 2026-11-21: "the same way that the fast model warning
+--- dynamically pops up ... spoiler protection can pop up that way"). It was
+--- the last sentence of the hint.
+--- @return string the line
+--- @return string the case ("follows" | "newest" | "held")
+function BookSettings.xrayProtectionLine(doc_settings, features)
+    local note, case = BookSettings.xrayCheckpointNote(doc_settings, features)
+    return note .. " " .. _("Tap to change."), case
+end
+
+--- The grey text under the X-Ray creation form's Build rows: what the picked
+--- way to build gives, in two or three short sentences, and the facts that
+--- change a decision about money or about the saved X-Ray. Pure. The text had
+--- grown to eleven lines and the form scrolled on an e-reader's screen (the
+--- maintainer, 2026-11-20: "too much information ... must be more concise");
+--- cut to one sentence with the rest behind an info icon, it said too little
+--- where the choice is made (2026-11-21: "did we move too much info to the
+--- info box? ... we can leave the explanation text under each item when
+--- selected like before"). The info icon is gone until its shape is decided
+--- for every window (B763); what protection does with checkpoints and a fast
+--- model's warning are lines of their own (xrayProtectionLine,
+--- xraySmallModelWarning). tests/unit/test_book_settings holds the budget.
 --- @param pick table { delivery = "follow" | "checkpoints" | "one_bg" | nil
 ---   (one request now), coverage = "whole" | "position" | "target",
 ---   extend = boolean (a plain update of the saved X-Ray), idle = boolean
 ---   (automatic building on and caught up), target_label = string|nil,
----   checkpoint_note = string|nil (xrayCheckpointNote), replaces = boolean
----   (a rebuild picked inside an update), built_ahead_pct = number|nil (a
----   checkpoint already built past the position) }
+---   rebuild = boolean (the pick makes a new X-Ray in place of the one that
+---   is there: one true sentence, and the rebuild's confirm says whether the
+---   old one is archived), built_ahead_pct = number|nil (a checkpoint already
+---   built past the position) }
 --- @return string
 function BookSettings.xrayFormHint(pick)
     local hint
     if pick.delivery == "follow" and pick.idle then
-        hint = _("Automatic building is on and caught up.")
+        hint = _("Automatic building is on and caught up. The next checkpoint builds by itself as you read on.")
     elseif pick.delivery == "follow" then
-        hint = _("Builds each checkpoint as you read, the next one ready ahead of you.")
+        hint = _("Builds each checkpoint in the background as you read, the next one ready ahead of you. Checkpoints missing up to your position are built right away.")
         if pick.coverage == "target" and pick.target_label then
             hint = hint .. " " .. T(_("It stops at the end of \"%1\"."), pick.target_label)
         end
     elseif pick.delivery == "checkpoints" then
-        hint = pick.extend and _("Continues from where your X-Ray ends, in background steps.")
-            or _("Builds it now in background steps: more detail than one request, at a higher cost.")
+        hint = pick.extend
+            and _("Continues from where your X-Ray ends, in background steps, each a version up to its own position. You can keep reading, cancel any time and resume later.")
+            or _("Builds it now in background steps, each a version up to its own position. It finds more of the minor names and hard words than one request, for more requests.")
     elseif pick.delivery == "one_bg" then
-        hint = _("One request in the background. The book must stay open.")
+        hint = _("The same single request in the background: a notification arrives when it is ready. The book must stay open.")
     elseif pick.extend then
         if pick.coverage == "whole" then
             hint = _("Updates your X-Ray to 100% in one request.")
@@ -410,64 +430,20 @@ function BookSettings.xrayFormHint(pick)
             hint = _("Updates your X-Ray to the end of that section in one background request.")
         end
     elseif pick.coverage == "whole" then
-        hint = _("The whole book in one request: the cheapest way. It covers the ending too.")
+        hint = _("The whole book in one request: the cheapest way, and every entry is written with the whole book in view. It covers the ending too.")
     elseif pick.coverage == "position" then
-        hint = _("Reads up to your position in one request. You can update it as you read on.")
+        hint = _("Reads up to your position in one request: the cheapest way. You can update it later as you read on, by hand or automatically.")
     else
-        hint = _("Reads up to the end of that section in one background request.")
+        hint = _("Reads up to the end of that section in one background request. You can update it later as you read on.")
     end
-    if pick.checkpoint_note then hint = hint .. " " .. pick.checkpoint_note end
-    if pick.replaces then hint = hint .. " " .. _("It replaces the current X-Ray.") end
+    if pick.rebuild then
+        hint = hint .. " " .. _("The current X-Ray is kept until the new one is saved.")
+    end
     if pick.built_ahead_pct then
         hint = hint .. " " .. T(_("This is a new AI request; the checkpoint built to %1% still installs for free as you read on."),
             pick.built_ahead_pct)
     end
     return hint
-end
-
---- What the form's info icon shows (the one in its title bar): what each way
---- to build gives, said once and in full, a tap away from the rows. Pure. A
---- rebuild's form opens it with what a rebuild does to the X-Ray that is
---- there: the form said so in grey lines above its first row until the
---- maintainer asked for them to go (2026-11-20; the rebuild's own confirm
---- says it again before anything is replaced).
---- @param ctx table|nil { rebuild = "forced" (the reader picked Rebuild) |
----   "whole" | "ai_knowledge" | "older" (why this X-Ray cannot be extended),
----   covers_pct = number|nil, archived = boolean (false: version archiving
----   is off) }
---- @return string
-function BookSettings.xrayFormAbout(ctx)
-    local parts = {}
-    local why = ctx and ctx.rebuild
-    if why then
-        local first
-        if why == "whole" then
-            first = _("Your current X-Ray was analyzed as a whole, so it cannot be extended.")
-        elseif why == "ai_knowledge" then
-            first = _("Your current X-Ray was made from AI knowledge, so it cannot be extended.")
-        elseif why == "older" then
-            first = _("Your current X-Ray is in an older format, so it cannot be extended.")
-        elseif ctx.covers_pct then
-            first = T(_("Your X-Ray covers to %1%."), ctx.covers_pct)
-        end
-        local kept = ctx.archived == false
-            and _("A rebuild makes a new one from scratch. The current one is kept until the new one is saved, then replaced: version archiving is off, so it will be gone.")
-            or _("A rebuild makes a new one from scratch. The current one is kept until the new one is saved, then archived under \"All versions\".")
-        parts[#parts + 1] = first and (first .. " " .. kept) or kept
-    end
-    for _idx, text in ipairs({
-        _("Coverage is how far into the book the X-Ray reads. Build is how it is made:"),
-        _("In one request: the cheapest way. The text goes to the AI once, and every entry is written with the whole range in view. Over the whole book it covers the ending too. You can update it later as you read on, by hand or automatically."),
-        _("In one request, in background: the same request. A notification arrives when it is ready. The book must stay open."),
-        _("In checkpoints, now: the range in background steps, each a version up to its own position. It finds more of the minor names and hard words than one request, for more requests. A usable X-Ray installs after the first step. Keep reading, cancel any time, resume later."),
-        _("In checkpoints, as I read: each checkpoint is built in the background as you read, the next one ready ahead of you. Checkpoints missing up to your position are built right away."),
-        _("Spoiler protection decides which checkpoint you see. On: the X-Ray up to your position. Off: the newest one built."),
-        _("A fast, small model tends to mix up people who share a name when it builds in checkpoints. One request keeps them apart better."),
-        _("Preset, categories, depth and type apply to new builds and rebuilds. Spacing applies to checkpoints."),
-    }) do
-        parts[#parts + 1] = text
-    end
-    return table.concat(parts, "\n\n")
 end
 
 --- Forget the per-book state that described a DELETED X-Ray lineage: the

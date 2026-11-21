@@ -335,6 +335,8 @@ end
 --   text: Combined system prompt string (may be empty),
 --   enable_caching: Whether to enable caching (Anthropic only),
 --   components: { behavior, domain, language } for debugging,
+--   behavior_id: the name of the behavior in use ("own text" for an action's
+--     own, "none"), for the debug view,
 -- }
 function SystemPrompts.buildUnifiedSystem(config)
     config = config or {}
@@ -437,9 +439,24 @@ function SystemPrompts.buildUnifiedSystem(config)
     -- reading position (BookToolRunner.queryWith). A system copy would freeze the
     -- percent for the life of the chat and bust provider prefix caches as it moved.
 
+    -- The behavior this text was built with, by name, for the debug view of a
+    -- chat (it named the reader's setting, whatever the request carried: an
+    -- action's own behavior, the Quick preset's, none)
+    local behavior_id
+    if behavior_source == "override" then
+        behavior_id = "own text"
+    elseif behavior_source == "none" then
+        behavior_id = "none"
+    elseif behavior_source == "variant" then
+        behavior_id = config.behavior_variant == "minimal" and "mini" or config.behavior_variant
+    else
+        behavior_id = config.global_variant or "standard"
+    end
+
     return {
         text = content or "",
         enable_caching = config.enable_caching ~= false,
+        behavior_id = behavior_id,
         components = {
             behavior = (behavior_source ~= "none") and behavior_text or nil,
             domain = config.domain_context,

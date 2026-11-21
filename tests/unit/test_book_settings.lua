@@ -1396,127 +1396,136 @@ TestRunner:test("xraySmallModelWarning: the form's own call, the model the X-Ray
     fh:close()
     truthy(src:find('xraySmallModelWarning(self_ref, action, cr.delivery,\n      (mode == "extend" and not pick_rebuild and not force_rebuild) and base_entry or nil)', 1, true) ~= nil,
         "the creation form builds its warning from it")
-    truthy(src:find("text = model_warning.line, face = info_face, width = content_width,\n          fgcolor = Blitbuffer.COLOR_DARK_GRAY,", 1, true) ~= nil,
-        "as grey text of the form")
-    truthy(src:find("TapWarning", 1, true) ~= nil, "that takes a tap")
+    truthy(src:find("tapLine(model_warning.line, function()", 1, true) ~= nil,
+        "as a grey line of the form that takes a tap")
+    truthy(src:find("fgcolor = Blitbuffer.COLOR_DARK_GRAY,\n        },\n      }\n      line.ges_events = { TapLine = {", 1, true) ~= nil,
+        "the line is grey text with a tap of its own")
     truthy(not src:find("about_row", 1, true) and not src:find('"\226\154\160 " ..', 1, true),
         "and no button of the dials carries help or a warning")
 end)
 
--- The form's text budget (the maintainer, 2026-11-20: "too much information,
+-- The form's text budget. The maintainer, 2026-11-20: "too much information,
 -- causing you to have to scroll. explanatory text is too long, must be more
--- concise"). The form's grey line is one short sentence for the pick plus the
--- few facts that change a decision; what each way to build gives is behind
--- the info icon in the form's title bar. A sentence added to the hint has to
--- fit these numbers or go into the About text.
-local HINT_SENTENCE_MAX = 90     -- one line and a third of the form at an e-reader's width
-local HINT_COMMON_MAX = 200      -- three lines: the cases a reader meets on a first build
-local HINT_WORST_MAX = 330       -- five lines: every note at once
+-- concise"; and 2026-11-21, of the cut that left one sentence and put the
+-- rest behind an info icon: "did we move too much info to the info box? ...
+-- we can leave the explanation text under each item when selected like
+-- before (it wasnt taking too much space)". So: under the Build rows, what
+-- the picked way gives in two or three sentences; the protection case and a
+-- fast model's warning each on one line of their own; no info icon until its
+-- shape is decided for every window (B763). The real-app run measures the
+-- form on an e-reader's screen; these numbers keep a new sentence honest.
+local HINT_PICK_MAX = 170        -- what one way to build gives: three lines of the form at an e-reader's width
+local HINT_WORST_MAX = 330       -- with every fact at once: a section's name, a rebuild
+local PROTECTION_LINE_MAX = 130  -- two lines
 
-TestRunner:test("xrayFormHint: every pick's own sentence is short, and it is one sentence per pick", function()
+TestRunner:test("xrayFormHint: every pick says what it gives, in at most three lines", function()
     local hint = BookSettings.xrayFormHint
-    local seen = {}
     for _i, delivery in ipairs({ "follow", "checkpoints", "one_bg", "now" }) do
         for _j, coverage in ipairs({ "whole", "position", "target" }) do
             for _k, extend in ipairs({ false, true }) do
                 local text = hint({ delivery = delivery ~= "now" and delivery or nil, coverage = coverage, extend = extend })
-                truthy(type(text) == "string" and #text > 20, delivery .. "/" .. coverage .. ": a sentence")
-                truthy(#text <= HINT_SENTENCE_MAX, delivery .. "/" .. coverage .. (extend and "/extend" or "")
-                    .. ": " .. #text .. " characters, at most " .. HINT_SENTENCE_MAX .. ": " .. text)
+                local where = delivery .. "/" .. coverage .. (extend and "/extend" or "")
+                truthy(type(text) == "string" and #text > 20, where .. ": a sentence")
+                truthy(#text <= HINT_PICK_MAX, where .. ": " .. #text .. " characters, at most " .. HINT_PICK_MAX .. ": " .. text)
                 truthy(not text:find("\226\128\148", 1, true), "no em dash: " .. text)
-                seen[text] = true
+                local _t, sentences = text:gsub("[%.!?]%s", "")
+                truthy(sentences + 1 <= 3, where .. ": at most three sentences (" .. (sentences + 1) .. ")")
+                truthy(not text:find("Spoiler protection", 1, true), where .. ": the protection case is a line of its own")
             end
         end
     end
     local idle = hint({ delivery = "follow", coverage = "whole", idle = true })
-    truthy(#idle <= HINT_SENTENCE_MAX and idle:find("caught up", 1, true) ~= nil, "automatic building on and caught up says so")
+    truthy(#idle <= HINT_PICK_MAX and idle:find("caught up", 1, true) ~= nil, "automatic building on and caught up says so")
     -- the picks that differ in what they do differ in what they say
     truthy(hint({ coverage = "whole" }) ~= hint({ coverage = "position" }), "the whole book and up to the position")
     truthy(hint({ coverage = "whole" }) ~= hint({ coverage = "whole", extend = true }), "a new X-Ray and an update")
     truthy(hint({ delivery = "checkpoints", coverage = "whole" }) ~= hint({ delivery = "follow", coverage = "whole" }),
         "checkpoints now and as I read")
-    -- the one-request build of a whole book is the one that holds the ending: said in the line itself
-    truthy(hint({ coverage = "whole" }):find("ending", 1, true) ~= nil, "the whole book in one request names the ending")
-    truthy(hint({ delivery = "checkpoints", coverage = "whole" }):find("cost", 1, true) ~= nil, "checkpoints name the cost")
+    -- what a reader picks by, said under the row itself
+    local whole = hint({ coverage = "whole" })
+    truthy(whole:find("cheapest", 1, true) ~= nil and whole:find("ending", 1, true) ~= nil,
+        "the whole book in one request: the cheapest, and it holds the ending")
+    truthy(hint({ coverage = "position" }):find("update it later", 1, true) ~= nil, "up to the position: it can be updated later")
+    local now = hint({ delivery = "checkpoints", coverage = "whole" })
+    truthy(now:find("more requests", 1, true) ~= nil and now:find("minor names", 1, true) ~= nil
+        and now:find("each a version up to its own position", 1, true) ~= nil, "checkpoints now: what they are, what they find, what they cost")
+    truthy(hint({ delivery = "follow", coverage = "whole" }):find("ahead of you", 1, true) ~= nil, "as I read: the next one is ready ahead")
     truthy(hint({ delivery = "one_bg", coverage = "whole" }):find("stay open", 1, true) ~= nil, "a background request names its condition")
+    truthy(hint({ delivery = "checkpoints", coverage = "whole", extend = true }):find("where your X%-Ray ends") ~= nil,
+        "an update in checkpoints continues")
 end)
 
-TestRunner:test("xrayFormHint: with its notes the line stays inside the form's budget", function()
+TestRunner:test("xrayFormHint: a pick that replaces the X-Ray says that one is safe meanwhile; every fact at once still fits", function()
     local hint = BookSettings.xrayFormHint
-    local notes = {}
-    for _i, features in ipairs({ {}, { spoiler_free_chat = false } }) do
-        notes[#notes + 1] = (BookSettings.xrayCheckpointNote(fakeDocSettings({}), features))
+    local plain = hint({ coverage = "whole" })
+    local rebuild = hint({ coverage = "whole", rebuild = true })
+    truthy(rebuild:sub(1, #plain) == plain, "what the pick gives comes first")
+    TestRunner:assertEqual(rebuild:sub(#plain + 1), " The current X-Ray is kept until the new one is saved.",
+        "then one sentence that is true whether versions are archived or not")
+    truthy(not rebuild:find("archived", 1, true) and not rebuild:find("All versions", 1, true),
+        "it promises no archive: the rebuild's own confirm says what happens to the old X-Ray, by the archiving setting")
+    truthy(not plain:find("kept until", 1, true), "a first build says nothing of an X-Ray that is not there")
+    -- a rebuild's hint stays within the pick's four lines plus that one
+    for _i, delivery in ipairs({ "follow", "checkpoints", "one_bg", "now" }) do
+        local text = hint({ delivery = delivery ~= "now" and delivery or nil, coverage = "whole", rebuild = true })
+        truthy(#text <= HINT_PICK_MAX + 55, delivery .. ", a rebuild: " .. #text .. " characters")
     end
-    local held = (BookSettings.xrayCheckpointNote(
-        fakeDocSettings({ koassistant_book_xray_promotion = "position" }), { spoiler_free_chat = false }))
-    -- a first build, protection on or off: the two checkpoint rows
-    for _i, note in ipairs(notes) do
-        for _j, delivery in ipairs({ "follow", "checkpoints" }) do
-            local text = hint({ delivery = delivery, coverage = "whole", checkpoint_note = note })
-            truthy(text:find(note, 1, true) ~= nil, "the book's protection case is in the line")
-            truthy(#text <= HINT_COMMON_MAX, delivery .. ": " .. #text .. " characters, at most " .. HINT_COMMON_MAX .. ": " .. text)
-        end
-    end
-    -- every note at once: the longest protection case, a section's name, a rebuild picked inside an update
+    -- every fact at once: a section's name, a rebuild
     local worst = hint({ delivery = "follow", coverage = "target", target_label = string.rep("A long chapter title ", 3),
-        checkpoint_note = held, replaces = true })
+        rebuild = true })
     truthy(#worst <= HINT_WORST_MAX, "the worst case: " .. #worst .. " characters, at most " .. HINT_WORST_MAX)
-    truthy(worst:find("replaces the current X-Ray", 1, true) ~= nil, "a rebuild says what it replaces")
     -- an update to the position with a checkpoint already built ahead is a paid request: said, with the number
     local ahead = hint({ coverage = "position", extend = true, built_ahead_pct = 60 })
     truthy(ahead:find("new AI request", 1, true) ~= nil and ahead:find("60%", 1, true) ~= nil, "the new request is named")
-    truthy(#ahead <= HINT_COMMON_MAX, "and it fits: " .. #ahead)
-    -- a one-request row carries no protection sentence (it builds one version)
-    truthy(not hint({ coverage = "whole" }):find("Spoiler protection", 1, true), "one request: no protection sentence")
-end)
-
-TestRunner:test("xrayFormAbout: what left the form is said once, in full", function()
-    local about = BookSettings.xrayFormAbout()
-    for _i, words in ipairs({ "In one request", "in background", "In checkpoints, now", "In checkpoints, as I read",
-            "Spoiler protection", "share a name", "Spacing" }) do
-        truthy(about:find(words, 1, true) ~= nil, "it covers: " .. words)
-    end
-    truthy(not about:find("\226\128\148", 1, true), "no em dash")
-    truthy(not about:find("rebuild makes", 1, true), "a first build's text says nothing of a rebuild")
-    -- the form reads both from this module: no sentence of the old hint is left in main.lua
+    truthy(#ahead <= HINT_PICK_MAX, "and it fits: " .. #ahead)
+    -- the two confirms of a rebuild say what happens to the old X-Ray, and neither promises an archive that is switched off
     local fh = assert(io.open("main.lua", "r"))
     local src = fh:read("*a")
     fh:close()
-    truthy(src:find("BookSettings.xrayFormHint({", 1, true) ~= nil, "the form's hint is xrayFormHint's")
-    truthy(src:find('left_icon = "info",\n      left_icon_tap_callback = function()\n        UIManager:show(InfoMessage:new{ text = BookSettings.xrayFormAbout(about_ctx) })',
-        1, true) ~= nil, "and the info icon of its title bar shows xrayFormAbout's")
-    truthy(not src:find("bounded background steps", 1, true), "the long sentences left the form's source")
+    local _s, promised = src:gsub('_%("[^"\n]*the outgoing version is archived then%."%)', "")
+    local _s2, honest = src:gsub("the outgoing version is replaced then: version archiving is off, so it will be gone%.", "")
+    TestRunner:assertEqual(promised, 1, "the checkpoint rebuild's confirm promises an archive in one sentence")
+    TestRunner:assertEqual(honest, 1, "and has the other sentence for when archiving is off")
+    truthy(src:find("state_line = ActionCache.checkpointLimitFromFeatures(features) ~= 0\n        and _(\"Replaces your current X-Ray from scratch.", 1, true) ~= nil,
+        "chosen by the archiving setting")
+    truthy(src:find("then replaced. Version archiving is off, so it will be gone.", 1, true) ~= nil,
+        "as the one-request rebuild's confirm does")
 end)
 
-TestRunner:test("xrayFormAbout: a rebuild's form says first what a rebuild does to the X-Ray that is there", function()
-    local about = BookSettings.xrayFormAbout
-    local plain = about()
-    -- the reader picked Rebuild: what the X-Ray covers, then the promise
-    local forced = about({ rebuild = "forced", covers_pct = 34, archived = true })
-    truthy(forced:find("^Your X%-Ray covers to 34%%%. A rebuild makes a new one from scratch%.") ~= nil, "it opens with the X-Ray's own state: " .. forced:sub(1, 90))
-    truthy(forced:find("kept until the new one is saved, then archived under \"All versions\"", 1, true) ~= nil,
-        "the current one is kept until the new one is saved, then archived")
-    TestRunner:assertEqual(forced:sub(-#plain), plain, "what each way to build gives follows, unchanged")
-    -- version archiving off: the outgoing X-Ray will be gone, and the text says so
-    local gone = about({ rebuild = "forced", covers_pct = 34, archived = false })
-    truthy(gone:find("version archiving is off, so it will be gone", 1, true) ~= nil and not gone:find("All versions", 1, true),
-        "with archiving off it never promises an archive")
-    truthy(gone:find("kept until the new one is saved", 1, true) ~= nil, "it is still kept until the new one is saved")
-    -- an X-Ray that cannot be extended: why, in a sentence of its own per reason
+TestRunner:test("xrayProtectionLine: the protection case is one line of its own, a tap from the setting", function()
     local seen = {}
-    for _i, why in ipairs({ "whole", "ai_knowledge", "older" }) do
-        local text = about({ rebuild = why, archived = true })
-        local first = text:match("^(.-cannot be extended%.)")
-        truthy(first ~= nil, why .. ": it says why the X-Ray cannot be extended: " .. text:sub(1, 80))
-        truthy(first and not seen[first], why .. ": in its own words")
-        if first then seen[first] = true end
-        truthy(text:find("A rebuild makes a new one from scratch.", 1, true) ~= nil, why .. ": then what a rebuild does")
+    for _i, case in ipairs({
+        { fakeDocSettings({}), {}, "follows" },
+        { fakeDocSettings({}), { spoiler_free_chat = false }, "newest" },
+        { fakeDocSettings({ koassistant_book_xray_promotion = "position" }), { spoiler_free_chat = false }, "held" },
+    }) do
+        local line, which = BookSettings.xrayProtectionLine(case[1], case[2])
+        local note = (BookSettings.xrayCheckpointNote(case[1], case[2]))
+        TestRunner:assertEqual(which, case[3], "the case the installs follow")
+        truthy(line:sub(1, #note) == note, "it opens with what protection does with the checkpoints: " .. line)
+        truthy(line:sub(-15) == " Tap to change.", "and says a tap changes it")
+        truthy(#line <= PROTECTION_LINE_MAX, case[3] .. ": " .. #line .. " characters, at most " .. PROTECTION_LINE_MAX)
+        truthy(not seen[line], "each case in its own words")
+        seen[line] = true
     end
-    -- the form's source: no grey line above a rebuild's rows any more
+    -- the form: under a checkpoint row alone, built as the warning line is, opening the book's own picker
     local fh = assert(io.open("main.lua", "r"))
     local src = fh:read("*a")
     fh:close()
-    truthy(not src:find("Building here replaces it", 1, true), "the rebuild's state lines left the form")
+    truthy(src:find('if cr.delivery == "follow" or cr.delivery == "checkpoints" then\n      tapLine((BookSettings.xrayProtectionLine(', 1, true) ~= nil,
+        "the form shows it under the two checkpoint rows, as a line that takes a tap")
+    truthy(src:find('BookSettings.showSpoilerFree({\n          ui = self_ref.ui, plugin = self_ref, target_override = "book",\n          on_close = function() buildAndShow() end,', 1, true) ~= nil,
+        "the tap opens the book's Spoiler Protection picker, and the form comes back with the new case")
+    truthy(src:find("BookSettings.xrayFormHint({", 1, true) ~= nil, "the form's hint is xrayFormHint's")
+    truthy(not src:find("checkpoint_note", 1, true), "and no longer carries the protection sentence")
+    -- the info icon is suspended (B763): no icon in the form's title bar, no text behind it
+    truthy(not src:find("xrayFormAbout", 1, true) and BookSettings.xrayFormAbout == nil, "the info text is gone")
+    local form = src:match("function AskGPT:_showXrayCreationChooser.-\nfunction AskGPT:") or ""
+    truthy(#form > 1000, "the form's source was found")
+    truthy(not form:find('left_icon = "info"', 1, true), "and the form's title bar has no info icon")
+    truthy(not src:find("bounded background steps", 1, true), "the old long sentences stay out of the form's source")
+    -- a rebuild's form: still no grey line above its rows
+    truthy(not src:find("Building here replaces it", 1, true), "the rebuild's state lines stay out")
     truthy(src:find('if mode == "extend" and not force_rebuild then', 1, true) ~= nil, "the state line is an update's alone")
 end)
 

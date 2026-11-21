@@ -208,6 +208,43 @@ function ConfigHelper:validate(config)
     return true
 end
 
+--- The domain a request carries, read from the system text it was built with
+--- and never from the setting: an action can leave the domain out or pin its
+--- own, a book can have its own, the Quick preset can drop it. Pure but for
+--- the domains it lists.
+--- @return string|nil|false the id of the domain whose text the request holds
+---   ("custom" when no domain has that text any more), nil when it holds none,
+---   false when the config has no system text to read (the caller falls back
+---   to the setting)
+function ConfigHelper.domainSent(config)
+    local system = type(config) == "table" and config.system
+    if type(system) ~= "table" or type(system.components) ~= "table" then return false end
+    local text = system.components.domain
+    if type(text) ~= "string" or text == "" then return nil end
+    local features = config.features or {}
+    local ok, DomainLoader = pcall(require, "koassistant.prompts.domain_loader")
+    if ok and type(DomainLoader) == "table" and DomainLoader.getAllDomains then
+        local ok_all, all = pcall(DomainLoader.getAllDomains, features.custom_domains or {})
+        if ok_all and type(all) == "table" then
+            -- the setting's own domain first (two domains can hold one text),
+            -- then the first by id, so the answer does not depend on table order
+            local preferred = features.selected_domain
+            if preferred and type(all[preferred]) == "table" and all[preferred].context == text then
+                return preferred
+            end
+            local found
+            for id, domain in pairs(all) do
+                if type(domain) == "table" and domain.context == text
+                        and (found == nil or tostring(id) < tostring(found)) then
+                    found = id
+                end
+            end
+            if found then return found end
+        end
+    end
+    return "custom"
+end
+
 -- Build debug info snapshot from config for message storage
 -- This is stored with messages so debug shows what was USED, not current settings
 function ConfigHelper:buildDebugInfo(config)
@@ -228,12 +265,23 @@ function ConfigHelper:buildDebugInfo(config)
         temp = config.api_params.temperature
     end
 
+    -- What the request carried, where its own system text says so: the
+    -- reader's settings named a domain that an action left out, and the
+    -- global behavior under an action's own (the maintainer, 2026-11-21: "if a
+    -- user wants to make sure that e.g an x ray chat used the domain")
+    local system = type(config.system) == "table" and config.system or nil
+    local sent = ConfigHelper.domainSent(config)
+    local domain
+    if sent == false then domain = features.selected_domain else domain = sent end
     local debug_info = {
         provider = provider,
         model = model,
         temperature = temp,
-        behavior = features.selected_behavior or "standard",
-        domain = features.selected_domain,
+        behavior = (system and system.behavior_id) or features.selected_behavior or "standard",
+        domain = domain,
+        -- the book's Background note went along (it follows the domain unless an action says otherwise)
+        background = (system and type(system.components) == "table"
+            and system.components.book_background ~= nil) or nil,
     }
 
     -- Add reasoning info based on provider

@@ -11888,20 +11888,6 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
     local info_face = Font:getFace("cfont", 16)
 
     local vgroup = VerticalGroup:new{ align = "left" }
-    -- A rebuild's form: what a rebuild does to the X-Ray that is there, said
-    -- in the info text (it was up to three grey lines above the first row;
-    -- the rebuild's own confirm says it again before anything is replaced)
-    local about_ctx
-    if force_rebuild or mode == "rebuild" then
-      local why = "forced"
-      if not force_rebuild and base_entry then
-        why = base_entry.full_document and "whole"
-          or base_entry.source_mode == "ai_knowledge" and "ai_knowledge" or "older"
-      end
-      about_ctx = { rebuild = why,
-        covers_pct = force_rebuild and math.floor((base_progress or 0) * 100 + 0.5) or nil,
-        archived = require("koassistant.artifacts.action_cache").checkpointLimitFromFeatures(features) ~= 0 }
-    end
     local title_bar = TitleBar:new{
       width = dialog_width,
       align = "left",
@@ -11912,13 +11898,9 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
         or mode == "extend" and _("Extend X-Ray")
         or _("Create X-Ray"),
       title_shrink_font_to_fit = true,
-      -- What each way to build gives, a tap away and no row of the form's own
-      -- (B759; the maintainer, 2026-11-20: help belongs in the window "in a
-      -- more subtle and elegant way" than a button among the dials)
-      left_icon = "info",
-      left_icon_tap_callback = function()
-        UIManager:show(InfoMessage:new{ text = BookSettings.xrayFormAbout(about_ctx) })
-      end,
+      -- No info icon here for now: what each way to build gives is under the
+      -- picked row again, and help in a window's title bar waits for one
+      -- shape for every window (B763; the maintainer, 2026-11-21)
       close_callback = function() UIManager:close(current_dialog) end,
     }
     local function addLabel(text)
@@ -11931,8 +11913,8 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
     end
 
     -- The state line of an update: what the saved X-Ray covers, which the
-    -- rows below are read against. A rebuild has none (its facts are in the
-    -- info text, about_ctx above).
+    -- rows below are read against. A rebuild has none (what happens to the
+    -- X-Ray that is there is the last sentence of the hint under the rows).
     local state_line
     if mode == "extend" and not force_rebuild then
       -- Name BOTH numbers when they differ (device 2026-08-14: "covers to
@@ -12127,23 +12109,26 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
     }
     table.insert(vgroup, del_table)
 
-    -- Gray hint under the Build group: one short sentence for the pick, the
-    -- book's protection case under a checkpoint row (B717), and the facts
-    -- that change a decision about money or about the saved X-Ray. What each
-    -- way to build gives is behind the info icon in the title bar, and a fast
-    -- model's note behind its own grey line (B747): the form had grown to
-    -- eleven lines of grey text and scrolled on an e-reader's screen (the
-    -- maintainer, 2026-11-20). BookSettings.xrayFormHint holds the words and
-    -- its test their budget.
+    -- Grey text under the Build group: what the picked way to build gives, in
+    -- two or three sentences, and the facts that change a decision about
+    -- money or about the saved X-Ray (BookSettings.xrayFormHint holds the
+    -- words and its test their budget). Under it, each on one line of its own
+    -- and only when it applies: what the book's spoiler protection does with
+    -- the checkpoints (a tap opens the book's Spoiler Protection picker), and
+    -- a fast model's warning (a tap shows its sentence). The form's grey text
+    -- had grown to eleven lines and scrolled (the maintainer, 2026-11-20);
+    -- one sentence with the rest behind an info icon said too little where
+    -- the choice is made (2026-11-21).
+    local rebuilds = force_rebuild or mode == "rebuild" or (pick_rebuild and mode == "extend")
     local hint = BookSettings.xrayFormHint({
       delivery = cr.delivery, coverage = cr.coverage,
       extend = mode == "extend" and not pick_rebuild,
       idle = cr.delivery == "follow" and followIdle(),
       target_label = cr.target_label,
-      checkpoint_note = (cr.delivery == "follow" or cr.delivery == "checkpoints")
-        and BookSettings.xrayCheckpointNote(self_ref.ui.doc_settings,
-          self_ref.settings:readSetting("features") or {}) or nil,
-      replaces = pick_rebuild and mode == "extend" and not force_rebuild,
+      -- A pick that makes a new X-Ray in place of the one that is there says
+      -- that one is safe until the new one is saved (whether it is archived
+      -- then is the rebuild's own confirm's to say, by the archiving setting)
+      rebuild = (rebuilds and base_entry) and true or nil,
       -- With a checkpoint already built ahead, "update to where I am" can
       -- read as the free install (device 2026-08-14): the pick is a new paid
       -- request and the built checkpoint stays free
@@ -12156,28 +12141,46 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
       text = hint, face = info_face, width = content_width,
       fgcolor = Blitbuffer.COLOR_DARK_GRAY,
     })
-    -- A fast model with a big ask (B747): one more grey line, its sentence a
-    -- tap away. A warning, not a choice, so it is no button among the dials
-    -- (the maintainer, 2026-11-20)
-    local model_warning = BookSettings.xraySmallModelWarning(self_ref, action, cr.delivery,
-      (mode == "extend" and not pick_rebuild and not force_rebuild) and base_entry or nil)
-    if model_warning then
-      local warn_line = require("ui/widget/container/inputcontainer"):new{
+    -- A grey line that takes a tap: never a button among the dials (the
+    -- maintainer, 2026-11-20), and one way to build both of them
+    local function tapLine(text, on_tap)
+      local line = require("ui/widget/container/inputcontainer"):new{
         TextBoxWidget:new{
-          text = model_warning.line, face = info_face, width = content_width,
+          text = text, face = info_face, width = content_width,
           fgcolor = Blitbuffer.COLOR_DARK_GRAY,
         },
       }
-      warn_line.ges_events = { TapWarning = { GestureRange:new{
+      line.ges_events = { TapLine = { GestureRange:new{
         ges = "tap",
-        range = function() return warn_line.dimen or Geom:new{ w = 0, h = 0 } end,
+        range = function() return line.dimen or Geom:new{ w = 0, h = 0 } end,
       } } }
-      function warn_line:onTapWarning()
-        UIManager:show(InfoMessage:new{ text = model_warning.text, icon = "notice-warning" })
+      function line:onTapLine()
+        on_tap()
         return true
       end
       table.insert(vgroup, VerticalSpan:new{ width = Size.padding.small })
-      table.insert(vgroup, warn_line)
+      table.insert(vgroup, line)
+    end
+    -- The two checkpoint rows build the same versions whatever the book's
+    -- spoiler protection; which one the reader is SHOWN depends on it (B717).
+    -- Said where it applies, and changed from there.
+    if cr.delivery == "follow" or cr.delivery == "checkpoints" then
+      tapLine((BookSettings.xrayProtectionLine(self_ref.ui.doc_settings,
+          self_ref.settings:readSetting("features") or {})), function()
+        UIManager:close(current_dialog)
+        BookSettings.showSpoilerFree({
+          ui = self_ref.ui, plugin = self_ref, target_override = "book",
+          on_close = function() buildAndShow() end,
+        })
+      end)
+    end
+    -- A fast model with a big ask (B747): a warning, not a choice
+    local model_warning = BookSettings.xraySmallModelWarning(self_ref, action, cr.delivery,
+      (mode == "extend" and not pick_rebuild and not force_rebuild) and base_entry or nil)
+    if model_warning then
+      tapLine(model_warning.line, function()
+        UIManager:show(InfoMessage:new{ text = model_warning.text, icon = "notice-warning" })
+      end)
     end
 
     -- Options row (2026-08-25 redesign, ref #90): the two sticky per-book
@@ -16187,7 +16190,11 @@ function AskGPT:_startXrayLadderBuild(build_opts)
     end
     local state_line
     if chain_rebuild then
-      state_line = _("Replaces your current X-Ray from scratch. Nothing is touched until the first part of the new one arrives; the outgoing version is archived then.")
+      -- Honest about version archiving being off, as the foreground
+      -- rebuild's confirm is: the line promised an archive either way
+      state_line = ActionCache.checkpointLimitFromFeatures(features) ~= 0
+        and _("Replaces your current X-Ray from scratch. Nothing is touched until the first part of the new one arrives; the outgoing version is archived then.")
+        or _("Replaces your current X-Ray from scratch. Nothing is touched until the first part of the new one arrives; the outgoing version is replaced then: version archiving is off, so it will be gone.")
       -- The foreground rebuild confirm names the checkpoint deletion; this
       -- path routes past that ConfirmBox, so it has to say it itself. A
       -- rebuild clears the whole prepared ladder, and only the installed
@@ -21057,6 +21064,8 @@ function AskGPT:openXrayCard(query, opts)
     on_full = openFull,
     card_length = marking.card_length,
     ahead_card = marking.ahead_card,
+    -- the footnote panel's page takes the reader's Arabic font from it
+    features = features,
   })
 end
 

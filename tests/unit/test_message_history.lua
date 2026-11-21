@@ -560,6 +560,84 @@ local function runCreateResultTextTests()
         TestRunner:assertContains(result, "Debug Info")
     end)
 
+    -- The debug view's Config line named the reader's settings, whatever the
+    -- request carried: the global domain under an action that leaves the
+    -- domain out, the global behavior under an action's own (the maintainer,
+    -- 2026-11-21: "if a user wants to make sure that e.g an x ray chat used
+    -- the domain, what it sent"). It reads the request's own system text.
+    TestRunner:test("the debug line names the domain, the behavior and the Background the request carried, not the settings", function()
+        local ConfigHelper = require("koassistant.core.config_helper")
+        local SystemPrompts = require("koassistant.prompts.system_prompts")
+        local DomainLoader = require("koassistant.prompts.domain_loader")
+        local saved_all = DomainLoader.getAllDomains
+        DomainLoader.getAllDomains = function()
+            return {
+                synthesis = { id = "synthesis", context = "The synthesis text." },
+                law = { id = "law", context = "The law text." },
+                twin_b = { id = "twin_b", context = "One text, two domains." },
+                twin_a = { id = "twin_a", context = "One text, two domains." },
+            }
+        end
+        local function line(config)
+            local h = MessageHistory:new()
+            h:addUserMessage("Q")
+            h:addAssistantMessage("A", "m", nil, ConfigHelper:buildDebugInfo(config))
+            config.features.show_debug_in_chat = true
+            config.features.debug_display_level = "names"
+            return (h:createResultText(nil, config):match("● Config: [^\n]*") or "")
+        end
+        local function request(sys, features)
+            sys.global_variant = sys.global_variant or "standard"
+            return { provider = "anthropic", features = features or { selected_domain = "synthesis", selected_behavior = "standard" },
+                system = SystemPrompts.buildUnifiedSystem(sys) }
+        end
+        local ok, err = pcall(function()
+            -- the domain went along: named
+            TestRunner:assertContains(line(request({ domain_context = "The synthesis text." })), "domain=synthesis", "sent, and it is the setting's")
+            -- an action that leaves the domain out: none, though the setting names one
+            local out = line(request({ domain_context = nil }))
+            TestRunner:assertContains(out, "domain=none", "left out: " .. out)
+            TestRunner:assertNotContains(out, "synthesis", "the setting's domain is not claimed")
+            -- a book's or an action's own domain: that one, not the setting's
+            TestRunner:assertContains(line(request({ domain_context = "The law text." })), "domain=law", "another domain than the setting's")
+            -- a text no domain holds any more
+            TestRunner:assertContains(line(request({ domain_context = "A text that was edited since." })), "domain=custom", "no domain has this text")
+            -- two domains with one text: the setting's when it is one of them, else the first by id
+            TestRunner:assertContains(line(request({ domain_context = "One text, two domains." },
+                { selected_domain = "twin_b" })), "domain=twin_b", "the setting's own")
+            TestRunner:assertContains(line(request({ domain_context = "One text, two domains." },
+                { selected_domain = "synthesis" })), "domain=twin_a", "else the first by id")
+            -- the Background note
+            out = line(request({ domain_context = "The synthesis text.", book_background = "I read it for the trade routes." }))
+            TestRunner:assertContains(out, "domain=synthesis, background=yes", "the Background went along: " .. out)
+            TestRunner:assertNotContains(line(request({ domain_context = "The synthesis text." })), "background", "and is not named when it did not")
+            -- the behavior: an action's own variant, its own text, none, the global one
+            TestRunner:assertContains(line(request({ behavior_variant = "mini" })), "behavior=mini", "an action's own behavior")
+            TestRunner:assertContains(line(request({ behavior_variant = "none" })), "behavior=none", "an action without a behavior")
+            TestRunner:assertContains(line(request({ behavior_override = "Answer as a pirate." })), "behavior=own text", "an action's own text")
+            TestRunner:assertContains(line(request({ global_variant = "full" })), "behavior=full", "the reader's behavior")
+            -- a config with no system text (a chat from before, a caller that built none): the settings, as before
+            out = line({ provider = "anthropic", features = { selected_domain = "synthesis", selected_behavior = "full" } })
+            TestRunner:assertContains(out, "behavior=full, domain=synthesis", "no system text to read: " .. out)
+            TestRunner:assertEqual(ConfigHelper.domainSent({ features = {} }), false, "nothing to read from")
+            TestRunner:assertEqual(ConfigHelper.domainSent(request({})), nil, "a system text without a domain")
+        end)
+        DomainLoader.getAllDomains = saved_all
+        if not ok then error(err, 0) end
+    end)
+
+    TestRunner:test("a chat without a stored debug record reads the config's own system text too", function()
+        local SystemPrompts = require("koassistant.prompts.system_prompts")
+        local h = MessageHistory:new()
+        h:addUserMessage("Q")
+        h:addAssistantMessage("A")
+        local config = { provider = "anthropic",
+            features = { show_debug_in_chat = true, debug_display_level = "names", selected_domain = "synthesis" },
+            system = SystemPrompts.buildUnifiedSystem({ global_variant = "standard", behavior_variant = "none" }) }
+        local out = h:createResultText(nil, config):match("● Config: [^\n]*") or ""
+        TestRunner:assertContains(out, "behavior=none, domain=none", "what the system text holds, not the setting: " .. out)
+    end)
+
     TestRunner:test("reasoning indicator shown by default", function()
         local h = MessageHistory:new()
         h:addUserMessage("Q")

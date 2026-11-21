@@ -230,6 +230,148 @@ TestRunner:test("B329: a section hit names its section on the card", function()
     local live = XrayCard.resolve(DOC, "Tamsin Vael", { include_ahead = false })
     TestRunner:eq(XrayCard._cardContent(live, {}).line, nil, "a live hit has no provenance line")
 end)
+
+-- "Card Shows: Full entry" showed the description alone: the Significance of
+-- a place, an idea or an argument, its details and its other names never
+-- reached the card (the maintainer, 2026-11-21: "it stops after the first
+-- paragraph? e.g. the 'significance' section ... isnt included").
+TestRunner:suite("Card Shows: Full entry is the entry, not its description alone")
+local function has(text, needle) return type(text) == "string" and text:find(needle, 1, true) ~= nil end
+TestRunner:test("a place: description, details, significance and other names; no name line, no connections", function()
+    local hit = { source = "live", name = "The Toll House", category_key = "locations", category_label = "World",
+        item = { name = "The Toll House", description = "A stone house on the east road. Travellers pay there.",
+            details = "Two floors and a cellar.", significance = "Where the ledger was kept.",
+            aliases = { "the House" }, references = { "Captain Orsk", "Mira Tolland" } } }
+    local body = XrayCard._cardContent(hit, { card_length = "full" }).body
+    assert(has(body, "A stone house on the east road. Travellers pay there."), "the whole description: " .. body)
+    assert(has(body, "Details: Two floors and a cellar."), "the details")
+    assert(has(body, "Significance: Where the ledger was kept."), "the significance")
+    assert(has(body, "Also known as: the House"), "the other names")
+    assert(not has(body, "References:") and not has(body, "Captain Orsk"), "no connections: they are buttons on the entry's page")
+    assert(body:sub(1, 13) == "A stone house", "it starts with the description, not with the name the head carries: " .. body:sub(1, 30))
+    TestRunner:eq(XrayCard._cardContent(hit, {}).body, "A stone house on the east road.", "First sentence is still one sentence")
+    TestRunner:eq(XrayCard._cardContent(hit, { card_length = "sentence" }).body, "A stone house on the east road.", "said outright too")
+end)
+TestRunner:test("an idea: its evidence and significance; a person: other names and the description", function()
+    local idea = { source = "live", name = "Debt", category_key = "themes", category_label = "Ideas",
+        item = { name = "Debt", description = "What is owed, and to whom.", evidence = "The ledger's missing page.",
+            significance = "It drives the ferryman." } }
+    local body = XrayCard._cardContent(idea, { card_length = "full" }).body
+    assert(has(body, "What is owed, and to whom.") and has(body, "Evidence: The ledger's missing page.")
+        and has(body, "Significance: It drives the ferryman."), body)
+    local person = { source = "live", name = "Mira Fenn", category_key = "characters", category_label = "Cast",
+        item = { name = "Mira Fenn", role = "Ferrywoman", aliases = { "the night rower" },
+            description = "Rows the night ferry. Hums.", connections = { "Captain Orsk (her captain)" } } }
+    body = XrayCard._cardContent(person, { card_length = "full" }).body
+    assert(has(body, "Also known as: the night rower") and has(body, "Rows the night ferry. Hums."), body)
+    assert(not has(body, "Connections:") and not has(body, "Mira Fenn (Ferrywoman)"), "no connections and no name line: " .. body)
+end)
+TestRunner:test("a word of the lexicon is its definition; what another book adds comes along", function()
+    local word = { source = "live", name = "toll", category_key = "lexicon", category_label = "Lexicon",
+        item = { term = "toll", definition = "The fee paid at the House.",
+            background = { { source = "Book One", text = "It was a penny then." } } } }
+    local body = XrayCard._cardContent(word, { card_length = "full" }).body
+    assert(has(body, "The fee paid at the House."), body)
+    assert(has(body, "Book One") and has(body, "It was a penny then."), "the background line: " .. body)
+end)
+TestRunner:test("a carried entry and an earlier book's entry take the same text; a kind the formatter does not know keeps its plain text", function()
+    local carried = { source = "carried", name = "Vex", category_key = "characters", category_label = "Cast",
+        source_title = "Vol 1", item = { name = "Vex", description = "A grey cat. It watches.", aliases = { "the grey cat" } } }
+    local body = XrayCard._cardContent(carried, { card_length = "full" }).body
+    assert(has(body, "A grey cat. It watches.") and has(body, "Also known as: the grey cat"), body)
+    local odd = { source = "live", name = "Thing", category_key = "no_such_category", category_label = "?",
+        item = { name = "Thing", description = "First part. Second part.", aliases = { "It" } } }
+    TestRunner:eq(XrayCard._cardContent(odd, { card_length = "full" }).body, "First part. Second part.", "the plain text")
+    TestRunner:eq(XrayCard._fullBody({ item = nil }), "", "nothing to show")
+end)
+TestRunner:test("an upcoming entity never shows more than its sentence, whatever the card is set to", function()
+    local ahead = { source = "ahead", name = "Hester Lune", query = "Hester Lune", category_key = "locations",
+        category_label = "World", ahead_progress = 0.6,
+        item = { name = "Hester Lune", description = "A lighthouse. It falls in the storm.", significance = "The ending turns on it." } }
+    local c = XrayCard._cardContent(ahead, { card_length = "full", stage = "sentence" })
+    TestRunner:eq(c.body, "A lighthouse.", "one sentence")
+    TestRunner:eq(XrayCard._cardContent(ahead, { card_length = "full" }).body, "", "and at first the name alone")
+end)
+
+-- The footnote panel is KOReader's own widget: its page got none of the faces
+-- the plugin's windows give Arabic, Hebrew and Devanagari text, and KOReader
+-- hands MuPDF no folder to read a face from (the maintainer, 2026-11-21:
+-- "arabic font not showing in the footnote popup, it is still the old fallback").
+TestRunner:suite("the footnote panel's page takes the script faces")
+local SF = require("koassistant.ui.script_fonts")
+TestRunner:test("a card in a script the panel's font has is the plain page: no spans, no rules, no folder", function()
+    local html, css, dir = XrayCard._footnotePage(
+        { name = "Mira Fenn", kind = "Cast", body = "Rows the ferry.\n\nSignificance: She knows.", hint = "Tap for the full entry" }, {})
+    assert(not has(html, "koa-arab") and not has(css, "@font-face") and dir == nil, "untouched")
+    assert(has(html, "<b>Mira Fenn</b>"), html)
+    assert(has(html, '<div class="koa-line">Rows the ferry.</div><div class="koa-line">Significance: She knows.</div>'),
+        "each paragraph of the body is a block of its own: " .. html)
+    local _h, _c, _d = XrayCard._footnotePage({ name = "Mira Fenn", kind = "Cast", body = "", hint = "Tap" }, {})
+    assert(not has(_h, "koa-line"), "an empty body adds no block")
+    _h = XrayCard._footnotePage({ name = "N", kind = "", body = "One line\nand its second line.", hint = "Tap" }, {})
+    assert(has(_h, '<div class="koa-line">One line<br/>and its second line.</div>'), "a single line break stays inside its block: " .. _h)
+end)
+TestRunner:test("Arabic in the name and the text: the runs are marked, the face's rules join the style sheet, the folder is handed on", function()
+    local saved_css = SF.css
+    local asked
+    SF.css = function(features, html)
+        asked = { features = features, html = html }
+        return "\n@font-face { font-family: 'KOA RTL'; src: url('naskh.ttf') }\n.koa-arab { font-family: 'KOA RTL', 'Noto Sans' }\n",
+            "/fake/koassistant_fonts"
+    end
+    local features = { rtl_font = "Amiri" }
+    local ok, html, css, dir = pcall(XrayCard._footnotePage,
+        { name = "\216\185\217\132\217\138", kind = "Cast", line = nil,
+          body = "\216\167\217\132\216\174\217\132\217\138\217\129\216\169 the fourth caliph.", hint = "Tap for the full entry" }, features)
+    SF.css = saved_css
+    assert(ok, tostring(html))
+    assert(has(html, '<b><span class="koa-arab">\216\185\217\132\217\138</span></b>'), "the name's run is marked: " .. html)
+    assert(has(html, '<span class="koa-arab">\216\167\217\132\216\174\217\132\217\138\217\129\216\169</span> the fourth caliph.'),
+        "the text's run is marked and the English beside it is not")
+    assert(has(css, ".koa-meta") and has(css, "@font-face") and has(css, ".koa-arab"), "the card's rules and the face's")
+    TestRunner:eq(dir, "/fake/koassistant_fonts", "the folder MuPDF reads the face from")
+    assert(asked and asked.features == features, "the reader's Arabic font is asked for with the reader's settings")
+    assert(has(asked.html, "koa-arab"), "and with the marked page, so only the faces it uses are declared")
+end)
+TestRunner:test("with no face to give (the font set to None, a file gone) the page stays as it was", function()
+    local saved_css = SF.css
+    SF.css = function() return "", nil end
+    local ok, html, css, dir = pcall(XrayCard._footnotePage,
+        { name = "\216\185\217\132\217\138", kind = "Cast", body = "", hint = "Tap" }, { rtl_font = false })
+    SF.css = saved_css
+    assert(ok, tostring(html))
+    assert(not has(html, "koa-arab") and not has(css, "@font-face") and dir == nil, "no span without a rule for it")
+end)
+TestRunner:test("the folder reaches the page widget the panel builds, and the widget's class is left as it was", function()
+    local MOD = "ui/widget/scrollhtmlwidget"
+    local saved_mod = package.loaded[MOD]
+    local Base = { new = function(_class, o) return o or {} end }
+    local Page = setmetatable({}, { __index = Base })
+    package.loaded[MOD] = Page
+    local built
+    local ok, result = XrayCard._withFontFolder("/fake/koassistant_fonts", function()
+        built = Page:new{ html_body = "x" }             -- as KOReader's FootnoteWidget builds its page
+        return "the panel"
+    end)
+    assert(ok and result == "the panel", "the build's result comes back")
+    TestRunner:eq(built.html_resource_directory, "/fake/koassistant_fonts", "the page got the folder")
+    assert(rawget(Page, "new") == nil, "the class has no constructor of its own again")
+    TestRunner:eq(Page:new{}.html_resource_directory, nil, "and a page built afterwards gets none")
+    -- a widget that names its own folder keeps it
+    XrayCard._withFontFolder("/fake/koassistant_fonts", function()
+        built = Page:new{ html_body = "x", html_resource_directory = "/its/own" }
+    end)
+    TestRunner:eq(built.html_resource_directory, "/its/own", "a folder the widget set itself is not replaced")
+    -- a build that fails still leaves the class as it was
+    local ok2 = XrayCard._withFontFolder("/fake/koassistant_fonts", function() error("no panel") end)
+    assert(ok2 == false and rawget(Page, "new") == nil, "restored after a failure")
+    -- no folder: the class is not touched at all
+    local touched = false
+    setmetatable(Page, { __index = Base, __newindex = function(t, k, v) touched = true; rawset(t, k, v) end })
+    local ok3, r3 = XrayCard._withFontFolder(nil, function() return 7 end)
+    assert(ok3 and r3 == 7 and not touched, "nothing is wrapped when there is no folder")
+    package.loaded[MOD] = saved_mod
+end)
 os.execute(string.format("rm -rf %q", TMP_ROOT))
 
 print(string.format("\n  Results: %d passed, %d failed", TestRunner.passed, TestRunner.failed))

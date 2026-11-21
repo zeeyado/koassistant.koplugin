@@ -562,6 +562,7 @@ function MessageHistory:createResultText(highlightedText, config)
 
             -- Use stored debug info if available, otherwise fall back to current config
             local provider, model, temp, behavior, domain, reasoning_info
+            local background = false
 
             if stored_debug then
                 -- Use what was ACTUALLY used for this chat
@@ -570,6 +571,7 @@ function MessageHistory:createResultText(highlightedText, config)
                 temp = stored_debug.temperature or 0.7
                 behavior = stored_debug.behavior or "standard"
                 domain = stored_debug.domain or "none"
+                background = stored_debug.background == true
 
                 -- Build reasoning info from stored data
                 reasoning_info = ""
@@ -588,8 +590,18 @@ function MessageHistory:createResultText(highlightedText, config)
             else
                 -- Fall back to current config (for chats created before debug storage)
                 provider = config.provider or config.default_provider or "unknown"
-                behavior = config.features.selected_behavior or "standard"
-                domain = config.features.selected_domain or "none"
+                -- what this config's own system text carries, when it has one
+                local ConfigHelper = require("koassistant.core.config_helper")
+                local sent = ConfigHelper.domainSent(config)
+                behavior = (type(config.system) == "table" and config.system.behavior_id)
+                    or config.features.selected_behavior or "standard"
+                if sent == false then
+                    domain = config.features.selected_domain or "none"
+                else
+                    domain = sent or "none"
+                end
+                background = type(config.system) == "table" and type(config.system.components) == "table"
+                    and config.system.components.book_background ~= nil
 
                 -- Get actual model from provider settings if available
                 model = config.model
@@ -636,7 +648,8 @@ function MessageHistory:createResultText(highlightedText, config)
             -- Format temperature display (simple for stored, with constraints check for fallback)
             local temp_display = string.format("%.1f", temp)
 
-            table.insert(result, string.format("● Config: provider=%s, behavior=%s, domain=%s\n", provider, behavior, domain))
+            table.insert(result, string.format("● Config: provider=%s, behavior=%s, domain=%s%s\n", provider, behavior, domain,
+                background and ", background=yes" or ""))
             table.insert(result, string.format("  model=%s, temp=%s%s\n\n", model, temp_display, reasoning_info))
         end
 

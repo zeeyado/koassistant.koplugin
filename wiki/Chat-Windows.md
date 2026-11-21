@@ -177,7 +177,7 @@ Long-pressing **MD ON / TXT ON** opens the **Display** menu: **Default view mode
 
 **Right-to-left text** (all under **Settings → Display Settings → Rendering**):
 
-- **Right-to-left text font** (Noto Naskh Arabic): the font of Arabic, Persian and Urdu letters in the Markdown view, wherever they appear. **Noto Sans Arabic UI** is the face of KOReader's own text windows; any font KOReader knows can be picked, each row drawn in its own face (a font you copy into KOReader's fonts folder appears after a restart); **None** keeps the window's fallback font for those letters. Hebrew and Devanagari have their own fixed faces; Bengali keeps the window's fallback font. Grayed out while Plain Text is your default.
+- **Right-to-left text font** (Noto Naskh Arabic): the font of Arabic, Persian and Urdu letters in the Markdown view, wherever they appear, and in the X-Ray card's footnote panel. **Noto Sans Arabic UI** is the face of KOReader's own text windows; any font KOReader knows can be picked, each row drawn in its own face (a font you copy into KOReader's fonts folder appears after a restart); **None** keeps the window's fallback font for those letters. Hebrew and Devanagari have their own fixed faces; Bengali keeps the window's fallback font. Grayed out while Plain Text is your default.
 - **Text Mode for Dictionary** (off): dictionary windows always use Plain Text, whatever your view mode.
 
 A chat whose **MD ON / TXT ON** you tapped keeps that choice across replies, a reopen and a rotation; no window switches to Plain Text on its own.
