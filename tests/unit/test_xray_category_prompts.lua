@@ -496,5 +496,158 @@ TestRunner:test("status off: the request assembly applies it, stamps it, and acc
     assert(#merged.characters == 1 and merged.type == "fiction", "an empty delta leaves the X-Ray as it was")
 end)
 
+print("")
+print("  [the Conclusion of an X-Ray that reaches the end (B765)]")
+
+-- The whole-book build's status schema for one type, cut from its own prompt
+local function conclusionOf(prompt, which)
+    local schema = which == "academic" and prompt or schemaOf(prompt, which)
+    local s = assert(schema:find('"conclusion": {', 1, true), "the whole-book prompt asks for a conclusion")
+    local e = assert(schema:find("\n  }", s, true))
+    return schema:sub(s, e + 3)
+end
+
+TestRunner:test("at the end: an update asks for the Conclusion of its own type in place of the status", function()
+    local x = Actions.book.xray
+    local fic = conclusionOf(x.complete_prompt, "fiction")
+    local non = conclusionOf(x.complete_prompt, "nonfiction")
+    local aca = conclusionOf(x.doi_complete_prompt, "academic")
+    assert(fic:find("themes_resolved", 1, true) and non:find("key_findings", 1, true)
+        and aca:find("key contributions to the field", 1, true), "three schemas, each its own")
+    local function check(text, kind, wants)
+        local s, e = assert(text:find("%- You MUST always include[^\n]*"))
+        local at_end = Actions.xrayPromptAtEnd(text, kind)
+        assert(not at_end:find("You MUST always include", 1, true), "the always-include line is gone")
+        assert(at_end:find("- This update reaches the END of the work", s, true) == s, "replaced in place")
+        assert(at_end:find('Do NOT output "current_state" or "current_position"', 1, true))
+        for _idx, schema in ipairs({ fic, non, aca }) do
+            local wanted = false
+            for _idx2, w in ipairs(wants) do wanted = wanted or w == schema end
+            assert((at_end:find(schema, 1, true) ~= nil) == wanted, tostring(kind) .. ": the schemas shown")
+        end
+        -- everything around the line is the update prompt's own
+        assert(at_end:sub(1, s - 1) == text:sub(1, s - 1), "the text before the line")
+        assert(at_end:sub(-(#text - e)) == text:sub(e + 1), "the text after the line")
+    end
+    check(x.update_prompt, "fiction", { fic })
+    check(x.update_prompt, "nonfiction", { non })
+    check(x.update_prompt, nil, { fic, non })           -- a base that names no type
+    check(x.doi_update_prompt, "academic", { aca })
+    check(x.doi_update_prompt, nil, { aca })
+end)
+
+TestRunner:test("at the end: a create up to the position asks for the whole-book build's Conclusion", function()
+    local json = require("json")
+    local x = Actions.book.xray
+    for _idx, p in ipairs({ x.prompt, Actions.buildXrayCategoryPrompt("people", "partial", "light"),
+            Actions.buildXrayCategoryPrompt("people,places,ideas,terms", "partial", "deep") }) do
+        local at_end = Actions.xrayPromptAtEnd(p)
+        assert(at_end ~= p, "the status changes")
+        assert(not at_end:find('"current_state"', 1, true) and not at_end:find('"current_position"', 1, true))
+        assert(not at_end:find("**Current State**", 1, true) and not at_end:find("**Current Position**", 1, true))
+        for _idx2, kind in ipairs({ "fiction", "nonfiction" }) do
+            local schema = schemaOf(at_end, kind)
+            assert(schema:find(conclusionOf(x.complete_prompt, kind), 1, true), kind .. ": the whole-book build's schema")
+            assert(pcall(json.decode, schema), kind .. ": still valid JSON")
+        end
+        local _s, guides = at_end:gsub("%*%*Conclusion%*%*", "")
+        assert(guides == 2, "both guidance lines, got " .. guides)
+        -- the request still reads up to the position, and says so
+        assert(at_end:find("{book_text_section}", 1, true) and not at_end:find("{full_document_section}", 1, true))
+        assert(at_end:find("I'm at {reading_progress}.", 1, true))
+        assert(at_end:find("Cover ONLY what's happened up to my current position", 1, true))
+        assert(#at_end - #p < 300 and #p - #at_end < 300, "nothing else changed")
+    end
+    -- one schema left by a set type
+    local one = Actions.xrayPromptAtEnd(Actions.applyXrayType(x.prompt, "fiction"))
+    assert(one:find('"conclusion"', 1, true) and not one:find('"current_state"', 1, true)
+        and not one:find("key_findings", 1, true), "a set type: that type's conclusion alone")
+    -- the research track
+    local doi = Actions.xrayPromptAtEnd(x.doi_prompt)
+    assert(doi:find(conclusionOf(x.doi_complete_prompt, "academic"), 1, true)
+        and not doi:find('"current_position"', 1, true) and doi:find("**Conclusion**", 1, true)
+        and doi:find("{book_text_section}", 1, true), "the research create")
+end)
+
+TestRunner:test("at the end: a prompt with nothing to swap comes back as it is", function()
+    local x = Actions.book.xray
+    assert(Actions.xrayPromptAtEnd(x.complete_prompt) == x.complete_prompt, "the whole-book prompt asks for it already")
+    assert(Actions.xrayPromptAtEnd(x.doi_complete_prompt) == x.doi_complete_prompt)
+    local sec = Actions.buildSectionXrayPrompt("Part 1", "pp 1-9", false)
+    assert(Actions.xrayPromptAtEnd(sec) == sec, "a section X-Ray")
+    local off = Actions.buildXrayCategoryPrompt(nil, "partial", nil, "off")
+    assert(Actions.xrayPromptAtEnd(off) == off, "an X-Ray built without the section gains none")
+    local off_update = Actions.xrayUpdateWithoutStatus(x.update_prompt)
+    assert(Actions.xrayPromptAtEnd(off_update, "fiction") == off_update, "nor does its update")
+    assert(Actions.xrayPromptAtEnd("Update it.", "fiction") == "Update it.", "a custom prompt")
+    assert(Actions.xrayPromptAtEnd(nil) == nil)
+end)
+
+TestRunner:test("at the end: the request assembly switches on the end of the work, and the answer settles the status", function()
+    local info = debug.getinfo(1, "S")
+    local root = info.source:match("@?(.*)/tests/unit/[^/]+$") or "."
+    local f = assert(io.open(root .. "/koassistant/ui/dialogs.lua", "r"))
+    local dialogs = f:read("*a")
+    f:close()
+    -- An update: the X-Ray's own stamp first (no status object, no conclusion), then the end
+    assert(dialogs:find("                    if cached_status then\n"
+        .. "                        prompt.prompt = PromptsActions.xrayUpdateWithoutStatus(prompt.prompt)\n"
+        .. "                    elseif current_progress >= 0.995 then", 1, true), "the update's switch")
+    assert(dialogs:find("local at_end = PromptsActions.xrayPromptAtEnd(prompt.prompt,", 1, true))
+    assert(dialogs:find("message_data._xray_at_end = at_end ~= prompt.prompt or nil", 1, true),
+        "marked only when the prompt asked for it")
+    -- A create: up to a position that is the end, never the whole-book or a section build
+    assert(dialogs:find('    if prompt and prompt.id == "xray" and type(prompt.prompt) == "string"\n'
+        .. "            and not (config.features and config.features._full_document_xray)\n"
+        .. "            and (tonumber(message_data.progress_decimal) or 0) >= 0.995 then\n"
+        .. "        local at_end = PromptsActions.xrayPromptAtEnd(prompt.prompt)", 1, true), "the create's switch")
+
+    -- The answer's side, cut from the source and run around the real merge
+    local guard = assert(dialogs:match('(if message_data%._xray_status_applied == "off" then\n'
+        .. '.-parsed%.conclusion = nil\n%s*end)'), "the guard on an answer")
+    local settle = assert(dialogs:match('(if message_data%._xray_at_end and type%(parsed%.conclusion%) == "table" then\n'
+        .. '[^\n]*\n%s*end)'), "the status the Conclusion follows")
+    local XrayParser = require("koassistant.xray.xray_parser")
+    local cut = assert(load("local using_cache, message_data, old, parsed, XrayParser = ...\n" .. guard
+        .. "\nif using_cache then parsed = XrayParser.merge(old, parsed) end\n" .. settle .. "\nreturn parsed"))
+    local function run(using_cache, message_data, old, parsed)
+        return cut(using_cache, message_data, old, parsed, XrayParser)
+    end
+    local function base()
+        return XrayParser.parse('{"type":"fiction","characters":[{"name":"A","description":"a"}],'
+            .. '"current_state":{"summary":"midway","conflicts":["c"],"questions":["q"]}}')
+    end
+    local function last(data)
+        local cats = XrayParser.getCategories(data)
+        return cats[#cats].key
+    end
+    local conclusion = { summary = "how it ends", resolutions = { "r" }, themes_resolved = { "t" } }
+    -- the update that reaches the end, answered as asked
+    local done = run(true, { _xray_at_end = true }, base(), { conclusion = conclusion })
+    assert(done.conclusion and done.conclusion.summary == "how it ends" and done.current_state == nil,
+        "the Conclusion takes the status' place")
+    assert(last(done) == "conclusion" and #done.characters == 1, "and the entries stay")
+    -- answered with the old status anyway: nothing is lost
+    local kept = run(true, { _xray_at_end = true }, base(), { current_state = { summary = "still here" } })
+    assert(kept.conclusion == nil and kept.current_state.summary == "still here" and last(kept) == "current_state")
+    -- answered with both: one status, the Conclusion
+    local both = run(true, { _xray_at_end = true }, base(),
+        { conclusion = conclusion, current_state = { summary = "x" } })
+    assert(both.conclusion and both.current_state == nil)
+    -- an update before the end never gains a Conclusion (it would hide every later status)
+    local mid = run(true, {}, base(), { conclusion = conclusion, current_state = { summary = "later" } })
+    assert(mid.conclusion == nil and mid.current_state.summary == "later" and last(mid) == "current_state")
+    -- a create at the end that sent both
+    local made = run(false, { _xray_at_end = true }, nil,
+        { type = "fiction", characters = {}, conclusion = conclusion, current_state = { summary = "x" } })
+    assert(made.conclusion and made.current_state == nil)
+    -- a whole-book create is none of this code's business
+    local whole = run(false, {}, nil, { type = "fiction", characters = {}, conclusion = conclusion })
+    assert(whole.conclusion ~= nil, "a whole-book build keeps its Conclusion")
+    -- an X-Ray that keeps no status object gains none
+    local off = run(true, { _xray_status_applied = "off", _xray_at_end = nil }, base(), { conclusion = conclusion })
+    assert(off.conclusion == nil)
+end)
+
 local ok = TestRunner:summary()
 return ok

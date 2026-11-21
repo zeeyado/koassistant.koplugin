@@ -1414,6 +1414,56 @@ function Actions.xrayUpdateWithoutStatus(text)
     return text .. "\n\n" .. XRAY_UPDATE_NO_STATUS_LINE:sub(3)
 end
 
+-- What a request that takes an X-Ray to the END of the work asks for in place
+-- of "where things stand" (B765): the whole-book build's Conclusion, one copy
+-- of each schema.
+local XRAY_END_CREATE_SWAPS = {
+    { XRAY_PARTIAL_REPLACEMENTS.__FICTION_STATUS__, XRAY_COMPLETE_REPLACEMENTS.__FICTION_STATUS__ },
+    { XRAY_PARTIAL_REPLACEMENTS.__FICTION_STATUS_GUIDANCE__, XRAY_COMPLETE_REPLACEMENTS.__FICTION_STATUS_GUIDANCE__ },
+    { XRAY_PARTIAL_REPLACEMENTS.__NONFICTION_STATUS__, XRAY_COMPLETE_REPLACEMENTS.__NONFICTION_STATUS__ },
+    { XRAY_PARTIAL_REPLACEMENTS.__NONFICTION_STATUS_GUIDANCE__, XRAY_COMPLETE_REPLACEMENTS.__NONFICTION_STATUS_GUIDANCE__ },
+    { ACADEMIC_PARTIAL_REPLACEMENTS.__STATUS__, ACADEMIC_COMPLETE_REPLACEMENTS.__STATUS__ },
+    { ACADEMIC_PARTIAL_REPLACEMENTS.__STATUS_GUIDANCE__, ACADEMIC_COMPLETE_REPLACEMENTS.__STATUS_GUIDANCE__ },
+}
+local XRAY_END_SCHEMAS = {
+    fiction = XRAY_COMPLETE_REPLACEMENTS.__FICTION_STATUS__,
+    nonfiction = XRAY_COMPLETE_REPLACEMENTS.__NONFICTION_STATUS__,
+    academic = ACADEMIC_COMPLETE_REPLACEMENTS.__STATUS__,
+}
+
+--- The prompt of a request that takes an X-Ray to the END of the work (B765):
+--- its last section is then the Conclusion, as a whole-book build's is. An
+--- update's "always include the status object" line becomes "this update
+--- reaches the end: output the conclusion", with the schema of the X-Ray's own
+--- type (both, when the type is not known); a create prompt up to a position
+--- gets the whole-book build's status schema and guidance. A prompt with
+--- neither (an X-Ray that keeps no status object, a custom prompt) comes back
+--- unchanged, and the caller keeps what it stored.
+--- @param text string an assembled create prompt or an update prompt
+--- @param xray_type string|nil "fiction" | "nonfiction" | "academic" (an update's lineage)
+--- @return string
+function Actions.xrayPromptAtEnd(text, xray_type)
+    if type(text) ~= "string" then return text end
+    for _idx, line in ipairs(XRAY_UPDATE_STATUS_LINES) do
+        local s, e = text:find(line, 1, true)
+        if s then
+            local schema = XRAY_END_SCHEMAS[xray_type]
+            if not schema then
+                schema = _idx == 2 and XRAY_END_SCHEMAS.academic
+                    or (XRAY_END_SCHEMAS.fiction .. "\n  or, for nonfiction:\n  " .. XRAY_END_SCHEMAS.nonfiction)
+            end
+            return text:sub(1, s - 1)
+                .. '- This update reaches the END of the work, so the status object changes. Do NOT output "current_state" or "current_position". Output "conclusion" in their place, written from the whole work (the previous analysis and the new content together), in exactly this form:\n  '
+                .. schema .. text:sub(e + 1)
+        end
+    end
+    for _idx, swap in ipairs(XRAY_END_CREATE_SWAPS) do
+        local s, e = text:find(swap[1], 1, true)
+        if s then text = text:sub(1, s - 1) .. swap[2] .. text:sub(e + 1) end
+    end
+    return text
+end
+
 --- Depth rungs in picker order.
 Actions.XRAY_DEPTH_ORDER = XRAY_DEPTH_ORDER
 

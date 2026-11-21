@@ -1017,7 +1017,10 @@ local function pollSubprocess(pid, parent_read_fd, on_done)
     local time = require("ui/time")
     local chunksize = 1024 * 64
     local buf = ffi.new("char[?]", chunksize)
-    local buf_ptr = ffi.cast("void*", buf)
+    -- The reads below take the buffer itself: a pointer cast from it keeps
+    -- nothing alive, and the poll runs long after this function returned,
+    -- when the buffer's own variable is gone and LuaJIT may have freed it
+    -- (the child's bytes then land in memory that is in use: B769)
     local response_parts = {}
     local poll_task
     local first_at -- when the answer started coming through the pipe
@@ -1046,10 +1049,10 @@ local function pollSubprocess(pid, parent_read_fd, on_done)
         while true do
             local readsize = ffiutil.getNonBlockingReadSize(parent_read_fd) or 0
             if readsize > 0 then
-                local bytes = tonumber(ffi.C.read(parent_read_fd, buf_ptr, chunksize))
+                local bytes = tonumber(ffi.C.read(parent_read_fd, buf, chunksize))
                 if bytes and bytes > 0 then
                     first_at = first_at or time.now()
-                    table.insert(response_parts, ffi.string(buf_ptr, bytes))
+                    table.insert(response_parts, ffi.string(buf, bytes))
                 else
                     finish()  -- 0 = EOF, negative = read error
                     return
@@ -1058,9 +1061,9 @@ local function pollSubprocess(pid, parent_read_fd, on_done)
                 -- Child exited (and is now reaped); its pipe end is closed, so
                 -- blocking reads drain the remainder and then return 0
                 while true do
-                    local bytes = tonumber(ffi.C.read(parent_read_fd, buf_ptr, chunksize))
+                    local bytes = tonumber(ffi.C.read(parent_read_fd, buf, chunksize))
                     if bytes and bytes > 0 then
-                        table.insert(response_parts, ffi.string(buf_ptr, bytes))
+                        table.insert(response_parts, ffi.string(buf, bytes))
                     else
                         break
                     end

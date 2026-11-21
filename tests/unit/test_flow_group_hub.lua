@@ -166,6 +166,31 @@ TestRunner:test("the words and the confirm are one copy with the → Group popup
     TestRunner:assertTrue(ran, "Open it runs the opener")
 end)
 
+print("")
+print("  [the hub has no AI merge row (B768)]")
+
+TestRunner:test("a series and a project: Group Settings and the Chat/Action row, no paid merge among them", function()
+    -- a plugin that can start every merge and the group's chat: the row was
+    -- there for any group that shares knowledge and has two books
+    local saved_plugin = plugin
+    plugin = { settings = saved_plugin.settings, _startCrossBookXrayFlow = function() end,
+        _startGroupXrayMergeFlow = function() end, openLibraryDialogForGroup = function() end }
+    for _idx, case in ipairs({ { BookGroups.KIND_SERIES, "Series Chat/Action" },
+            { BookGroups.KIND_PROJECT, "Project Chat/Action" } }) do
+        BookGroups.setKind(g.id, case[1])
+        local menu = hub({})
+        local texts = {}
+        for _idx2, it in ipairs(menu.item_table) do texts[#texts + 1] = it.text end
+        local all = table.concat(texts, " | ")
+        TestRunner:assertTrue(all:find("AI merge", 1, true) == nil, case[1] .. ": " .. all)
+        TestRunner:assertTrue(texts[1]:find("Group Settings", 1, true) ~= nil, "the first row: " .. texts[1])
+        TestRunner:assertTrue(texts[2]:find(case[2], 1, true) ~= nil, "the second row: " .. texts[2])
+    end
+    BookGroups.setKind(g.id, BookGroups.KIND_SERIES)
+    plugin = saved_plugin
+    TestRunner:assertEqual(GroupsUI.foldFlow, nil, "the hub's merge flow left with its row")
+end)
+
 -- ------------------------------------------------------------------ cleanup
 GroupPage.close({ silent = true })
 BookGroups.remove(g.id)

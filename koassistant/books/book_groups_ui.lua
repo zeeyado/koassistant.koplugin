@@ -9,7 +9,7 @@ Small ButtonDialog stack over koassistant_book_groups.lua:
 - showGroup: since G0 (2026-09-06, docs/group_hub_plan.md) the GROUP HUB —
   koassistant/books/group_page.lua, a full-screen Menu in the Book Hub's shape —
   whose rows call the flows this file exports (addBooksFlow, addFolderFlow,
-  foldFlow, renameFlow, deleteFlow, showMoveDialog) and whose hamburger opens
+  renameFlow, deleteFlow, showMoveDialog) and whose hamburger opens
   showGroupDialog, the group's management popup (also the Groups list's hold;
   G0 round 4). The old ButtonDialog screen is retired; every flow still ends
   with GroupsUI.showGroup, which refreshes the hub in place, or with the
@@ -357,61 +357,6 @@ local function seriesSuggestRow(path, host_close, opts)
             offerSeriesScan(group.id, path, sp, opts)
         end,
     }
-end
-
--- Fold target picker (A3 fan-in surfacing): a project group's fold needs ONE
--- receiving book — the member picked here launches the cross-book picker,
--- whose "Fold in the other books…" row is the fan-in.
-local function showFoldTargetPicker(group_id, opts)
-    local ButtonDialog = require("ui/widget/buttondialog")
-    local BookGroups = groups()
-    local group = BookGroups.byId(group_id)
-    if not group then return end
-    local ActionCache = require("koassistant.artifacts.action_cache")
-    local XrayParser = require("koassistant.xray.xray_parser")
-    local dialog
-    local rows = {}
-    local has_n = 0
-    for _idx, path in ipairs(group.books) do
-        local captured = path
-        local title = BookGroups.displayTitle(captured, opts.ui)
-        local ok, e = pcall(ActionCache.getXrayCache, captured)
-        local has = ok and e and e.result and XrayParser.isJSON(e.result) and true or false
-        if has then has_n = has_n + 1 end
-        rows[#rows + 1] = {{
-            text = has and title or (title .. " " .. _("(no X-Ray)")),
-            align = "left",
-            enabled = has,
-            callback = function()
-                UIManager:close(dialog)
-                -- B394 slice 1: straight to the fold's confirm (it used to
-                -- open the merge picker, whose first row was this fold)
-                if opts.plugin._startGroupXrayMergeFlow then
-                    opts.plugin:_startGroupXrayMergeFlow("project", captured)
-                else
-                    opts.plugin:_startCrossBookXrayFlow(captured)
-                end
-            end,
-        }}
-    end
-    if has_n == 0 then
-        UIManager:show(require("ui/widget/infomessage"):new{
-            text = _("No book in this group has an X-Ray yet. Create one first."),
-            timeout = 4,
-        })
-        GroupsUI.showGroup(group_id, opts)
-        return
-    end
-    rows[#rows + 1] = {{ text = _("Cancel"), callback = function()
-        UIManager:close(dialog)
-        GroupsUI.showGroup(group_id, opts)
-    end }}
-    dialog = ButtonDialog:new{
-        title = _("AI merge the group's X-Rays into which book?") .. "\n"
-            .. _("Knowledge flows INTO the book you pick. The others are not changed. One request per other book."),
-        buttons = rows,
-    }
-    UIManager:show(dialog)
 end
 
 --- Self-refreshing member move dialog (kenken QoL, #90: 30-book reordering).
@@ -836,45 +781,6 @@ function GroupsUI.addCollectionFlow(group_id, opts)
         }
         UIManager:show(ask)
     end, function() GroupsUI.showGroup(group_id, opts) end)
-end
-
--- A2/A3: the fold surface the kind picker promises — series chain or project
--- fan-in, via the cross-book picker (ONE flow owns consent, skip-done
--- accounting and the confirms). Callers gate on sharesKnowledge.
-function GroupsUI.foldFlow(group_id, opts)
-    local BookGroups = groups()
-    local group = BookGroups.byId(group_id)
-    if not group or not (opts.plugin and opts.plugin._startCrossBookXrayFlow) then return end
-    if BookGroups.kindOf(group) == BookGroups.KIND_PROJECT then
-        showFoldTargetPicker(group_id, opts)
-        return
-    end
-    -- Series: the chain runs oldest → newest, so it ends at the LAST member
-    -- with an X-Ray and covers the whole series. B394 slice 1: straight to
-    -- the chain's confirm (it used to open that book's merge picker, where
-    -- the chain was one more row)
-    local ActionCache = require("koassistant.artifacts.action_cache")
-    local XrayParser = require("koassistant.xray.xray_parser")
-    local target
-    for _idx, p in ipairs(group.books) do
-        local ok, e = pcall(ActionCache.getXrayCache, p)
-        if ok and e and e.result and XrayParser.isJSON(e.result) then
-            target = p
-        end
-    end
-    if not target then
-        UIManager:show(require("ui/widget/infomessage"):new{
-            text = _("No book in this group has an X-Ray yet. Create one first."),
-            timeout = 4,
-        })
-        GroupsUI.showGroup(group_id, opts)
-        return
-    end
-    if opts.plugin._startGroupXrayMergeFlow then
-        opts.plugin:_startGroupXrayMergeFlow("series", target)
-    else
-        opts.plugin:_startCrossBookXrayFlow(target)
-    end
 end
 
 -- Where a flow lands: the hub's in-place refresh, or the caller's own

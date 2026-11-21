@@ -5014,6 +5014,23 @@ if prune_book_text then
             .rawPageAt(ui.document, lt) or message_data.progress_page
     end
 
+    -- B765: an X-Ray built up to a position that IS the end of the work ends
+    -- with the Conclusion, as a whole-book build does (the whole-book prompt
+    -- asks for it itself; an update takes its own swap in the cache branch)
+    if prompt and prompt.id == "xray" and type(prompt.prompt) == "string"
+            and not (config.features and config.features._full_document_xray)
+            and (tonumber(message_data.progress_decimal) or 0) >= 0.995 then
+        local at_end = PromptsActions.xrayPromptAtEnd(prompt.prompt)
+        if at_end ~= prompt.prompt then
+            local original_prompt = prompt
+            prompt = {}
+            for k, v in pairs(original_prompt) do prompt[k] = v end
+            prompt._is_copy = true
+            prompt.prompt = at_end
+            message_data._xray_at_end = true
+        end
+    end
+
     -- Where the saved page starts in the text (B503): the page number holds in
     -- this layout only, the position in any (another device, a rotation, a
     -- font change), so the next update starts where this request's text ends
@@ -5233,8 +5250,19 @@ if prune_book_text then
                     -- with nothing new may answer an empty object
                     local cached_status = PromptsActions.normalizeXrayStatus(cached_entry.xray_status)
                     message_data._xray_status_applied = cached_status
+                    -- A create prompt's end-of-work swap is not this update's
+                    message_data._xray_at_end = nil
                     if cached_status then
                         prompt.prompt = PromptsActions.xrayUpdateWithoutStatus(prompt.prompt)
+                    elseif current_progress >= 0.995 then
+                        -- B765: the update that reaches the end of the work
+                        -- asks for the Conclusion, as a whole-book build does
+                        local old = message_data._parsed_old_xray
+                        local at_end = PromptsActions.xrayPromptAtEnd(prompt.prompt,
+                            old and (XrayParser.isAcademic(old) and "academic"
+                                or XrayParser.isFiction(old) and "fiction" or "nonfiction") or nil)
+                        message_data._xray_at_end = at_end ~= prompt.prompt or nil
+                        prompt.prompt = at_end
                     end
                     if cached_entry.xray_categories then
                         local cat_keys = PromptsActions.xrayCategoryKeysFor(
@@ -5563,6 +5591,11 @@ if prune_book_text then
                     -- it afterwards, and it would read as current)
                     if message_data._xray_status_applied == "off" then
                         parsed.current_state, parsed.current_position, parsed.conclusion = nil, nil, nil
+                    elseif using_cache and not message_data._xray_at_end then
+                        -- B765: a Conclusion is written by the request that
+                        -- reaches the end of the work, and by no update before
+                        -- it (it would hide every later status behind it)
+                        parsed.conclusion = nil
                     end
                     -- Merge partial update into existing data when available
                     if using_cache and message_data._parsed_old_xray then
@@ -5644,6 +5677,11 @@ if prune_book_text then
                         if renamed > 0 then
                             logger.dbg("KOAssistant: X-Ray create kept", renamed, "renamed entit(y/ies)")
                         end
+                    end
+                    -- B765: the Conclusion takes the place of the status it
+                    -- follows. An answer that sent none keeps what there is
+                    if message_data._xray_at_end and type(parsed.conclusion) == "table" then
+                        parsed.current_state, parsed.current_position = nil, nil
                     end
                     -- Round 28 (#90): reconcile mechanical background against the
                     -- book's group — backfill file identities onto legacy labeled

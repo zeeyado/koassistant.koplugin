@@ -69,7 +69,7 @@ DOI detection runs whatever research mode is set to: a detected DOI is always av
 
 ## The academic X-Ray
 
-With research mode on, a new X-Ray uses the academic schema: **Key Concepts**, **Foundations**, **Methodology**, **Findings**, **Referenced Works**, **Technical Terms** and **Figures & Data**, then **Current Position** (an X-Ray up to your position) or **Conclusion** (a whole-document X-Ray). The categories are discipline-agnostic: the prompt tells the AI to adapt its categorization to the field (a physics paper has different natural categories than a sociology study or a philosophy paper), and to leave Figures & Data out when a paper has no significant figures or data.
+With research mode on, a new X-Ray uses the academic schema: **Key Concepts**, **Foundations**, **Methodology**, **Findings**, **Referenced Works**, **Technical Terms** and **Figures & Data**, then **Current Position** (an X-Ray up to your position) or **Conclusion** (one that covers the whole document). The categories are discipline-agnostic: the prompt tells the AI to adapt its categorization to the field (a physics paper has different natural categories than a sociology study or a philosophy paper), and to leave Figures & Data out when a paper has no significant figures or data.
 
 The X-Ray browser works identically: category navigation, search, chapter appearances, AI Wiki, linkable cross-references and all its other features carry over. Academic X-Rays use the same two-track design (incremental vs complete) and support section X-Rays. The category, depth and Current State picks for new X-Rays don't apply to them: an academic X-Ray always uses the whole research schema.
 

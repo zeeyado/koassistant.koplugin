@@ -264,7 +264,10 @@ local function pollSubprocess(pid, read_fd, on_done)
     local UIManager = require("ui/uimanager")
     local chunk_size = 65536
     local buffer = ffi.new("char[?]", chunk_size)
-    local pointer = ffi.cast("void*", buffer)
+    -- The reads below take the buffer itself: a pointer cast from it keeps
+    -- nothing alive, and the poll runs long after this function returned,
+    -- when the buffer's own variable is gone and LuaJIT may have freed it
+    -- (the child's bytes then land in memory that is in use: B769)
     local parts = {}
 
     local function finish()
@@ -276,14 +279,14 @@ local function pollSubprocess(pid, read_fd, on_done)
         while true do
             local available = ffiutil.getNonBlockingReadSize(read_fd) or 0
             if available > 0 then
-                local bytes = tonumber(ffi.C.read(read_fd, pointer, chunk_size))
-                if bytes and bytes > 0 then parts[#parts + 1] = ffi.string(pointer, bytes)
+                local bytes = tonumber(ffi.C.read(read_fd, buffer, chunk_size))
+                if bytes and bytes > 0 then parts[#parts + 1] = ffi.string(buffer, bytes)
                 else finish() return end
             elseif ffiutil.isSubProcessDone(pid) then
                 while true do
-                    local bytes = tonumber(ffi.C.read(read_fd, pointer, chunk_size))
+                    local bytes = tonumber(ffi.C.read(read_fd, buffer, chunk_size))
                     if not bytes or bytes <= 0 then break end
-                    parts[#parts + 1] = ffi.string(pointer, bytes)
+                    parts[#parts + 1] = ffi.string(buffer, bytes)
                 end
                 finish()
                 return

@@ -1556,7 +1556,10 @@ function BookTools:searchBookAsync(args, on_done, on_tick)
     local cancelled = false
     local chunk_size = 65536
     local chunk = ffi.new("char[?]", chunk_size)
-    local pointer = ffi.cast("void*", chunk)
+    -- The reads below take the buffer itself: a pointer cast from it keeps
+    -- nothing alive, and the poll runs long after this function returned,
+    -- when the buffer's own variable is gone and LuaJIT may have freed it
+    -- (the child's bytes then land in memory that is in use: B769)
     local parts = {}
     local started = os.time()
     local last_tick = 0
@@ -1587,14 +1590,14 @@ function BookTools:searchBookAsync(args, on_done, on_tick)
         while true do
             local available = ffiutil.getNonBlockingReadSize(read_fd) or 0
             if available > 0 then
-                local bytes = tonumber(ffi.C.read(read_fd, pointer, chunk_size))
-                if bytes and bytes > 0 then parts[#parts + 1] = ffi.string(pointer, bytes)
+                local bytes = tonumber(ffi.C.read(read_fd, chunk, chunk_size))
+                if bytes and bytes > 0 then parts[#parts + 1] = ffi.string(chunk, bytes)
                 else finish() return end
             elseif ffiutil.isSubProcessDone(pid) then
                 while true do
-                    local bytes = tonumber(ffi.C.read(read_fd, pointer, chunk_size))
+                    local bytes = tonumber(ffi.C.read(read_fd, chunk, chunk_size))
                     if not bytes or bytes <= 0 then break end
-                    parts[#parts + 1] = ffi.string(pointer, bytes)
+                    parts[#parts + 1] = ffi.string(chunk, bytes)
                 end
                 finish()
                 return

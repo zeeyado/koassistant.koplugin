@@ -66,7 +66,6 @@ The title-bar ☰ menu repeats the create rows and adds **Sort groups…**: **By
 A full-screen page per group: the title is the group's name, the subtitle its authors, kind and number of books. Top to bottom:
 
 - **Group Settings…**, with how many values the group sets and how many books do not follow them (see [Group settings](#group-settings)).
-- The group's AI merge: **AI merge the series (1 request per book)…** in a series, **AI merge the group into one book (1 request per book)…** in a project (see [AI merge](#ai-merge-paid)). A plain group has none.
 - **Series Chat/Action…**, **Project Chat/Action…** or **Group Chat/Action…**: the library chat with every book of the group already selected, for questions and comparisons across them (see [Contexts and Chat](Contexts-and-Chat)).
 - The books in order. Tap one for its Book Hub; hold it to move, open or remove it. The open book is marked "open", a book whose file is gone "(missing)".
 - The add rows.
@@ -175,9 +174,8 @@ An AI merge asks the model to combine two X-Rays. It matches entries by name, al
 | Row | Where | What it does | Requests |
 |---|---|---|---|
 | **AI merge with another book (1 request)…** | **Link and merge…**, the carried list's **AI merge…**, **AI merge X-Rays…** in the member list | Merges one book you pick into this one. The group's books come first (the earlier ones nearest first), then every other book with an X-Ray, under **Other books with an X-Ray (N)…**. | 1 |
-| **AI merge the series (1 request per book)…** | **Link and merge…** (a book with two or more earlier books), the Group Hub | Merges each book's X-Ray into the next one's, oldest first (1 into 2, 2 into 3, and so on) up to this book, so every book ends up carrying what the books before it know. It changes the X-Ray of every book after the first; each is archived first. From the hub it runs to the last book with an X-Ray. | 1 per merge: one fewer than the books it covers |
+| **AI merge the series (1 request per book)…** | **Link and merge…** (a book with two or more earlier books) | Merges each book's X-Ray into the next one's, oldest first (1 into 2, 2 into 3, and so on) up to this book, so every book ends up carrying what the books before it know. It changes the X-Ray of every book after the first; each is archived first. To cover the whole series, start it from its last book. | 1 per merge: one fewer than the books it covers |
 | **AI merge the group into this book (1 request per book)…** | **Link and merge…** (a project) | Merges every other book's X-Ray into this one. The other books are not changed. | 1 per other book with an X-Ray |
-| **AI merge the group into one book (1 request per book)…** | The Group Hub (a project) | Asks which book receives, then as above. | 1 per other book with an X-Ray |
 
 Books without an X-Ray are skipped, and the confirm says how many. The receiving book needs its own main X-Ray. A project merge archives this X-Ray at every step, and only as many versions are kept as Settings → Reading & Library → X-Ray → X-Ray Versions to Keep: with that many steps or more, the version from before the run may drop out of the list, and the confirm says so.
 
@@ -202,7 +200,7 @@ The X-Ray popup and the X-Ray browser's ☰ menu show the same **Link and merge�
 4. **AI merge section X-Rays (N)…**: the book's own section X-Rays (see [Using X-Ray](Using-X-Ray)).
 5. **Find duplicate entities…**: Merge duplicates (see [Using X-Ray](Using-X-Ray)).
 
-A row that does not apply is left out. The X-Ray popup shows the group when the book is in a group or has section X-Rays; the browser's ☰ menu has it on every main X-Ray. The Group Hub carries the group's own AI merge row, and the carried list's **AI merge…** row opens the two AI merges between books.
+A row that does not apply is left out. The X-Ray popup shows the group when the book is in a group or has section X-Rays; the browser's ☰ menu has it on every main X-Ray. The carried list's **AI merge…** row opens the two AI merges between books. The Group Hub has no AI merge row: a paid merge starts from the X-Ray it changes.
 
 ## Looking things up across a group
 
