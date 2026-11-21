@@ -3116,12 +3116,24 @@ end
 --- which the caller injects whatever the answer), and the dialog says so.
 --- When the previous book has no X-Ray, no dialog — the post-create gap note
 --- covers that case. Cancel aborts the create.
+---
+--- SWITCHED OFF (B770; the maintainer, 2026-11-21): an AI merge between books
+--- is experimental until its name links are measured, so the app no longer
+--- offers one by itself. With ASK_BEFORE_CREATE false no dialog applies: a
+--- fresh X-Ray of a later book in a series is built as "Just this book" was
+--- (the free carry and the naming canon, nothing else sent), and the paid
+--- merges stay in the X-Ray's own "Link and merge…" group. Whether the
+--- question returns, as it was or as a standing answer per group, is decided
+--- with the merge model; the unit test turns the switch on to keep the dialog
+--- covered until then.
 --- @param opts table { file, ui, configuration }
 --- @param proceed function(mode) mode = "single"|"chain"|nil (declined) |
 ---   "cancel" (round 28: abort the create — the caller must NOT send)
 --- @return boolean asked False when no dialog applies (proceed NOT called —
 ---   the caller continues synchronously)
+XrayMerge.ASK_BEFORE_CREATE = false
 function XrayMerge.preCreateFoldAsk(opts, proceed)
+    if not XrayMerge.ASK_BEFORE_CREATE then return false end
     local BookGroups = require("koassistant.books.book_groups")
     local preds, group = BookGroups.predecessorsOf(opts.file)
     if #preds == 0 then return false end

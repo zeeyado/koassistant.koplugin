@@ -985,12 +985,63 @@ TestRunner:test("seedDormant + wake: a skip-volume stub wakes on the fresh book'
         end)
 end)
 
+-- Two earlier volumes with an X-Ray each: the case in which the question
+-- before a new X-Ray used to show, with all three of its choices
+local SERIES_PREDS = { ["/b/vol3.epub"] = { "/b/vol1.epub", "/b/vol2.epub" } }
+local SERIES_CACHES = {
+    ["/b/vol1.epub"] = { result = [[{"type":"fiction","characters":[{"name":"A","description":"a"}]}]] },
+    ["/b/vol2.epub"] = { result = [[{"type":"fiction","characters":[{"name":"B","description":"b"}]}]] },
+}
+
+TestRunner:test("no question before a new X-Ray in a series: the paid merge is not offered by the app (B770)", function()
+    TestRunner:assertEqual(XrayMerge.ASK_BEFORE_CREATE, false, "the question is off as shipped")
+    local BD = package.loaded["ui/widget/buttondialog"]
+    local orig_new = BD.new
+    local built, answered, asked = 0, 0, nil
+    BD.new = function(_self, o) built = built + 1; return o end
+    local ok_run, err = pcall(withSeedStubs, SERIES_PREDS, SERIES_CACHES, function()
+        asked = XrayMerge.preCreateFoldAsk({ file = "/b/vol3.epub" }, function() answered = answered + 1 end)
+    end)
+    BD.new = orig_new
+    if not ok_run then error(err, 0) end
+    TestRunner:assertEqual(asked, false, "no dialog applies, so the caller goes straight on to the request")
+    TestRunner:assertEqual(built, 0, "no dialog is built")
+    TestRunner:assertEqual(answered, 0, "and no answer is invented for the reader")
+end)
+
+TestRunner:test("after such a create nothing is shown, and a previous book without an X-Ray still gets its note", function()
+    -- With no question asked, the create's completion calls the gap note for
+    -- every later book of a series: it must stay silent when the previous
+    -- book has an X-Ray (the free carry already took what it knows)
+    local UIManager = require("ui/uimanager")
+    local orig_show = UIManager.show
+    local shown = {}
+    UIManager.show = function(_self, widget) shown[#shown + 1] = widget end
+    local ok_run, err = pcall(function()
+        withSeedStubs(SERIES_PREDS, SERIES_CACHES, function()
+            XrayMerge.maybeNotePredecessorGap({ file = "/b/vol3.epub" })
+        end)
+        TestRunner:assertEqual(#shown, 0, "the previous book has an X-Ray: no note, no question")
+        withSeedStubs(SERIES_PREDS, { ["/b/vol1.epub"] = SERIES_CACHES["/b/vol1.epub"] }, function()
+            XrayMerge.maybeNotePredecessorGap({ file = "/b/vol3.epub" })
+        end)
+        TestRunner:assertEqual(#shown, 1, "the previous book has none: one note")
+        TestRunner:assertTrue(tostring(shown[1].text):find("has no X-Ray yet", 1, true) ~= nil,
+            "which says so (" .. tostring(shown[1].text) .. ")")
+    end)
+    UIManager.show = orig_show
+    if not ok_run then error(err, 0) end
+end)
+
 TestRunner:test("preCreateFoldAsk: the free choice leads and the paid ones name their cost (B394 slice 3)", function()
     local BD = package.loaded["ui/widget/buttondialog"]
     local orig_new = BD.new
     local captured
     BD.new = function(_self, o) captured = o; return o end
     local modes = {}
+    -- The question is off as shipped (B770); the dialog itself is kept and
+    -- covered here for the day it returns
+    XrayMerge.ASK_BEFORE_CREATE = true
     local ok_run, err = pcall(withSeedStubs,
         { ["/b/vol3.epub"] = { "/b/vol1.epub", "/b/vol2.epub" } },
         {
@@ -1004,6 +1055,7 @@ TestRunner:test("preCreateFoldAsk: the free choice leads and the paid ones name 
             TestRunner:assertEqual(asked, true, "the previous book has an X-Ray: the ask shows")
         end)
     BD.new = orig_new
+    XrayMerge.ASK_BEFORE_CREATE = false
     if not ok_run then error(err, 0) end
     TestRunner:assertTrue(captured.title:find("carried into this book's X-Ray on its own", 1, true) ~= nil,
         "the dialog says the carry is automatic")
