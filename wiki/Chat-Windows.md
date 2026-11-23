@@ -7,7 +7,7 @@ Every answer opens in a window where you read it, reply, copy or save it, and ch
 - **Chat window**: chats and most actions. Its buttons are described [below](#the-chat-window).
 - **Dictionary windows** (the compact popup and the full-size window) and the **translate window**: they have their own button rows, described on [Dictionary and Translation](Dictionary-and-Translation). Their **→ Chat** button opens the answer in a full chat window.
 - **Artifact windows**: summaries, analyses, a book's About, AI Wiki entries, pinned answers, X-Ray versions and the like. Their buttons (→ Chat, Info, Regenerate, Delete and others) are on [Artifacts and Caching](Artifacts-and-Caching).
-- **Minimal Popup**: a small popup for short answers, with no buttons ([below](#minimal-popup)).
+- **Minimal Popup**: a small popup for short answers, with no button row ([below](#minimal-popup)).
 
 The chat, dictionary, translate and artifact windows share the gear menu, the **MD ON / TXT ON** toggle, the long-press on **Close** and text selection. All of them but the compact dictionary popup follow the window size setting.
 
@@ -19,7 +19,7 @@ The title bar has the gear icon on the left ([the gear menu](#the-gear-menu)) an
 |---|---|---|
 | **↩️ Reply** (**Reply** without emoji icons) | Opens the Reply box ([Replying](#replying)) | |
 | **Copy** | Copies the chat in the form set by **Settings → Chat & Export Settings → Content Format → Copy Content** | Asks what to copy this time |
-| **Save to Note** | Saves the answer as a KOReader note attached to your highlight. Highlight chats only; see [Contexts and Chat](Contexts-and-Chat) | Asks what to put in the note this time |
+| **Save to Note** | Saves the answer at once as a KOReader note attached to your highlight. Highlight chats only; see [Contexts and Chat](Contexts-and-Chat#save-to-note) | Asks what to put in the note this time, or opens the note editor first (**Edit before saving…**) |
 | **Notebook** | **Add Chat to Notebook**, **Add (choose format)...**, and once the book has a notebook, **View Notebook** and **Edit Notebook**. Grayed out in general and library chats | Same as tap |
 | **Pin / ★** (📌 / ⭐ with emoji icons) | **Pin Last Response as Artifact** (or **Unpin from Artifacts**) and **Star Conversation** (or **Unstar Conversation**) | A one-line hint |
 | **#** (🏷️ # with emoji icons) | Add or manage this chat's tags | A one-line hint |
@@ -123,13 +123,14 @@ Dictionary and translate lookups have their own switches (**Settings → Diction
 
 ## Minimal Popup
 
-Short answers can skip the full-screen window entirely. With the minimal popup on (default: **When it fits**), answers from its registered actions land in a small popup with no buttons instead of opening their usual window.
+Short answers can skip the full-screen window entirely. With the minimal popup on (default: **When it fits**), answers from its registered actions land in a small popup with no button row instead of opening their usual window.
 
 - **Which actions:** Translate, Quick Define and Quick Explain by default. Pick the set under **Settings → Minimal Popup** (its **Actions Using Minimal Popup** row). Any highlight action that answers with text can join.
 - **When** (the **Minimal Popup View** row): **When it fits** (default) uses the popup only when the whole answer fits in it (the popup is up to about half the screen tall); longer answers open the usual window directly. **Always** keeps even long answers in the popup, where they scroll: swipe up or down, or use the page-turn keys. **Off** disables the feature.
 - **Where** (the **Popup Style** row): **Floating box** (the default) sits right at your selection (in EPUBs; centered elsewhere) and is as wide as the chat window. **Footnote panel** sits at the bottom of the screen from edge to edge, like KOReader's footnote popups.
 - **What it shows:** the answer the way the window it opens would show it. In the Markdown view that is bold, italics, lists, each script in its own face and each paragraph in its own direction; with your view on Plain Text it is the plain text ([Markdown and plain text](#markdown-and-plain-text)).
 - **Tap to expand:** tapping the popup opens the answer in the action's usual window (the translate window for Translate, the compact dictionary window for Quick Define, the chat window for Quick Explain), where replies and all the usual buttons live.
+- **Keep the answer:** a small **+** mark sits on the popup's edge (under a floating box, on the rule of a footnote panel). Tap it and the answer is saved as a note on the text you selected, exactly as [Save to Note](Contexts-and-Chat#save-to-note) saves it; the mark turns into a tick. Tap the tick to take that answer back out. Long-press the mark to choose what goes in the note, to edit it first, or to switch **Save every … answer** on for this action, after which its answers arrive already ticked ([saving by itself](Contexts-and-Chat#saving-answers-by-themselves)). The mark shows only when the answer belongs to a selection in an open book.
 - **Hold a word:** a word held in the popup is looked up, and a longer selection or a long hold opens the selection popup (Copy, Dictionary, Translate and the rest), as in any KOAssistant window ([Selecting text in a window](#selecting-text-in-a-window)). The popup stays underneath.
 - **Dismiss:** tap outside the popup, or press Back. A page-turn key closes it too, once there is nothing more to scroll that way (at once for an answer that fits). The footnote panel also closes on a swipe down above it.
 - **No streaming:** these requests skip the streaming window. A small notice in the corner ("Translating…", or the action's name) keeps the page visible while the request runs; a tap, a key press or a swipe cancels it. Replies in the expanded window follow your streaming setting again.

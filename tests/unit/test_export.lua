@@ -669,6 +669,45 @@ end
 -- Run All Tests
 -- =============================================================================
 
+-- =============================================================================
+-- Export.isSingleAnswer(): a chat that is one answer with nothing typed
+-- =============================================================================
+
+local function runSingleAnswerTests()
+    print("\n--- Export.isSingleAnswer() ---")
+
+    TestRunner:test("an action's one answer, its prompt a context message: yes", function()
+        TestRunner:assertEqual(Export.isSingleAnswer({ messages = {
+            { role = "user", content = "Explain: ...", is_context = true },
+            { role = "assistant", content = "It means..." },
+        } }), true)
+    end)
+
+    TestRunner:test("a question the reader typed is shown beside the answer: no", function()
+        TestRunner:assertEqual(Export.isSingleAnswer({ messages = {
+            { role = "user", content = "context", is_context = true },
+            { role = "user", content = "why grey?" },
+            { role = "assistant", content = "Because..." },
+        } }), false)
+    end)
+
+    TestRunner:test("a chat that went on: no", function()
+        TestRunner:assertEqual(Export.isSingleAnswer({ messages = {
+            { role = "user", content = "context", is_context = true },
+            { role = "assistant", content = "It means..." },
+            { role = "user", content = "and here?" },
+            { role = "assistant", content = "Here..." },
+        } }), false)
+    end)
+
+    TestRunner:test("no answer yet, no messages, no data: no", function()
+        TestRunner:assertEqual(Export.isSingleAnswer({ messages = { { role = "user", content = "q" } } }), false)
+        TestRunner:assertEqual(Export.isSingleAnswer({ messages = {} }), false)
+        TestRunner:assertEqual(Export.isSingleAnswer({}), false)
+        TestRunner:assertEqual(Export.isSingleAnswer(nil), false)
+    end)
+end
+
 local function runAll()
     print("\n=== Testing Export Module ===")
 
@@ -682,6 +721,7 @@ local function runAll()
     runFromHistoryTests()
     runFromSavedChatTests()
     runGetCacheFilenameTests()
+    runSingleAnswerTests()
 
     print(string.format("\n=== Results: %d passed, %d failed ===\n", TestRunner.passed, TestRunner.failed))
     return TestRunner.failed == 0

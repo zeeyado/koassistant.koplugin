@@ -743,7 +743,9 @@ end
 -- @param title string Dialog title
 -- @param is_translate boolean Whether this is for translate view (different labels)
 -- @param callback function(content) Called with selected content type
-local function showContentPicker(title, is_translate, callback, anchor)
+-- `extra` = rows of the caller's own after the content rows: { text, callback },
+-- or { separator = true } for the double line that sets setting rows apart
+local function showContentPicker(title, is_translate, callback, anchor, extra)
     local content_dialog
     local options = {
         { value = "full", label = _("Full (metadata + chat)") },
@@ -763,6 +765,21 @@ local function showContentPicker(title, is_translate, callback, anchor)
                 end,
             },
         })
+    end
+    for _idx, row in ipairs(extra or {}) do
+        if row.separator then
+            table.insert(buttons, {})
+        else
+            table.insert(buttons, {
+                {
+                    text = row.text,
+                    callback = function()
+                        UIManager:close(content_dialog)
+                        row.callback()
+                    end,
+                },
+            })
+        end
     end
     table.insert(buttons, {
         {
@@ -1882,7 +1899,7 @@ function ChatGPTViewer:init()
         self:saveToNote()
       end,
       hold_callback = function()
-        -- Long-press: pick the note content/format for this save (parity with Copy).
+        -- Long-press: pick the note's content for this save, or edit it first
         self:saveToNote(true)
       end,
     },
@@ -2245,13 +2262,9 @@ function ChatGPTViewer:init()
     callback = function()
       self:saveToNote()
     end,
+    -- Long-press: pick the note's content, or edit it first (as Save to Note's)
     hold_callback = function()
-      UIManager:show(Notification:new{
-        text = self.selection_data
-          and _("Save AI response as note on highlighted word")
-          or _("No selection data for this word"),
-        timeout = 2,
-      })
+      self:saveToNote(true)
     end,
   })
 
@@ -5066,108 +5079,176 @@ function ChatGPTViewer:rebuildScrollWidget()
   end)
 end
 
-function ChatGPTViewer:saveToNote(force_picker)
-  -- Save AI response as a note on the highlighted text
-  if not self.selection_data then
-    UIManager:show(Notification:new{
-      text = _("No highlight selection data available"),
-      timeout = 2,
-    })
-    return
-  end
+-- What a window's note is, by the kind of answer the window shows: the setting
+-- that names its content, whether the highlight is the passage as KOReader's
+-- own Add note saves it (a looked-up word stays the word), the kind recorded.
+local NOTE_KINDS = {
+  dictionary = { setting = "dictionary_note_content", default = "response", extend = false },
+  translate = { setting = "translate_note_content", default = "response", extend = true },
+  chat = { setting = "note_content", default = "qa", extend = true },
+}
 
-  -- Get ReaderUI instance
-  local ReaderUI = require("apps/reader/readerui")
-  local reader_ui = ReaderUI.instance
-  if not reader_ui or not reader_ui.highlight then
-    UIManager:show(Notification:new{
-      text = _("No document open"),
-      timeout = 2,
-    })
-    return
-  end
-
-  local history = self._message_history or self.original_history
-  if not history then
-    UIManager:show(Notification:new{
-      text = _("No response to save"),
-      timeout = 2,
-    })
-    return
-  end
-
-  -- Get note content based on settings
+--- The kind of answer this window shows, for its note. THE one place that
+--- reads a window's flags for it: "dictionary" (the dictionary and compact
+--- windows), "translate" (the translate window), "chat".
+function ChatGPTViewer:noteKind()
   local features = self.configuration and self.configuration.features or {}
-  local content
-  if features.minimal_buttons then
-    -- Dictionary/compact view: use dictionary-specific setting
-    content = features.dictionary_note_content or "response"
-    if content == "global" then
-      content = features.note_content or "qa"
-    end
-  elseif self.translate_view then
-    content = features.translate_note_content or "response"
-    if content == "global" then
-      content = features.note_content or "qa"
-    end
-  else
+  if features.minimal_buttons then return "dictionary" end
+  if self.translate_view then return "translate" end
+  return "chat"
+end
+
+-- The reader this window's note goes to, and the chat it comes from; nil and
+-- the reason (a sentence for the reader) when a note cannot be saved from here
+local function noteSource(viewer)
+  if not viewer.selection_data then
+    return nil, nil, _("No highlight selection data available")
+  end
+  local reader_ui = require("apps/reader/readerui").instance
+  if not reader_ui or not reader_ui.highlight then
+    return nil, nil, _("No document open")
+  end
+  local history = viewer._message_history or viewer.original_history
+  if not history then
+    return nil, nil, _("No response to save")
+  end
+  return reader_ui, history
+end
+
+--- Whether this window's answer can be kept as a note (a selection in an open book)
+function ChatGPTViewer:canKeepNote()
+  return noteSource(self) ~= nil
+end
+
+-- What this window's note holds: the setting of its kind, Follow global
+-- setting resolved. "ask" = Ask every time.
+function ChatGPTViewer:_noteContent()
+  local features = self.configuration and self.configuration.features or {}
+  local spec = NOTE_KINDS[self:noteKind()]
+  local content = features[spec.setting] or spec.default
+  if content == "global" then
     content = features.note_content or "qa"
   end
-  local style = features.export_style or "markdown"
+  return content, spec
+end
 
-  -- For dictionary/compact view: DON'T extend to sentence (word-only highlight)
-  -- For translate/highlight: extend to sentence (existing behavior)
-  local extend_to_sentence = not features.minimal_buttons
+-- The note's text for a content choice ("" when there is no answer). A chat
+-- that is one answer with nothing the reader typed has no question to put
+-- beside it: its Question + Response is the answer.
+function ChatGPTViewer:_noteText(history, selected_content)
+  local features = self.configuration and self.configuration.features or {}
+  local Export = require("koassistant.chat.export")
+  local books_info = features.is_library_context and features.books_info or nil
+  local data = Export.fromHistory(history, self.original_highlighted_text, features.book_metadata, books_info)
+  if selected_content == "qa" and Export.isSingleAnswer(data) then
+    selected_content = "response"
+  end
+  return Export.format(data, selected_content, features.export_style or "markdown")
+end
 
-  -- Helper to perform the save
-  local function doSave(selected_content)
-    local Export = require("koassistant.chat.export")
-    local book_metadata = features.book_metadata
-    local books_info = features.is_library_context and features.books_info or nil
-    local data = Export.fromHistory(history, self.original_highlighted_text, book_metadata, books_info)
-    local note_text = Export.format(data, selected_content, style)
+--- Keep this window's answer as the note of the selection's highlight, with
+--- no window and no notice of its own (the minimal popup's mark, the
+--- automatic save). Ask every time has no one to ask here: the kind's own
+--- default content.
+-- @param selected_content the note's content for this save (nil = the window's setting)
+-- @return table|nil what HighlightNote.save returned
+-- @return string|nil a sentence for the reader when nothing was saved
+function ChatGPTViewer:keepAsNote(selected_content)
+  local reader_ui, history, why = noteSource(self)
+  if not reader_ui then return nil, why end
+  local content, spec = self:_noteContent()
+  if not selected_content then
+    selected_content = content == "ask" and spec.default or content
+  end
+  local note_text = self:_noteText(history, selected_content)
+  if note_text == "" then return nil, _("No response to save") end
+  local saved = require("koassistant.chat.highlight_note").save(reader_ui, self.selection_data, note_text,
+    { extend = spec.extend, kind = self:noteKind() })
+  if not saved then return nil, _("Failed to create highlight") end
+  return saved
+end
 
-    if note_text == "" then
-      UIManager:show(Notification:new{
-        text = _("No response to save"),
-        timeout = 2,
-      })
+--- Take a kept answer back out of its highlight (HighlightNote.remove). Says
+--- why when the note is no longer as it was left.
+-- @param saved what keepAsNote returned
+-- @return boolean the answer is no longer kept
+function ChatGPTViewer:dropNote(saved)
+  local reader_ui = require("apps/reader/readerui").instance
+  local removed, why = require("koassistant.chat.highlight_note").remove(reader_ui, saved)
+  if removed or why == "gone" then return true end
+  UIManager:show(Notification:new{
+    text = _("The note has changed since. Remove it from the highlight's own menu."),
+    timeout = 3,
+  })
+  return false
+end
+
+--- Save to Note and +Note: the answer becomes the note of the selection's
+--- highlight. A tap saves at once (keepAsNote); `pick` (a hold, or the content
+--- setting on Ask every time) asks first what the note holds this time, and
+--- offers KOReader's note editor before the save.
+-- @param opts for a caller that shows this window's answer itself (the minimal popup):
+--   popup = the answer is in the popup, this window is not on screen (no notice of a save, nothing to close),
+--   on_saved(saved), before_edit() = before KOReader's editor opens, extra = rows of the caller's own in the picker
+function ChatGPTViewer:saveToNote(pick, opts)
+  opts = opts or {}
+  local reader_ui, history, why = noteSource(self)
+  local function notify(text)
+    UIManager:show(Notification:new{ text = text, timeout = 2 })
+  end
+  if not reader_ui then
+    notify(why)
+    return
+  end
+  local content, spec = self:_noteContent()
+
+  local function saveNow(selected_content)
+    local saved, why_not = self:keepAsNote(selected_content)
+    if not saved then
+      notify(why_not)
       return
     end
+    if not opts.popup then
+      -- The translate window is done once its translation is kept: the page shows again
+      if self.translate_view then
+        UIManager:close(self)
+      end
+      if saved.already then
+        notify(_("Already in this highlight's note"))
+      elseif saved.created then
+        notify(_("Saved as a note"))
+      else
+        notify(_("Added to the highlight's note"))
+      end
+    end
+    if opts.on_saved then opts.on_saved(saved) end
+  end
 
-    -- Close translate view before opening note editor (so note editor appears on top of book)
-    if self.translate_view then
+  -- KOReader's note editor first (the note is the reader's to change there).
+  -- It opens over the page, so what shows the answer closes before it.
+  local function editFirst()
+    local note_text = self:_noteText(history, content == "ask" and spec.default or content)
+    if note_text == "" then
+      notify(_("No response to save"))
+      return
+    end
+    if opts.before_edit then opts.before_edit() end
+    if self.translate_view and not opts.popup then
       UIManager:close(self)
     end
-
-    -- Restore selected_text to ReaderHighlight so saveHighlight() can create the highlight
-    reader_ui.highlight.selected_text = self.selection_data
-
-    -- For dictionary: bypass addNote() which forces sentence extension
-    -- Call saveHighlight(false) directly to preserve word-only highlight
-    if not extend_to_sentence then
-      local index = reader_ui.highlight:saveHighlight(false)  -- false = no sentence extension
-      if index then
-        reader_ui.highlight:clear()
-        reader_ui.highlight:editNote(index, true, note_text)
-      else
-        UIManager:show(Notification:new{
-          text = _("Failed to create highlight"),
-          timeout = 2,
-        })
-      end
-    else
-      -- Standard flow for translate/highlight views (extends to sentence)
-      reader_ui.highlight:addNote(note_text)
+    if not require("koassistant.chat.highlight_note").edit(reader_ui, self.selection_data, note_text,
+        { extend = spec.extend }) then
+      notify(_("Failed to create highlight"))
     end
   end
 
-  -- Long-press forces the picker even when a fixed note_content default is set
-  -- (parity with Copy's hold -- 2026-07 layout pass).
-  if force_picker or content == "ask" then
-    showContentPicker(_("Note Content"), self.translate_view, doSave, self:_anchorToButton("save_to_note"))
+  if pick or content == "ask" then
+    local rows = { { text = _("Edit before saving…"), callback = editFirst } }
+    for _idx, row in ipairs(opts.extra or {}) do rows[#rows + 1] = row end
+    showContentPicker(_("Note Content"), self.translate_view, saveNow,
+      not opts.popup and self:_anchorToButton("save_to_note") or nil, rows)
   else
-    doSave(content)
+    saveNow(content)
   end
 end
 

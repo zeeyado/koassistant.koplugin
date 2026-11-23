@@ -3467,6 +3467,31 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             mp_f.enable_streaming = nil
         end
     end
+    -- An answer kept as a note by itself (Highlight Settings: Save Answers as
+    -- Notes): the actions the reader ticked, read now (the popup's own switch
+    -- writes the same list). Saved before the answer is shown, so the popup's
+    -- mark arrives ticked; a cut-off answer is not kept unasked.
+    local kept_note, auto_switch
+    local note_action = mp_f and mp_f._note_action
+    if note_action and plugin and plugin.settings and chatgpt_viewer:canKeepNote() then
+        local function autoOn()
+            local gf = plugin.settings:readSetting("features") or {}
+            return Constants.resolveAutoNoteActions(gf.auto_note_actions)[note_action] == true
+        end
+        if autoOn() and not temp_config._not_saved then
+            kept_note = chatgpt_viewer:keepAsNote()
+        end
+        auto_switch = {
+            text = function()
+                return (autoOn() and "\u{25CF} " or "\u{25CB} ")
+                    .. T(_("Save every %1 answer"), history.prompt_action or note_action)
+            end,
+            flip = function()
+                plugin:_toggleAutoNoteAction(note_action)
+                return autoOn()
+            end,
+        }
+    end
     local popup_shown = false
     if use_minimal_popup then
         popup_shown = require("koassistant.ui.minimal_popup").showForResponse({
@@ -3476,6 +3501,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             selection_data = selection_data,
             ui = ui_instance,
             only_if_fits = (mp_f.minimal_popup_mode or "short") == "short",
+            kept = kept_note,
+            auto = auto_switch,
             on_expand = function()
                 _G.ActiveChatViewer = chatgpt_viewer
                 UIManager:show(chatgpt_viewer)
@@ -3488,6 +3515,13 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
 
         -- Show the viewer
         UIManager:show(chatgpt_viewer)
+        -- No mark to show it in a full window: say that the answer was kept
+        if kept_note and not kept_note.already then
+            UIManager:show(require("ui/widget/notification"):new{
+                text = kept_note.created and _("Saved as a note") or _("Added to the highlight's note"),
+                timeout = 2,
+            })
+        end
     end
 
     -- Auto-save if enabled
@@ -3783,6 +3817,9 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         if tf then
             -- Per-request by nature: whoever wants a custom notice sets it below.
             tf.loading_message = nil
+            -- The action a note of this request's answer comes from: set below
+            -- for a highlight action, never inherited from the request before
+            tf._note_action = nil
             if tf._minimal_popup_eligible then
                 tf._minimal_popup_eligible = nil
                 -- Streaming was forced off by the popup dispatch, not chosen by the
@@ -4017,6 +4054,15 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                     and _("Translating…") or (prompt.text and (prompt.text .. "…")) or nil
                 temp_config.features._minimal_popup_eligible = true
             end
+        end
+        -- The action whose answer this is, for the seam that keeps an answer
+        -- as a note by itself (Highlight Settings: Save Answers as Notes) and
+        -- for the popup's own switch of it. A highlight action's first answer
+        -- only; a page translation has no selection to keep it with.
+        if prompt.id and prompt.context == "highlight"
+                and not (temp_config.features and temp_config.features.is_full_page_translate) then
+            temp_config.features = temp_config.features or {}
+            temp_config.features._note_action = prompt.id
         end
     end
 

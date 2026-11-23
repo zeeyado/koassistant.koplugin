@@ -30,7 +30,8 @@ local TestRunner = require("test_runner"):new()
 
 -- the panel's two widgets, which the shared mock has no stub for
 local stubbed = {}
-for _i, name in ipairs({ "ui/widget/container/bottomcontainer", "ui/widget/linewidget" }) do
+for _i, name in ipairs({ "ui/widget/container/bottomcontainer", "ui/widget/linewidget",
+        "ui/widget/iconwidget", "ui/widget/overlapgroup", "ui/widget/container/rightcontainer" }) do
     if not package.loaded[name] then
         local C = {}
         function C:new(o) return setmetatable(o or {}, { __index = self }) end
@@ -74,6 +75,9 @@ add(Size, "border", { window = 1 })
 add(Size, "line", { thick = 1 })
 add(Size, "padding", { small = 0 })
 add(Size.padding, "small", 0)
+add(Size.border, "thin", 1)
+add(UIManager, "setDirty", function() end)
+add(Size.radius, "default", 0)
 add(assert(captured(MinimalPopup.init, "Geom")), "copy", function(self)
     return setmetatable({ x = self.x, y = self.y, w = self.w, h = self.h }, getmetatable(self))
 end)
@@ -452,6 +456,174 @@ TestRunner:test("the chat window does with a selection made elsewhere what it do
     end)
     Viewer.buildTextSelectionPopup = real_build
     if not ok then error(err, 0) end
+end)
+
+-- ── The keep mark ───────────────────────────────────────────────────────────
+TestRunner:test("where the keep mark sits: on the frame's edge or in its padding corner, never in the text's width", function()
+    -- a box 1018 wide and 300 tall: text inset 22, border 2, a tab of 46, a bare sign of 20
+    local s = { side = 46, small = 20, inset = 22, border = 2, gap = 2, rule = 0 }
+    local tab = MinimalPopup.keepPlace("tab", false, 1018, 300, s, false)
+    TestRunner:assertEqual(tab.x, 1018 - 22 - 46, "its right edge is the text's right edge")
+    TestRunner:assertEqual(tab.y, 300 - 11, "it reaches half the inset into the frame's foot")
+    TestRunner:assertEqual(tab.bottom, 46 - 11, "and sticks out under it by the rest")
+    TestRunner:assertEqual(tab.top, 0)
+    TestRunner:assertTrue(tab.y >= 300 - 22, "above it is the foot's blank, never a line of text")
+    local corner = MinimalPopup.keepPlace("corner", false, 1018, 300, s, false)
+    TestRunner:assertEqual(corner.side, 20)
+    TestRunner:assertEqual(corner.bare, true)
+    TestRunner:assertTrue(corner.x >= 1018 - 2 - 22, "inside the right padding, where no text is (" .. corner.x .. ")")
+    TestRunner:assertEqual(corner.bottom + corner.top, 0, "nothing sticks out")
+    TestRunner:assertEqual(MinimalPopup.keepPlace("strip", false, 1018, 300, s, false).strip, true)
+    -- a panel 1072 wide under a rule of 3: its foot is the screen's edge, so the mark is at its head
+    s.border, s.rule = 0, 3
+    local ptab = MinimalPopup.keepPlace("tab", true, 1072, 303, s, false)
+    TestRunner:assertEqual(ptab.top, 46 - 11, "it stands on the rule, over the page")
+    TestRunner:assertEqual(ptab.y, -(46 - 11))
+    TestRunner:assertEqual(ptab.bottom, 0)
+    local pcorner = MinimalPopup.keepPlace("corner", true, 1072, 303, s, false)
+    TestRunner:assertEqual(pcorner.y, 3 + 2, "under the rule, in the head's padding")
+    -- a mirrored layout: the other side
+    local mirrored = MinimalPopup.keepPlace("tab", false, 1018, 300, { side = 46, small = 20, inset = 22, border = 2, gap = 2 }, true)
+    TestRunner:assertEqual(mirrored.x, 22, "where a right-to-left line ends")
+end)
+
+-- A chat window whose answer can be kept: what saveToNote and dropNote were asked
+local function keepingViewer(calls)
+    return {
+        markdown_font_size = 20,
+        answerWidget = function(_self, _text, w, h) return htmlWidget(100)(w, h) end,
+        canKeepNote = function() return calls.can ~= false end,
+        saveToNote = function(_self, pick, opts)
+            calls[#calls + 1] = { what = pick and "pick" or "save", opts = opts }
+            if not pick and opts.on_saved then opts.on_saved({ created = true, text = "x" }) end
+        end,
+        dropNote = function(_self, saved)
+            calls[#calls + 1] = { what = "drop", saved = saved }
+            return calls.drop ~= false
+        end,
+    }
+end
+local function at(x, y)
+    return { x = x, y = y, intersectWith = function(self, d)
+        return self.x >= d.x and self.x <= d.x + d.w and self.y >= d.y and self.y <= d.y + d.h
+    end }
+end
+-- what a paint leaves on the widgets a tap is judged against
+local function painted(p)
+    p.frame.dimen = { x = 100, y = 100, w = 600, h = 200 }
+    p.keep_mark.dimen = { x = 620, y = 290, w = 46, h = 46 }
+end
+
+TestRunner:test("an answer that can be kept carries the mark; one that cannot has none", function()
+    withWidgets(function()
+        local calls = {}
+        MinimalPopup.showForResponse({ history = history("An answer."), viewer = keepingViewer(calls) })
+        TestRunner:assertTrue(shown.keep ~= nil and shown.keep_mark ~= nil, "the mark")
+        TestRunner:assertEqual(shown.kept, false, "a plus: not kept yet")
+        TestRunner:assertEqual(shown.keep_mark.invert, false)
+        calls.can = false
+        MinimalPopup.showForResponse({ history = history("An answer."), viewer = keepingViewer(calls) })
+        TestRunner:assertEqual(shown.keep, nil, "no selection to keep it with: no mark")
+        TestRunner:assertEqual(shown.keep_mark, nil)
+    end)
+end)
+
+TestRunner:test("a tap on the mark keeps the answer through the chat window, and takes it back out", function()
+    withWidgets(function()
+        local calls = {}
+        local expanded = 0
+        MinimalPopup.showForResponse({ history = history("An answer."), viewer = keepingViewer(calls),
+            on_expand = function() expanded = expanded + 1 end })
+        local p = shown
+        painted(p)
+        TestRunner:assertEqual(p:onTap(nil, { pos = at(640, 310) }), true)
+        TestRunner:assertEqual(calls[1].what, "save")
+        TestRunner:assertEqual(calls[1].opts.popup, true, "the chat window is told the popup shows the answer: no notice, nothing to close")
+        TestRunner:assertEqual(p.kept, true, "the mark is a tick")
+        TestRunner:assertEqual(p.keep_mark.invert, true)
+        TestRunner:assertEqual(expanded, 0, "a tap on the mark does not open the full window")
+        -- a finger's margin around the mark counts too
+        painted(p)
+        TestRunner:assertEqual(p:onKeepMark(at(612, 284)), true)
+        TestRunner:assertEqual(p:onKeepMark(at(580, 284)), false)
+        -- a tap on the tick: out again
+        p:onTap(nil, { pos = at(640, 310) })
+        TestRunner:assertEqual(calls[2].what, "drop")
+        TestRunner:assertEqual(calls[2].saved.text, "x", "the save it was kept by")
+        TestRunner:assertEqual(p.kept, false)
+        -- a note that could not be taken out stays ticked
+        painted(p)
+        p:onTap(nil, { pos = at(640, 310) })
+        calls.drop = false
+        painted(p)
+        p:onTap(nil, { pos = at(640, 310) })
+        TestRunner:assertEqual(p.kept, true)
+    end)
+end)
+
+TestRunner:test("a tap elsewhere in the popup still opens the full window", function()
+    withWidgets(function()
+        local calls = {}
+        local expanded = 0
+        MinimalPopup.showForResponse({ history = history("An answer."), viewer = keepingViewer(calls),
+            on_expand = function() expanded = expanded + 1 end })
+        painted(shown)
+        shown:onTap(nil, { pos = at(300, 150) })
+        TestRunner:assertEqual(expanded, 1)
+        TestRunner:assertEqual(#calls, 0, "nothing was saved")
+    end)
+end)
+
+TestRunner:test("an answer saved by itself arrives ticked; a tap takes that one out", function()
+    withWidgets(function()
+        local calls = {}
+        local auto_saved = { created = true, text = "x" }
+        MinimalPopup.showForResponse({ history = history("An answer."), viewer = keepingViewer(calls), kept = auto_saved })
+        local p = shown
+        TestRunner:assertEqual(p.kept, true)
+        painted(p)
+        p:onTap(nil, { pos = at(640, 310) })
+        TestRunner:assertEqual(calls[1].what, "drop")
+        TestRunner:assertEqual(calls[1].saved, auto_saved)
+        TestRunner:assertEqual(p.kept, false)
+    end)
+end)
+
+TestRunner:test("a hold on the mark opens the chat window's choices, with the switch for saving by itself", function()
+    withWidgets(function()
+        local calls = {}
+        local flips, on = 0, false
+        local closed = 0
+        MinimalPopup.showForResponse({ history = history("An answer."), viewer = keepingViewer(calls),
+            on_close = function() closed = closed + 1 end,
+            auto = {
+                text = function() return on and "● Save every Translate answer" or "○ Save every Translate answer" end,
+                flip = function() flips = flips + 1; on = not on; return on end,
+            } })
+        local p = shown
+        painted(p)
+        TestRunner:assertEqual(p:onHoldStartText(nil, { pos = at(640, 310) }), true, "the hold is the mark's")
+        TestRunner:assertEqual(p:onHoldPanText(nil, { pos = at(640, 310) }), true)
+        TestRunner:assertEqual(p:onHoldReleaseText(nil, { pos = at(640, 310) }), true)
+        TestRunner:assertEqual(calls[1].what, "pick")
+        local extra = calls[1].opts.extra
+        TestRunner:assertEqual(extra[1].separator, true, "a setting sits under the double line")
+        TestRunner:assertEqual(extra[2].text, "○ Save every Translate answer")
+        -- turned on: this answer is kept too
+        extra[2].callback()
+        TestRunner:assertEqual(flips, 1)
+        TestRunner:assertEqual(calls[2].what, "save")
+        TestRunner:assertEqual(p.kept, true)
+        -- the editor closes the popup first
+        calls[1].opts.before_edit()
+        TestRunner:assertEqual(closed, 1)
+        -- a hold elsewhere is not the mark's: the box gets it, as before
+        painted(p)
+        local moved = 0
+        p.movable.onMovableHold = function() moved = moved + 1; return false end
+        TestRunner:assertEqual(p:onHoldStartText(nil, { pos = at(300, 150) }), false)
+        TestRunner:assertEqual(moved, 1)
+    end)
 end)
 
 for i = #added, 1, -1 do added[i][1][added[i][2]] = nil end

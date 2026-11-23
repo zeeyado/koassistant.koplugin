@@ -1753,6 +1753,22 @@ local SettingsSchema = {
                         { value = "everything", label = _("Everything (debug)") },
                     },
                     help_text = _("What to include when saving to note in translate view."),
+                },
+                {
+                    -- One value, two doors: Translate's place on the list under
+                    -- Highlight Settings (Save Answers as Notes)
+                    id = "translate_auto_note",
+                    type = "action",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        if Constants.resolveAutoNoteActions(f.auto_note_actions).translate then
+                            return _("Save Translations as Notes: On")
+                        end
+                        return _("Save Translations as Notes: Off")
+                    end,
+                    callback = "toggleAutoNoteTranslate",
+                    keep_menu_open = true,
+                    help_text = _("Save every translation of text you select by itself as a note on that text, with no tap. The same switch as Translate under Highlight Settings, Save Answers as Notes."),
                     separator = true,
                 },
                 -- Original text visibility
@@ -1826,7 +1842,7 @@ local SettingsSchema = {
                         { value = "short", label = _("When it fits") },
                         { value = "always", label = _("Always") },
                     },
-                    help_text = _("Show responses from the actions below in a small popup: just the response, no buttons. Tap the popup to open the full window; tap outside to dismiss. 'When it fits' shows the popup only when the whole response fits inside it; longer responses open the full window directly. 'Always' shows the popup for any response; one that is too long scrolls inside it (swipe up or down, or use the page-turn keys). Streaming is skipped for these requests. Never applies to full-page translation."),
+                    help_text = _("Show responses from the actions below in a small popup: just the response, with a small mark to save it as a note. Tap the popup to open the full window; tap outside to dismiss. 'When it fits' shows the popup only when the whole response fits inside it; longer responses open the full window directly. 'Always' shows the popup for any response; one that is too long scrolls inside it (swipe up or down, or use the page-turn keys). Streaming is skipped for these requests. Never applies to full-page translation."),
                 },
                 {
                     id = "minimal_popup_style",
@@ -1954,6 +1970,20 @@ local SettingsSchema = {
                     end,
                     callback = "buildHighlightBypassActionMenu",
                     help_text = _("Action to trigger when highlight bypass is enabled"),
+                    separator = true,
+                },
+                {
+                    id = "auto_note_actions",
+                    type = "submenu",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        local n = 0
+                        for _k in pairs(Constants.resolveAutoNoteActions(f.auto_note_actions)) do n = n + 1 end
+                        if n == 0 then return _("Save Answers as Notes: Off") end
+                        return T(_("Save Answers as Notes: %1"), n)
+                    end,
+                    callback = "buildAutoNoteActionsMenu",
+                    help_text = _("Answers of the ticked actions are saved by themselves as a note on the text you selected, the way Save to Note saves them, with no tap. None by default. In the Minimal Popup such an answer arrives with a tick; tap the tick to take that one back out."),
                 },
                 -- (Highlight-menu visibility toggles + actions manager live in
                 -- Menus & Buttons; behavior settings stay here)

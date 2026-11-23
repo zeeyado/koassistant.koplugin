@@ -195,6 +195,23 @@ function Export.format(data, content, style)
     return table.concat(result, "\n")
 end
 
+--- Whether a chat is one answer with nothing the reader typed: an action run
+--- on a selection, its prompt a context message. Such a chat has no question
+--- to put beside its answer (a note's Question + Response is then the answer).
+--- Pure.
+-- @param data what fromHistory / fromSavedChat returned
+function Export.isSingleAnswer(data)
+    local shown = 0
+    local last
+    for _idx, msg in ipairs(data and data.messages or {}) do
+        if not msg.is_context then
+            shown = shown + 1
+            last = msg
+        end
+    end
+    return shown == 1 and last.role == "assistant"
+end
+
 --- Build export data from a MessageHistory object (live chats)
 -- @param history MessageHistory instance
 -- @param highlighted_text string optional original highlighted text

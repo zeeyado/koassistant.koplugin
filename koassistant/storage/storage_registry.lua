@@ -108,6 +108,7 @@ Registry.SETTINGS_SUBKEYS = {
         "session_chips", "_dismissed_session_chips",
         "_dismissed_gesture_actions",                        -- top-level (see TOPLEVEL_SUBKEYS): the gesture defaults the reader removed (B581)
         "minimal_popup_actions",
+        "auto_note_actions",        -- the actions whose answers are saved as a note by themselves (none unless ticked; B722)
         "ollama_num_ctx",           -- ollama context-window cap (model menu row; nil = automatic sizing)
         "xray_default_categories",  -- global default for new X-Rays' category groups (presets v0.21)
         "xray_default_depth",       -- global default for new X-Rays' depth rung (light/standard/deep; nil = standard)
@@ -365,7 +366,7 @@ Registry.entries = {
         location = "sidecar_file", ref = "koassistant_book_settings.lua",
         category = "config", backup = true,
         opt_in_reset = true,
-        notes = "Single key `settings` = { koassistant_book_* (BookSettings.SIDECAR_KEYS) + koassistant_notebook_ref + koassistant_doi + koassistant_last_opened }. No dedicated index (per-book, small). Backed up as koassistant_book_settings.json.",
+        notes = "Single key `settings` = { koassistant_book_* (BookSettings.SIDECAR_KEYS) + koassistant_notebook_ref + koassistant_doi + koassistant_last_opened + koassistant_written_notes (HighlightNote.RECORD_KEY: which of the book's highlight notes the plugin wrote, by the annotation's creation time) }. No dedicated index (per-book, small). Backed up as koassistant_book_settings.json.",
     },
     {
         id = "sidecar_chats", label = "Per-book chats",

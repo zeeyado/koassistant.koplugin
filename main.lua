@@ -6319,6 +6319,46 @@ end
 -- pseudo actions (xray_lookup, image_gen) excluded — they never enter the
 -- chat pipeline, so a minimal-popup registration would be meaningless.
 function AskGPT:buildMinimalPopupActionsMenu()
+  return self:_actionListMenu("minimal_popup_actions")
+end
+
+-- Toggle one action's minimal-popup registration. Shared by the Settings
+-- screen picker above and the QS tile's hold popup below — one persistence
+-- truth for both surfaces.
+function AskGPT:_toggleMinimalPopupAction(action_id)
+  self:_toggleActionList("minimal_popup_actions", action_id)
+end
+
+-- The actions whose answers are saved as a note by themselves (Highlight
+-- Settings: Save Answers as Notes; features.auto_note_actions, none unless
+-- ticked). The seam is the dialogs module's showResponseDialog.
+function AskGPT:buildAutoNoteActionsMenu()
+  return self:_actionListMenu("auto_note_actions")
+end
+
+function AskGPT:_toggleAutoNoteAction(action_id)
+  self:_toggleActionList("auto_note_actions", action_id)
+end
+
+-- Translate Settings' door to the same list: Translate's own place on it
+function AskGPT:toggleAutoNoteTranslate(touchmenu_instance)
+  self:_toggleAutoNoteAction("translate")
+  if touchmenu_instance then touchmenu_instance:updateItems() end
+end
+
+-- A list of highlight actions the reader ticks, as a set: the two such lists
+-- share this reader, the picker and the writer below
+function AskGPT:_actionListSet(key)
+  local f = self.settings:readSetting("features") or {}
+  if key == "minimal_popup_actions" then
+    return Constants.resolveMinimalPopupActions(f[key])
+  end
+  return Constants.resolveAutoNoteActions(f[key])
+end
+
+-- The picker: one checkbox per highlight action that goes through the chat
+-- pipeline (the dispatch gates' own rule)
+function AskGPT:_actionListMenu(key)
   local self_ref = self
   local menu_items = {}
   local actions = self.action_service
@@ -6330,12 +6370,11 @@ function AskGPT:buildMinimalPopupActionsMenu()
       table.insert(menu_items, {
         text = action.text or action_id,
         checked_func = function()
-          local f = self_ref.settings:readSetting("features") or {}
-          return Constants.resolveMinimalPopupActions(f.minimal_popup_actions)[action_id] == true
+          return self_ref:_actionListSet(key)[action_id] == true
         end,
         keep_menu_open = true,
         callback = function()
-          self_ref:_toggleMinimalPopupAction(action_id)
+          self_ref:_toggleActionList(key, action_id)
         end,
       })
     end
@@ -6343,12 +6382,8 @@ function AskGPT:buildMinimalPopupActionsMenu()
   return menu_items
 end
 
--- Toggle one action's minimal-popup registration. Shared by the Settings
--- screen picker above and the QS tile's hold popup below — one persistence
--- truth for both surfaces.
-function AskGPT:_toggleMinimalPopupAction(action_id)
-  local f = self.settings:readSetting("features") or {}
-  local set = Constants.resolveMinimalPopupActions(f.minimal_popup_actions)
+function AskGPT:_toggleActionList(key, action_id)
+  local set = self:_actionListSet(key)
   if set[action_id] then
     set[action_id] = nil
   else
@@ -6359,7 +6394,8 @@ function AskGPT:_toggleMinimalPopupAction(action_id)
   local list = {}
   for id in pairs(set) do list[#list + 1] = id end
   table.sort(list)
-  f.minimal_popup_actions = list
+  local f = self.settings:readSetting("features") or {}
+  f[key] = list
   self.settings:saveSetting("features", f)
   self.settings:flush()
   self:updateConfigFromSettings()

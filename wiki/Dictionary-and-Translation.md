@@ -133,7 +133,7 @@ Both dictionary windows share two rows of buttons:
 |---|---|
 | **MD ON** / **TXT ON** | Switches between Markdown and Plain Text ("MD ON" while Markdown is active). Long-press for the display options ([Chat Windows](Chat-Windows#markdown-and-plain-text)) |
 | **Copy** | Copies what **Copy Content** names (the definition only, by default). Long-press to choose this time |
-| **+Note** | Saves the answer as a KOReader note attached to the looked-up word (the highlight stays on the word). Grayed out when the word's position is not known, as for a word looked up inside another window |
+| **+Note** | Saves the answer at once as a KOReader note attached to the looked-up word (the highlight stays on the word; a word that is already highlighted keeps its one highlight and gets the note). Long-press to choose the note's content this time, or to edit it first. Grayed out when the word's position is not known, as for a word looked up inside another window |
 | **Wiki** | Looks the word up through KOReader's Wikipedia lookup |
 | **+Vocab** | Adds the word to KOReader's Vocabulary builder; the button then reads **Added**, grayed out ([Vocabulary builder](#vocabulary-builder)) |
 | **→ Chat** | Opens the answer in the full chat window, with every option (continue the conversation, save, export and the rest) |
@@ -157,7 +157,7 @@ Every translation action (Translate from the highlight menu, the highlight bypas
 |---|---|
 | **MD ON** / **TXT ON** | Switches between Markdown and Plain Text |
 | **Copy** | Copies what **Copy Content** names (the translation only, by default). Long-press to choose this time |
-| **Save to Note** | Saves the translation as a note on your highlight: the translate window closes and KOReader's note editor opens with the translation filled in. Long-press to choose the note's content this time. Grayed out when the text did not come from a highlight (Translate Page) |
+| **Save to Note** | Saves the translation at once as a note on your highlight and closes the translate window; a short notice says it is saved. A passage that is already highlighted keeps its one highlight and gets the note. Long-press to choose the note's content this time, or pick **Edit before saving…** for KOReader's note editor. Grayed out when the text did not come from a highlight (Translate Page) |
 | **→ Chat** | Opens the full chat window with every option (continue the conversation, save and the rest) |
 | **Show Original** / **Hide Original** | Shows or hides the text you translated |
 | **Language** | Runs the translation again into another of your languages; your setting stays as it is |
@@ -176,6 +176,7 @@ Translations are not auto-saved by default: like dictionary lookups, they are me
 - **Enable Streaming** (on): shows the translation as it is written.
 - **Include Surrounding Context** (off): sends the text around the highlight with the translation, so the AI can resolve pronouns, tone and ambiguous words. It uses the mode of **Settings → Highlight Settings → Surrounding Context**, or a sentence when that is off. It never applies to full-page translation.
 - **Copy Content** and **Note Content:** what **Copy** and **Save to Note** take. **Translation only** by default; the other choices are Follow global setting, Ask every time (a picker each time, also when inherited from the global setting), Full (metadata + chat), Question + Response and Everything (debug).
+- **Save Translations as Notes** (off): every translation of text you select is saved by itself as a note on that text, with no tap. It is the same switch as Translate under **Settings → Highlight Settings → Save Answers as Notes** ([saving answers by themselves](Contexts-and-Chat#saving-answers-by-themselves)).
 - **Original text:** **Original Text** decides whether the text you translated shows above the translation: **Hide Long** (the default; hidden when longer than **Long Text Threshold**, 280 characters by default), **Always Hide**, **Never Hide**, or **Follow Global**, which uses the quote settings of **Settings → Display Settings → Highlights** ([Chat Windows](Chat-Windows#quotes)). **Hide for Full Page Translate** (on) always hides it for Translate Page, whatever the other rows say. **Show Original** in the window changes it for one translation.
 
 ### Translate Page
