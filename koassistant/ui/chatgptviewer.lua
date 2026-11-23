@@ -745,6 +745,8 @@ end
 -- @param callback function(content) Called with selected content type
 -- `extra` = rows of the caller's own after the content rows: { text, callback },
 -- or { separator = true } for the double line that sets setting rows apart
+-- `anchor` = KOReader's anchor for the dialog; a function is handed the dialog
+-- (its size is known by then), for a caller that places it by its size
 local function showContentPicker(title, is_translate, callback, anchor, extra)
     local content_dialog
     local options = {
@@ -790,10 +792,14 @@ local function showContentPicker(title, is_translate, callback, anchor, extra)
         },
     })
 
+    local place = anchor
+    if type(anchor) == "function" then
+        place = function() return anchor(content_dialog) end
+    end
     content_dialog = ButtonDialog:new{
         shrink_unneeded_width = true,
         title = title,
-        anchor = anchor,
+        anchor = place,
         buttons = buttons,
     }
     UIManager:show(content_dialog)
@@ -5134,16 +5140,22 @@ end
 
 -- The note's text for a content choice ("" when there is no answer). A chat
 -- that is one answer with nothing the reader typed has no question to put
--- beside it: its Question + Response is the answer.
+-- beside it: what was asked is the action, so its Question + Response is one
+-- line that names the action and the answer under it. Last response only is
+-- the answer alone, always.
+-- @return string the text
+-- @return number|nil how many bytes of it stand before the answer, where the
+--   text is one answer under its line or alone (nil = questions and answers)
 function ChatGPTViewer:_noteText(history, selected_content)
   local features = self.configuration and self.configuration.features or {}
   local Export = require("koassistant.chat.export")
   local books_info = features.is_library_context and features.books_info or nil
   local data = Export.fromHistory(history, self.original_highlighted_text, features.book_metadata, books_info)
   if selected_content == "qa" and Export.isSingleAnswer(data) then
-    selected_content = "response"
+    return Export.singleAnswerNote(data, history.prompt_action)
   end
-  return Export.format(data, selected_content, features.export_style or "markdown")
+  return Export.format(data, selected_content, features.export_style or "markdown"),
+    selected_content == "response" and 0 or nil
 end
 
 --- Keep this window's answer as the note of the selection's highlight, with
@@ -5160,10 +5172,15 @@ function ChatGPTViewer:keepAsNote(selected_content)
   if not selected_content then
     selected_content = content == "ask" and spec.default or content
   end
-  local note_text = self:_noteText(history, selected_content)
+  local note_text, lead = self:_noteText(history, selected_content)
   if note_text == "" then return nil, _("No response to save") end
+  -- The action the chat was started with rides the record: its id where the
+  -- request named one (a highlight action), its name as the reader saw it,
+  -- and where the answer starts in the saved text (after the action's line)
+  local features = self.configuration and self.configuration.features or {}
   local saved = require("koassistant.chat.highlight_note").save(reader_ui, self.selection_data, note_text,
-    { extend = spec.extend, kind = self:noteKind() })
+    { extend = spec.extend, kind = self:noteKind(), action = features._note_action,
+      action_name = history.prompt_action, lead = lead })
   if not saved then return nil, _("Failed to create highlight") end
   return saved
 end
@@ -5189,7 +5206,8 @@ end
 --- offers KOReader's note editor before the save.
 -- @param opts for a caller that shows this window's answer itself (the minimal popup):
 --   popup = the answer is in the popup, this window is not on screen (no notice of a save, nothing to close),
---   on_saved(saved), before_edit() = before KOReader's editor opens, extra = rows of the caller's own in the picker
+--   on_saved(saved), before_edit() = before KOReader's editor opens, extra = rows of the caller's own in the picker,
+--   anchor = where the picker opens (the popup's mark; this window's own button otherwise)
 function ChatGPTViewer:saveToNote(pick, opts)
   opts = opts or {}
   local reader_ui, history, why = noteSource(self)
@@ -5245,8 +5263,9 @@ function ChatGPTViewer:saveToNote(pick, opts)
   if pick or content == "ask" then
     local rows = { { text = _("Edit before saving…"), callback = editFirst } }
     for _idx, row in ipairs(opts.extra or {}) do rows[#rows + 1] = row end
-    showContentPicker(_("Note Content"), self.translate_view, saveNow,
-      not opts.popup and self:_anchorToButton("save_to_note") or nil, rows)
+    local anchor = opts.anchor
+    if not anchor and not opts.popup then anchor = self:_anchorToButton("save_to_note") end
+    showContentPicker(_("Note Content"), self.translate_view, saveNow, anchor, rows)
   else
     saveNow(content)
   end

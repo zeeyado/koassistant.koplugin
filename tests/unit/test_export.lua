@@ -706,6 +706,55 @@ local function runSingleAnswerTests()
         TestRunner:assertEqual(Export.isSingleAnswer({}), false)
         TestRunner:assertEqual(Export.isSingleAnswer(nil), false)
     end)
+
+    print("\n--- Export.singleAnswerNote() ---")
+
+    TestRunner:test("one line names the action, the answer under it: no model, no heading, no blank line", function()
+        local data = { model = "some-model", title = "Explain", last_response = "It means the sky was overcast.",
+            messages = { { role = "assistant", content = "It means the sky was overcast." } } }
+        local text, lead = Export.singleAnswerNote(data, "Explain")
+        TestRunner:assertEqual(text, "Explain:\nIt means the sky was overcast.")
+        TestRunner:assertEqual(lead, #"Explain:\n", "how much of it stands before the answer")
+        TestRunner:assertEqual(text:sub(lead + 1), data.last_response, "the answer alone is the text from there on")
+        -- the action's name as the reader sees it, whatever it holds
+        TestRunner:assertEqual((Export.singleAnswerNote(data, "Ask my tutor")), "Ask my tutor:\nIt means the sky was overcast.")
+        TestRunner:assertEqual((Export.singleAnswerNote(data, "  Explain  ")), "Explain:\nIt means the sky was overcast.")
+        -- a name that ends a sentence itself takes no colon
+        TestRunner:assertEqual((Export.singleAnswerNote(data, "Why?")), "Why?\nIt means the sky was overcast.")
+        TestRunner:assertEqual((Export.singleAnswerNote(data, "Note:")), "Note:\nIt means the sky was overcast.")
+    end)
+
+    TestRunner:test("the line never starts the way KOReader's note window takes for Markdown", function()
+        -- ReaderHighlight:showHighlightNoteOrDialog: a note whose first character is "<" is HTML,
+        -- "#", "*" or "[" Markdown, and its Markdown library draws "[Explain]" as a link with no
+        -- address, run into the answer's first line
+        for _idx, name in ipairs({ "Explain", "Translate", "ELI5", "Quick Explain", "Dictionary" }) do
+            local text = Export.singleAnswerNote({ last_response = "**Bold** first words." }, name)
+            TestRunner:assertEqual(text:sub(1, 1):find("[%[#%*<]") == nil, true, name)
+            TestRunner:assertEqual(text:find("[", 1, true) == nil, true, "no bracket around the action's name")
+        end
+    end)
+
+    TestRunner:test("a chat with no action has no line to put: the answer alone", function()
+        local data = { title = "Chat", last_response = "An answer." }
+        local text, lead = Export.singleAnswerNote(data, nil)
+        TestRunner:assertEqual(text, "An answer.")
+        TestRunner:assertEqual(lead, 0)
+        TestRunner:assertEqual((Export.singleAnswerNote(data, "")), "An answer.")
+        TestRunner:assertEqual((Export.singleAnswerNote(data, "   ")), "An answer.")
+    end)
+
+    TestRunner:test("no answer: nothing, never a line that names an action over nothing", function()
+        TestRunner:assertEqual((Export.singleAnswerNote({ last_response = "" }, "Explain")), "")
+        TestRunner:assertEqual((Export.singleAnswerNote({}, "Explain")), "")
+        TestRunner:assertEqual((Export.singleAnswerNote(nil, "Explain")), "")
+    end)
+
+    TestRunner:test("the bare answer is found inside the one under its line: saved again as Last response only, nothing is written twice", function()
+        local data = { last_response = "It means the sky was overcast." }
+        local with_line = Export.singleAnswerNote(data, "Explain")
+        TestRunner:assertEqual(with_line:find(Export.format(data, "response", "markdown"), 1, true) ~= nil, true)
+    end)
 end
 
 local function runAll()

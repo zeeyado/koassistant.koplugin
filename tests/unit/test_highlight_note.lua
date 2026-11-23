@@ -332,6 +332,39 @@ TestRunner:test("two answers on one highlight are two pieces: the translation ca
         "the piece the reader rewrote left the record")
 end)
 
+TestRunner:test("the record keeps the action a piece came from, its id and its name, through later saves", function()
+    local r = newReader()
+    local sel = selection("/body/p[3].0", "/body/p[3].22")
+    local first = HighlightNote.save(r.ui, sel, "The morning rose grey.",
+        { kind = "translate", action = "translate", action_name = "Translate", store = r.store })
+    HighlightNote.save(r.ui, sel, "Explain:\nGrey here means overcast.",
+        { kind = "chat", action = "explain", action_name = "Explain", lead = #"Explain:\n", store = r.store })
+    local _state, parts = HighlightNote.recordOf(r.store, first.annotation)
+    eq(#parts, 2)
+    eq(parts[1].action, "translate"); eq(parts[1].action_name, "Translate")
+    eq(parts[1].lead, nil, "a save that says nothing of it: no field")
+    eq(parts[2].action, "explain"); eq(parts[2].action_name, "Explain")
+    eq(parts[2].text, "Explain:\nGrey here means overcast.", "a piece is the text as saved, its own first line included")
+    eq(parts[2].text:sub(parts[2].lead + 1), "Grey here means overcast.", "and the record says where the answer starts in it")
+    eq(r.store.data[HighlightNote.RECORD_KEY][first.annotation.datetime].parts[2].lead, #"Explain:\n")
+    eq(r.store.data[HighlightNote.RECORD_KEY][first.annotation.datetime].parts[1].action, "translate",
+        "the first piece keeps its action when the line is written again")
+    -- a save that names none, or names it with something that is no name: no field
+    local other = HighlightNote.save(r.ui, selection("/body/p[5].0", "/body/p[5].9"), "A bare answer.",
+        { kind = "chat", action = "", action_name = 7, lead = 0, store = r.store })
+    _state, parts = HighlightNote.recordOf(r.store, other.annotation)
+    eq(parts[1].kind, "chat")
+    eq(parts[1].action, nil); eq(parts[1].action_name, nil)
+    eq(parts[1].lead, 0, "a piece that is the answer alone says so")
+    -- a start that cannot be one (past the text, below zero, no number) is not recorded
+    for _i, bad in ipairs({ 99, -1, "3" }) do
+        local r2 = newReader()
+        local s2 = HighlightNote.save(r2.ui, sel, "Short.", { kind = "chat", lead = bad, store = r2.store })
+        local _s, p2 = HighlightNote.recordOf(r2.store, s2.annotation)
+        eq(p2[1].lead, nil, tostring(bad))
+    end
+end)
+
 TestRunner:test("a line of the first day's shape (no pieces) reads as the reader's, and the next save writes pieces", function()
     local r = newReader()
     local mine = highlightOf(r, "/body/p[3].0", "/body/p[3].22", "An old note.")
@@ -501,6 +534,7 @@ local single_answer = false
 package.loaded["koassistant.chat.export"] = {
     fromHistory = function() return {} end,
     isSingleAnswer = function() return single_answer end,
+    singleAnswerNote = function(_data, action_name) return tostring(action_name) .. ":\nNOTE", #tostring(action_name) + 2 end,
     format = function(_data, content) asked_content[#asked_content + 1] = content; return "NOTE:" .. content end,
 }
 local resolved_store
@@ -514,7 +548,7 @@ local function window(r, fields)
     asked_content = {}
     single_answer = false
     fields.selection_data = fields.selection_data or selection("/body/p[3].0", "/body/p[3].22")
-    fields._message_history = {}
+    fields._message_history = fields._message_history or {}
     fields.configuration = fields.configuration or { features = {} }
     return setmetatable(fields, { __index = ChatGPTViewer })
 end
@@ -548,12 +582,14 @@ TestRunner:test("the translate window: a tap saves the translation at once and t
     eq(notice, "Saved as a note")
     local state, parts = HighlightNote.recordOf(r.store, r.list[1])
     eq(state, "ours"); eq(parts[1].kind, "translate")
+    eq(parts[1].lead, 0, "the piece is the translation alone, and the record says so")
 end)
 
 TestRunner:test("the chat window: question and response by default, and the window stays", function()
     local rec = Recorder.install()
     local r = newReader()
-    local v = window(r, {})
+    local v = window(r, { _message_history = { prompt_action = "Explain" },
+        configuration = { features = { _note_action = "explain" } } })
     UIManager:show(v)
     v:saveToNote()
     local shown = UIManager:isWidgetShown(v)
@@ -562,6 +598,9 @@ TestRunner:test("the chat window: question and response by default, and the wind
     ok(shown, "a chat is not closed by its note")
     local _state, parts = HighlightNote.recordOf(r.store, r.list[1])
     eq(parts[1].kind, "chat")
+    eq(parts[1].action, "explain", "the record names the action the chat was started with: its id")
+    eq(parts[1].action_name, "Explain", "and its name as the reader saw it")
+    eq(parts[1].lead, nil, "questions and answers: no one answer to point at")
 end)
 
 TestRunner:test("a dictionary window: the definition only, on the word alone", function()
@@ -668,13 +707,23 @@ TestRunner:test("no selection, no book, no chat: said, nothing written", functio
     eq(#r.list, 0)
 end)
 
-TestRunner:test("a chat that is one answer with nothing typed: Question + Response is the answer", function()
+TestRunner:test("a chat that is one answer with nothing typed: Question + Response names the action above the answer", function()
     local rec = Recorder.install()
     local r = newReader()
-    local v = window(r, {})
+    local v = window(r, { _message_history = { prompt_action = "Explain" } })
     single_answer = true
     v:saveToNote()
-    eq(r.list[1].note, "NOTE:response", "no question to put beside it")
+    eq(r.list[1].note, "Explain:\nNOTE", "what was asked is the action")
+    local _state, parts = HighlightNote.recordOf(r.store, r.list[1])
+    eq(parts[1].lead, #"Explain:\n", "the record says where the answer starts under its line")
+    eq(parts[1].text:sub(parts[1].lead + 1), "NOTE")
+    -- Last response only is the answer alone, whatever the chat
+    r = newReader()
+    v = window(r, { _message_history = { prompt_action = "Explain" },
+        configuration = { features = { note_content = "response" } } })
+    single_answer = true
+    v:saveToNote()
+    eq(r.list[1].note, "NOTE:response")
     -- a typed question or a second exchange: the questions and answers as before
     r = newReader()
     v = window(r, {})
@@ -739,18 +788,34 @@ TestRunner:test("from the popup: a save says nothing and closes nothing, and han
     v:saveToNote(true, {
         popup = true,
         before_edit = function() closed = closed + 1 end,
-        extra = { { separator = true }, { text = "Save every Translate answer", callback = function() flipped = flipped + 1 end } },
+        extra = { { separator = true }, { text = "Auto-save Translate answers", callback = function() flipped = flipped + 1 end } },
     })
     local top = rec:top()
     eq(#top.buttons, 8, "four content rows, the editor row, the double line, the setting row, Cancel")
     eq(#top.buttons[6], 0, "the double line: an empty row")
-    rec:tap("Save every Translate answer")
+    rec:tap("Auto-save Translate answers")
     eq(flipped, 1)
     v:saveToNote(true, { popup = true, before_edit = function() closed = closed + 1 end })
+    eq(rec:top().anchor, nil, "no place given: the picker opens in the middle")
     rec:tap("Edit before saving…")
-    rec:restore()
     eq(closed, 1, "the popup closes before KOReader's editor opens")
     eq(#r.adds + #r.edits, 1)
+    -- the picker opens where the popup says (its mark); the window's own opens at its button
+    local handed
+    local at_mark = function(dialog) handed = dialog; return "the mark's place", true end
+    v:saveToNote(true, { popup = true, anchor = at_mark })
+    local picker = rec:top()
+    local place, under = picker.anchor()
+    eq(place, "the mark's place", "the popup's place for the picker")
+    eq(under, true)
+    eq(handed, picker, "the place is asked with the picker itself: it can follow the picker's size")
+    rec:tap("Cancel")
+    v.button_table = { getButtonById = function(_self, id) return { dimen = { id = id } } end }
+    v:saveToNote(true)
+    local where, below = rec:top().anchor()
+    rec:restore()
+    eq(where.id, "save_to_note", "the window's own picker opens at its button")
+    eq(below, true)
 end)
 
 -- ── guards ──────────────────────────────────────────────────────────────────

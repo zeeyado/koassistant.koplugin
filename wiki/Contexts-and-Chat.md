@@ -325,20 +325,21 @@ To change the note before it is saved, long-press **Save to Note** and pick **Ed
 **Key features:**
 
 - **Native integration:** uses KOReader's standard highlight and note system. Tap the highlight later and KOReader shows the note; it is in KOReader's own lists and exports like any note of yours.
-- **Configurable content:** question + response (the default), last response only, the full chat with metadata, everything (debug), or ask every time. Set it in Settings → Chat & Export Settings → Content Format → Note Content; long-press the button to pick the format for one save. When you ran an action and typed nothing yourself, question + response is simply the answer: there is no question to put beside it.
+- **Configurable content:** question + response (the default), last response only, the full chat with metadata, everything (debug), or ask every time. Set it in Settings → Chat & Export Settings → Content Format → Note Content; long-press the button to pick the format for one save. When you ran an action and typed nothing yourself, the question is the action: the note starts with one line that names it, such as `Explain:`, and the answer comes under it. Last response only is always the answer alone.
 - **One tap, or edit first:** a tap saves at once; a long-press offers **Edit before saving…**.
 - **Creates a permanent highlight:** the selected text becomes a saved highlight with the note attached. From the chat window and Translate View, KOReader extends that highlight to take in the punctuation around a whole sentence in reflowable books, as its own Add note does; from the compact and dictionary windows it stays on the word.
 - **A passage that is already highlighted keeps its one highlight:** the note is added to it. If it already has a note, the new text goes under it after a blank line. Saving the same answer twice changes nothing. (In a PDF this holds when you start from the highlight's own menu; a fresh selection over the same words makes a highlight of its own.)
 - **Works with translations:** good for keeping translations alongside the original text.
+- **Not mistaken for your own notes:** when an action sends your notes to the AI (Analyze Notes, Connect), an answer saved this way is marked as a saved answer, not as something you wrote ([the kinds of data](Privacy-and-Data#the-kinds-of-data)).
 - **In every view:** the chat window and Translate View have **Save to Note**; the compact and dictionary windows have a **+Note** button. The dictionary windows and Translate View have their own Note Content settings (Settings → Dictionary Settings → Note Content, Settings → Translate Settings → Note Content), which default to the answer alone.
 
-### Saving answers by themselves
+### Saving answers automatically
 
-If you keep every answer of some action, let KOAssistant do it: **Settings → Highlight Settings → Save Answers as Notes** lists the highlight actions, and each one you tick saves its answer as a note on the selected text the moment it arrives, with no tap. Nothing is ticked by default. **Settings → Translate Settings → Save Translations as Notes** is the same switch for Translate, and so is **Save every … answer** in the long-press menu of the Minimal Popup's mark.
+If you keep every answer of some action, let KOAssistant do it: **Settings → Highlight Settings → Auto-save Answers as Notes** lists the highlight actions, and each one you tick saves its answer as a note on the selected text the moment it arrives, with no tap. Nothing is ticked by default. **Settings → Translate Settings → Auto-save Translations as Notes** is the same switch for Translate, and so is **Auto-save … answers** in the long-press menu of the Minimal Popup's mark.
 
 - In the [Minimal Popup](Chat-Windows#minimal-popup) such an answer arrives with a tick; tap the tick to take that one back out.
 - In a full window a short notice says the answer was saved.
-- An answer that was cut off is not saved by itself; you can still save it with the button.
+- An answer that was cut off is not saved automatically; you can still save it with the button.
 - Together with highlight bypass and the Minimal Popup this gives a one-step flow: select a sentence, read its translation beside it, and it is already kept.
 
 **Use cases:** save explanations of difficult passages for later reference; keep translations alongside foreign text; build a glossary of term definitions within your book; annotate with AI-generated insights that become part of your reading notes.

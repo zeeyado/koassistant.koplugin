@@ -68,4 +68,95 @@ TestRunner:test("the funnel's counts and the X-Ray browser's matches ask the rul
     TestRunner:assertEqual(select(2, ce:gsub("if ContextExtractor%.isHighlight%(annotation%) then", "")), 2, "both formatters")
 end)
 
+-- ── a note the plugin saved is told from the reader's own (B756 c) ───────────
+-- The record is the one HighlightNote keeps per book: built here the way its
+-- writer builds it, a piece per saved answer with its place and fingerprint.
+local HighlightNote = require("koassistant.chat.highlight_note")
+local TRANSLATION = "The morning rose grey."
+local EXPLAINED = "Explain:\nGrey here means overcast."
+local function piece(kind, text, from, extra)
+    local p = { kind = kind, at = 1, from = from, len = #text, sum = HighlightNote.fingerprint(text) }
+    for k, v in pairs(extra or {}) do p[k] = v end
+    return p
+end
+local function store(lines)
+    return { readSetting = function(_self, key)
+        return key == HighlightNote.RECORD_KEY and lines or nil
+    end }
+end
+local kept = { drawer = "lighten", text = "Morning came grey", chapter = "Ch1", datetime = "2026-11-23 10:00:00",
+    note = TRANSLATION .. "\n\n" .. EXPLAINED }
+local kept_record = { [kept.datetime] = { parts = {
+    piece("translate", TRANSLATION, 1, { action = "translate", action_name = "Translate", lead = 0 }),
+    piece("chat", EXPLAINED, #TRANSLATION + 3, { action = "explain", action_name = "Explain", lead = #"Explain:\n" }),
+} } }
+
+TestRunner:test("answers the plugin saved go marked as saved answers, never as the reader's note", function()
+    local a = CE.formatAnnotations({ kept }, { record = store(kept_record) })
+    TestRunner:assertEqual(a.formatted, table.concat({
+        '- "Morning came grey"',
+        "  [Saved translation: The morning rose grey.]",
+        "  [Saved AI answer (Explain): Grey here means overcast.]",
+        "  (Chapter: Ch1)",
+    }, "\n"), "each piece under its mark, the action's own line left out (the mark says it)")
+    TestRunner:assertTrue(a.formatted:find("[Note:", 1, true) == nil, "nothing of it is called the reader's note")
+    TestRunner:assertEqual(a.items[1].note, kept.note, "the item keeps the note as it is")
+    -- a dictionary answer, and an answer whose action is not on record
+    local word = { drawer = "lighten", text = "lantern", datetime = "d2", note = "A lamp.\n\nA bare answer." }
+    local rec = { d2 = { parts = { piece("dictionary", "A lamp.", 1), piece("chat", "A bare answer.", 10) } } }
+    a = CE.formatAnnotations({ word }, { record = store(rec) })
+    TestRunner:assertTrue(a.formatted:find("  [Saved dictionary answer: A lamp.]\n  [Saved AI answer: A bare answer.]", 1, true) ~= nil,
+        a.formatted)
+end)
+
+TestRunner:test("the reader's own words around a saved answer stay notes, in the note's order", function()
+    local mixed = { drawer = "lighten", text = "Morning came grey", datetime = kept.datetime,
+        note = "Before it, mine.\n\n" .. TRANSLATION .. "\n\n(ch. 2, my own line)" }
+    local rec = { [kept.datetime] = { parts = { piece("translate", TRANSLATION, #"Before it, mine.\n\n" + 1) } } }
+    local a = CE.formatAnnotations({ mixed }, { record = store(rec), include_chapter = false })
+    TestRunner:assertEqual(a.formatted, table.concat({
+        '- "Morning came grey"',
+        "  [Note: Before it, mine.]",
+        "  [Saved translation: The morning rose grey.]",
+        "  [Note: (ch. 2, my own line)]",
+    }, "\n"))
+end)
+
+TestRunner:test("a note the reader rewrote, a note with no record and a record that cannot be read are the reader's", function()
+    local rewritten = { drawer = "lighten", text = "Morning came grey", datetime = kept.datetime,
+        note = "The morning rose gray, I would say." }
+    local a = CE.formatAnnotations({ rewritten }, { record = store(kept_record), include_chapter = false })
+    TestRunner:assertEqual(a.formatted, '- "Morning came grey"\n  [Note: The morning rose gray, I would say.]')
+    a = CE.formatAnnotations({ noted }, { record = store(kept_record) })
+    TestRunner:assertTrue(a.formatted:find("[Note: my note]", 1, true) ~= nil, "another highlight's own note")
+    a = CE.formatAnnotations({ kept }, { record = { readSetting = function() error("disk") end } })
+    TestRunner:assertTrue(a.formatted:find("[Note: " .. kept.note .. "]", 1, true) ~= nil, "sent whole, as before the record existed")
+    a = CE.formatAnnotations({ kept })
+    TestRunner:assertTrue(a.formatted:find("[Note: " .. kept.note .. "]", 1, true) ~= nil, "no record handed over")
+    TestRunner:assertEqual(CE.noteRecord(nil), nil, "no book: no record")
+end)
+
+TestRunner:test("every place that builds the notes of a request hands the record over", function()
+    -- the hand-off's two ends: the callers, cut from the source
+    local sites, with_record = 0, 0
+    for _i, rel in ipairs({ "koassistant/request/context_extractor.lua", "koassistant/ui/dialogs.lua", "main.lua" }) do
+        local src = read(rel)
+        local at = 1
+        while true do
+            local s, e = src:find("ContextExtractor%.formatAnnotations%(", at)
+            if not s then break end
+            if src:sub(math.max(1, s - 9), s - 1) ~= "function " then
+                sites = sites + 1
+                local call = src:sub(s, e + 160)
+                if call:find("with_record", 1, true) or call:find("record = ContextExtractor.noteRecord(", 1, true) then
+                    with_record = with_record + 1
+                end
+            end
+            at = e + 1
+        end
+    end
+    TestRunner:assertEqual(sites, 3, "the open book, a closed book, each book of a library action")
+    TestRunner:assertEqual(with_record, sites, "a site that does not would send an AI's saved answer as the reader's note")
+end)
+
 return TestRunner:summary()

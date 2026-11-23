@@ -27,10 +27,13 @@ Two shapes (`style`, features.minimal_popup_style):
   1.28: this is the plugin's frame around the same content widget).
 
 An answer that can be kept with the passage carries a small mark (`keep`,
-its caller's): a plus until the answer is kept, a tick once it is. A tap on
-it keeps the answer or takes it back out; a hold opens its caller's choices.
-Where the mark sits is keepPlace (KEEP_LOOK: three looks until one is ruled,
-docs/save_to_note_plan.md); it never takes room from the text's width.
+its caller's): a plus until the answer is kept, a tick once it is, a bare
+sign inside the frame's foot corner (keepPlace). It takes no room: the frame
+is the size it is without the mark, and the sign's strokes lie in the blank
+the frame keeps beside and under its text. A tap on it keeps the answer or
+takes it back out; a hold opens its caller's choices while the finger still
+rests there, as a held button's do, and they hang from the popup's corner
+that holds the sign (menuAnchor), outside the frame: the answer stays whole.
 
 What it shows is its caller's: `content(width, height, dialog)` returns the
 scrolling widget that shows the answer in a text area that size. For an
@@ -59,13 +62,12 @@ local Font = require("ui/font")
 local FrameContainer = require("ui/widget/container/framecontainer")
 local Geom = require("ui/geometry")
 local GestureRange = require("ui/gesturerange")
-local IconWidget = require("ui/widget/iconwidget")
 local InputContainer = require("ui/widget/container/inputcontainer")
 local LineWidget = require("ui/widget/linewidget")
 local MovableContainer = require("ui/widget/container/movablecontainer")
 local OverlapGroup = require("ui/widget/overlapgroup")
-local RightContainer = require("ui/widget/container/rightcontainer")
 local Size = require("ui/size")
+local TextWidget = require("ui/widget/textwidget")
 local UIManager = require("ui/uimanager")
 local VerticalGroup = require("ui/widget/verticalgroup")
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
@@ -83,12 +85,18 @@ local MinimalPopup = InputContainer:extend{
     on_expand = nil,        -- tap inside the popup
     on_close = nil,         -- dismissed without expanding
     on_select = nil,        -- function(text, hold_duration, clear_highlight): a word or a passage held in the text
-    keep = nil,             -- { kept, toggle = function(set), menu = function(set, close) }: the mark that keeps the answer
+    keep = nil,             -- { kept, toggle = function(set), menu = function(set, close, anchor) }: the mark that keeps the answer
 }
 
 -- How tall the text may be, of the screen's height, before it scrolls
 MinimalPopup.CAP = 0.45
 MinimalPopup.STYLES = { box = true, panel = true }
+-- The keep mark: its sign's box and a finger's margin around it, in
+-- KOReader's screen units (scaleBySize), and each sign's font size (the tick
+-- is the larger glyph of the two: the sizes make them one height)
+MinimalPopup.KEEP_SIDE = 22
+MinimalPopup.KEEP_MARGIN = 14
+MinimalPopup.KEEP_FONT = { plus = 28, tick = 22 }
 
 --- Where the text sits, pure. The box is the chat window's rectangle: its
 --- content width and its text inset, so the same text wraps the same way in
@@ -124,60 +132,34 @@ local function blankUnder(widget, text_h)
     return 0
 end
 
---- The keep mark's looks. "tab": a small box on the frame's edge that sticks
---- out of it (under a box, over a panel's rule). "corner": a bare sign inside
---- the frame's padding corner. "strip": a short row inside the frame, under
---- the text, the mark at its end.
-MinimalPopup.KEEP_LOOKS = { tab = true, corner = true, strip = true }
-MinimalPopup.KEEP_LOOK = "tab"
-
---- Where the keep mark sits, pure. `base` is what the popup draws without it
---- (a box's frame; a panel's rule and frame). The mark is on the side where a
---- line of text ends: right, left in a mirrored layout. A box has it at its
---- foot, a panel at its head (its foot is the screen's edge).
--- @param s { side = the tab's size, small = the bare sign's size, inset = the text's inset, border, gap,
---             rule = a panel's rule (the base's first rows) }
--- @return table { side, bare, strip, x, y = the mark's place in the base, top, bottom = how far it sticks out }
-function MinimalPopup.keepPlace(look, panel, base_w, base_h, s, mirrored)
-    local place = { side = s.side, bare = false, strip = false, x = 0, y = 0, top = 0, bottom = 0 }
-    if look == "strip" then
-        place.strip = true
-        return place
-    end
-    if look == "corner" then
-        place.side, place.bare = s.small, true
-        place.x = base_w - s.border - s.gap - s.small
-        place.y = panel and ((s.rule or 0) + s.gap) or (base_h - s.border - s.gap - s.small)
-    else
-        -- the tab reaches half the inset into the frame, so it reads as part of it
-        local reach = math.floor(s.inset / 2)
-        place.x = base_w - s.inset - s.side
-        if panel then
-            place.top = s.side - reach
-            place.y = -place.top
-        else
-            place.bottom = s.side - reach
-            place.y = base_h - reach
-        end
-    end
-    if mirrored then place.x = base_w - place.x - place.side end
-    return place
+--- Where the keep mark sits, pure: a bare sign in the frame's foot corner, on
+--- the right (the left in a mirrored layout), flush with the frame's inner
+--- edge. Its upright stroke then stands in the blank beside the text and its
+--- level one in the blank under the last line, so it covers no letter
+--- whichever way the text runs; nothing sticks out of the frame, which is
+--- placed by the selection exactly as it is without a mark.
+-- @param s { side = the sign's box, gap = its distance from the frame's foot, border = the frame's,
+--             margin = a finger's margin around the sign }
+-- @return table two rectangles in the frame, each { x, y, w, h }: sign = the sign's box, zone = where a touch is the mark's
+function MinimalPopup.keepPlace(frame_w, frame_h, s, mirrored)
+    local x = mirrored and s.border or (frame_w - s.border - s.side)
+    local y = frame_h - s.border - s.gap - s.side
+    return {
+        sign = { x = x, y = y, w = s.side, h = s.side },
+        zone = { x = x - s.margin, y = y - s.margin, w = s.side + 2 * s.margin, h = s.side + 2 * s.margin },
+    }
 end
 
--- The mark: a plus until the answer is kept, a tick (white on black) once it is
-local function keepMark(kept, place)
-    local pad = place.bare and 0 or math.floor(place.side / 6)
-    local icon_side = place.side - 2 * pad - (place.bare and 0 or 2 * Size.border.thin)
-    return FrameContainer:new{
-        bordersize = place.bare and 0 or Size.border.thin,
-        radius = place.bare and 0 or Size.radius.default,
-        padding = pad,
-        margin = 0,
-        background = Blitbuffer.COLOR_WHITE,
-        invert = kept,
-        CenterContainer:new{
-            dimen = Geom:new{ w = icon_side, h = icon_side },
-            IconWidget:new{ icon = kept and "check" or "plus", width = icon_side, height = icon_side },
+-- The mark: a plus until the answer is kept, a tick once it is (the tick of
+-- KOReader's own menus). Signs of the interface font: only their strokes are
+-- drawn, over whatever the frame shows there
+local function keepMark(kept, side)
+    return CenterContainer:new{
+        dimen = Geom:new{ w = side, h = side },
+        TextWidget:new{
+            text = kept and "\u{2713}" or "+",
+            face = Font:getFace("cfont", kept and MinimalPopup.KEEP_FONT.tick or MinimalPopup.KEEP_FONT.plus),
+            bold = true,
         },
     }
 end
@@ -248,33 +230,19 @@ function MinimalPopup:init()
     -- instance: the switch for it is newer than some KOReader releases
     self.scroll_w.onTapScrollText = function() return false end
 
-    -- The keep mark, when the answer can be kept: its sizes, and for the
-    -- strip look a short row under the text that holds it
-    local look = MinimalPopup.KEEP_LOOKS[MinimalPopup.KEEP_LOOK] and MinimalPopup.KEEP_LOOK or "tab"
-    local sizes = {
-        side = Screen:scaleBySize(30), small = Screen:scaleBySize(11),
-        inset = inset, border = g.border, gap = Screen:scaleBySize(1),
-        rule = g.panel and Size.line.thick or 0,
-    }
-    local inner = self.scroll_w
-    if self.keep and look == "strip" then
-        self.keep_place = MinimalPopup.keepPlace(look, g.panel, 0, 0, sizes)
-        self.kept = self.keep.kept == true
-        self.keep_mark = keepMark(self.kept, self.keep_place)
-        self.keep_holder = WidgetContainer:new{
-            dimen = Geom:new{ w = sizes.side, h = sizes.side },
-            self.keep_mark,
-        }
-        inner = VerticalGroup:new{
-            align = "left",
-            self.scroll_w,
-            RightContainer:new{
-                dimen = Geom:new{ w = g.text_w, h = sizes.side + Size.padding.small },
-                self.keep_holder,
-            },
-        }
-    end
     local pad_bottom = MinimalPopup.footPadding(inset, blankUnder(self.scroll_w, self.text_h), Size.padding.small)
+    -- The keep mark's sizes, when the answer can be kept. Under a text that
+    -- scrolls the foot is as tall as the sign, so the scroll bar ends above it
+    local sign
+    if self.keep then
+        sign = {
+            side = Screen:scaleBySize(MinimalPopup.KEEP_SIDE), gap = Screen:scaleBySize(1),
+            border = g.border, margin = Screen:scaleBySize(MinimalPopup.KEEP_MARGIN),
+        }
+        if self:hasOverflow() then
+            pad_bottom = math.max(pad_bottom, sign.gap + sign.side)
+        end
+    end
     self.frame = FrameContainer:new{
         radius = not g.panel and Size.radius.window or nil,
         bordersize = g.border,
@@ -282,53 +250,43 @@ function MinimalPopup:init()
         padding_bottom = pad_bottom,
         margin = 0,
         background = Blitbuffer.COLOR_WHITE,
-        inner,
+        self.scroll_w,
     }
     local whole = Geom:new{ x = 0, y = 0, w = screen_w, h = screen_h }
-    local base = self.frame
-    if g.panel then
-        self.rule_h = Size.line.thick
-        base = VerticalGroup:new{
-            align = "left",
-            LineWidget:new{
-                dimen = Geom:new{ w = screen_w, h = self.rule_h },
-                background = Blitbuffer.COLOR_BLACK,
-            },
-            self.frame,
-        }
-    end
-    -- The tab and the corner sign are drawn over the frame, at their place
-    local body = base
-    self.out_top = 0
-    if self.keep and look ~= "strip" then
-        -- what the frame (and a panel's rule) measure: the text's area, the
-        -- inset around it, the foot's own padding, the border
-        local size = {
-            w = g.text_w + 2 * inset + 2 * g.border,
-            h = self.text_h + inset + pad_bottom + 2 * g.border + (self.rule_h or 0),
-        }
-        local place = MinimalPopup.keepPlace(look, g.panel, size.w, size.h, sizes, BD.mirroredUILayout() == true)
+    -- The mark is drawn over the frame's foot corner
+    local framed = self.frame
+    if sign then
+        -- by the frame's own measure (a content widget is not always exactly
+        -- as tall as the area it was asked to fill)
+        local size = self.frame:getSize()
+        local place = MinimalPopup.keepPlace(size.w, size.h, sign, BD.mirroredUILayout() == true)
         self.keep_place = place
-        self.out_top = place.top
         self.kept = self.keep.kept == true
-        self.keep_mark = keepMark(self.kept, place)
+        self.keep_mark = keepMark(self.kept, place.sign.w)
         self.keep_holder = WidgetContainer:new{
-            dimen = Geom:new{ w = place.side, h = place.side },
+            dimen = Geom:new{ w = place.sign.w, h = place.sign.h },
             self.keep_mark,
         }
-        base.overlap_offset = { 0, place.top }
-        self.keep_holder.overlap_offset = { place.x, place.top + place.y }
-        body = OverlapGroup:new{
+        self.keep_holder.overlap_offset = { place.sign.x, place.sign.y }
+        framed = OverlapGroup:new{
             allow_mirroring = false,
-            dimen = Geom:new{ w = size.w, h = place.top + size.h + place.bottom },
-            base,
+            dimen = Geom:new{ w = size.w, h = size.h },
+            self.frame,
             self.keep_holder,
         }
     end
     if g.panel then
+        self.rule_h = Size.line.thick
         self[1] = BottomContainer:new{
             dimen = whole:copy(),
-            body,
+            VerticalGroup:new{
+                align = "left",
+                LineWidget:new{
+                    dimen = Geom:new{ w = screen_w, h = self.rule_h },
+                    background = Blitbuffer.COLOR_BLACK,
+                },
+                framed,
+            },
         }
     else
         self.movable = MovableContainer:new{
@@ -336,7 +294,7 @@ function MinimalPopup:init()
             -- A hold is the text's first (a word to look up); one the text
             -- does not take is handed on to the box below, as before
             ignore_events = (self.on_select or self.keep) and { "hold", "hold_pan", "hold_release" } or nil,
-            body,
+            framed,
         }
         self[1] = WidgetContainer:new{
             align = "center",
@@ -354,13 +312,14 @@ function MinimalPopup:init()
             self.ges_events.Swipe = { GestureRange:new{ ges = "swipe", range = whole } }
         end
         if self.on_select or self.keep then
-            -- The content widget selects (these events reach it first, the
-            -- chat window's wiring); the release hands it this callback.
-            -- A hold on the keep mark is this popup's own
-            self.ges_events.HoldStartText = { GestureRange:new{ ges = "hold", range = whole } }
-            self.ges_events.HoldPanText = { GestureRange:new{ ges = "hold_pan", range = whole,
+            -- A hold is this popup's to hand out (onPopupHold): the keep
+            -- mark's when it starts on the mark, else the text's (the content
+            -- widget selects, the chat window's wiring; the release hands it
+            -- this callback)
+            self.ges_events.PopupHold = { GestureRange:new{ ges = "hold", range = whole } }
+            self.ges_events.PopupHoldPan = { GestureRange:new{ ges = "hold_pan", range = whole,
                 rate = Screen.low_pan_rate and 5.0 or 30.0 } }
-            self.ges_events.HoldReleaseText = {
+            self.ges_events.PopupHoldRelease = {
                 GestureRange:new{ ges = "hold_release", range = whole },
                 args = function(text, hold_duration)
                     if self.on_select then
@@ -418,17 +377,61 @@ function MinimalPopup:region()
     if self.movable then return self.movable.dimen end
     local d = self.frame.dimen
     if not d then return nil end
-    local above = (self.rule_h or 0) + (self.out_top or 0)
+    local above = self.rule_h or 0
     return Geom:new{ x = d.x, y = d.y - above, w = d.w, h = d.h + above }
 end
 
---- Whether a point is on the keep mark (the mark and a finger's margin around it)
+-- A rectangle of the frame (keepPlace's), where it was painted
+local function onScreen(frame, r)
+    local d = frame.dimen
+    if not (d and d.x and r) then return nil end
+    return Geom:new{ x = d.x + r.x, y = d.y + r.y, w = r.w, h = r.h }
+end
+
+--- Whether a point is on the keep mark (the sign and a finger's margin around it)
 function MinimalPopup:onKeepMark(pos)
-    local d = self.keep_mark and self.keep_mark.dimen
-    if not (d and pos) then return false end
-    local margin = Screen:scaleBySize(10)
-    return pos.x >= d.x - margin and pos.x <= d.x + d.w + margin
-        and pos.y >= d.y - margin and pos.y <= d.y + d.h + margin
+    local z = pos and self.keep_place and onScreen(self.frame, self.keep_place.zone)
+    if not z then return false end
+    return pos.x >= z.x and pos.x <= z.x + z.w and pos.y >= z.y and pos.y <= z.y + z.h
+end
+
+--- Where the mark's choices open, pure: the rectangle to hand KOReader as a
+--- window's anchor (MovableContainer puts a window's near edge on its anchor's,
+--- under the anchor where there is room, else over it). The choices hang from
+--- the popup's corner that holds the sign: their far edge on the popup's, under
+--- the popup, or over it when no room is left under, so nothing of the answer
+--- is covered while the reader picks what the note holds. A popup too tall for
+--- either gets them right at the sign.
+-- @param popup, sign rectangles on screen { x, y, w, h }
+-- @param menu_w, menu_h the choices' own size
+-- @return table { x, y, w, h }: as wide as the choices, so the window's near
+--   edge lands on x whichever way the interface runs
+function MinimalPopup.menuAnchor(popup, sign, menu_w, menu_h, screen_h, mirrored)
+    local span = sign
+    if popup.y + popup.h + menu_h <= screen_h or popup.y - menu_h >= 0 then span = popup end
+    return {
+        x = mirrored and popup.x or (popup.x + popup.w - menu_w),
+        y = span.y,
+        w = menu_w,
+        h = span.h,
+    }
+end
+
+--- KOReader's anchor for a window that belongs to the mark (its choices): a
+--- function, called with that window once its size is known (the chat
+--- window's picker hands it over). A new rectangle at every call
+--- (MovableContainer writes on the one it is given); `true` = under the
+--- anchor where there is room.
+function MinimalPopup:keepAnchor()
+    return function(dialog)
+        local sign = self.keep_place and onScreen(self.frame, self.keep_place.sign)
+        if not sign then return nil end
+        local popup = self:region()
+        local size = dialog and dialog.movable and dialog.movable.dimen
+        if not (popup and popup.x and size and size.w and size.h) then return sign, true end
+        return Geom:new(MinimalPopup.menuAnchor(popup, sign, size.w, size.h, Screen:getHeight(),
+            BD.mirroredUILayout() == true)), true
+    end
 end
 
 --- Show the mark as kept or not (its caller says which, after a save or a removal)
@@ -436,11 +439,12 @@ function MinimalPopup:setKept(kept)
     kept = kept == true
     if not self.keep_holder or self.kept == kept then return end
     self.kept = kept
-    local old = self.keep_mark
-    self.keep_mark = keepMark(kept, self.keep_place)
+    self.keep_mark = keepMark(kept, self.keep_place.sign.w)
     self.keep_holder[1] = self.keep_mark
+    -- the popup is drawn again (the sign has no ground of its own to cover
+    -- the old one), the screen refreshed where the sign is
     UIManager:setDirty(self, function()
-        return "ui", old.dimen
+        return "ui", onScreen(self.frame, self.keep_place.sign) or self:region()
     end)
 end
 
@@ -467,26 +471,46 @@ function MinimalPopup:onSwipe(_arg, ges)
     return false
 end
 
--- A hold the text did not take (on the frame's edge): the box's own
-function MinimalPopup:onHoldStartText(arg, ges)
-    if self.keep and self:onKeepMark(ges.pos) then
-        self.keep_held = true
+-- A hold, handed out. On the keep mark it is the mark's: its choices open at
+-- once, while the finger still rests there (the window they open in gets the
+-- release). Anywhere else it is the text's, under the names the content
+-- widget knows (it comes first, then the handlers below)
+local function toText(self, name, arg, ges)
+    return self:handleEvent(require("ui/event"):new(name, arg, ges))
+end
+
+function MinimalPopup:onPopupHold(arg, ges)
+    self.keep_held = self.keep ~= nil and self:onKeepMark(ges.pos)
+    if self.keep_held then
+        self.keep.menu(function(kept) self:setKept(kept) end, function() self:onClose() end, self:keepAnchor())
         return true
     end
+    return toText(self, "HoldStartText", arg, ges)
+end
+
+function MinimalPopup:onPopupHoldPan(arg, ges)
+    if self.keep_held then return true end
+    return toText(self, "HoldPanText", arg, ges)
+end
+
+function MinimalPopup:onPopupHoldRelease(arg, ges)
+    if self.keep_held then
+        self.keep_held = false
+        return true
+    end
+    return toText(self, "HoldReleaseText", arg, ges)
+end
+
+-- A hold the text did not take (on the frame's edge): the box's own
+function MinimalPopup:onHoldStartText(arg, ges)
     return self.movable and self.movable:onMovableHold(arg, ges) or false
 end
 
 function MinimalPopup:onHoldPanText(arg, ges)
-    if self.keep_held then return true end
     return self.movable and self.movable:onMovableHoldPan(arg, ges) or false
 end
 
 function MinimalPopup:onHoldReleaseText(arg, ges)
-    if self.keep_held then
-        self.keep_held = nil
-        self.keep.menu(function(kept) self:setKept(kept) end, function() self:onClose() end)
-        return true
-    end
     return self.movable and self.movable:onMovableHoldRelease(arg, ges) or false
 end
 
@@ -531,7 +555,7 @@ end
 --        popup its keep mark: a tap is that window's Save to Note or takes
 --        the answer back out, a hold its choices. kept: what an automatic
 --        save returned (the answer arrives kept). auto: the caller's switch
---        for saving this action's answers by themselves, a row under the
+--        for saving this action's answers automatically, a row under the
 --        hold's choices: { text = function() label, flip = function() -> on }.
 --        style: "box" (default) or "panel".
 --        only_if_fits: "When it fits" mode: build the popup, and if the whole
@@ -580,11 +604,12 @@ function MinimalPopup.showForResponse(opts)
             -- that window's Save to Note, on the popup's mark. `kept` = the
             -- save this answer is kept by, while it is
             local kept = opts.kept
-            local function save(set, pick, extra, close)
+            local function save(set, pick, extra, close, anchor)
                 viewer:saveToNote(pick, {
                     popup = true,
                     extra = extra,
                     before_edit = close,
+                    anchor = anchor,
                     on_saved = function(saved)
                         kept = saved
                         set(true)
@@ -598,11 +623,11 @@ function MinimalPopup.showForResponse(opts)
                     if viewer:dropNote(kept) then kept = nil end
                     set(kept ~= nil)
                 end,
-                menu = function(set, close)
+                menu = function(set, close, anchor)
                     local extra
                     if opts.auto then
                         -- a setting, under the double line: this action's
-                        -- answers saved by themselves from now on, this one too
+                        -- answers saved automatically from now on, this one too
                         extra = { { separator = true }, {
                             text = opts.auto.text(),
                             callback = function()
@@ -610,7 +635,7 @@ function MinimalPopup.showForResponse(opts)
                             end,
                         } }
                     end
-                    save(set, true, extra, close)
+                    save(set, true, extra, close, anchor)
                 end,
             }
         end

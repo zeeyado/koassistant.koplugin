@@ -258,8 +258,8 @@ function Constants.resolveMinimalPopupActions(saved)
     return set
 end
 
---- The actions whose answers are saved as a note by themselves (Highlight
---- Settings: Save Answers as Notes) as a lookup set. PURE. None unless the
+--- The actions whose answers are saved as a note automatically (Highlight
+--- Settings: Auto-save Answers as Notes) as a lookup set. PURE. None unless the
 --- reader ticked some: a note is never written on a book unasked.
 --- @param saved table|nil features.auto_note_actions (array of action ids)
 --- @return table set: { [action_id] = true }

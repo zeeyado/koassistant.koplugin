@@ -1299,9 +1299,70 @@ function ContextExtractor:getHighlights(options)
     return { formatted = "", count = 0, items = {} }
 end
 
+--- The book's record of the notes the plugin wrote on the reader's tap
+--- (koassistant/chat/highlight_note.lua), for formatAnnotations. nil when
+--- there is no book or its settings cannot be read: every note then goes as
+--- the reader's own, as before the record existed.
+function ContextExtractor.noteRecord(document_path, ui)
+    if not document_path then return nil end
+    local ok, ds = pcall(function()
+        return require("koassistant.storage.doc_settings").resolve(document_path, ui)
+    end)
+    return ok and ds or nil
+end
+
+-- What a saved answer is called in a request, by the kind of window it was
+-- saved from; any other kind is an answer of the action that wrote it
+local SAVED_ANSWER = {
+    translate = "Saved translation",
+    dictionary = "Saved dictionary answer",
+}
+
+--- A highlight's note as the lines a request carries (B756 c). The reader's
+--- own words are "[Note: ...]". An answer the plugin saved there is marked as
+--- a saved answer, piece by piece from the record, so a model does not take
+--- an AI's words for the reader's own thoughts; a piece is sent without the
+--- line that names its action (the mark says it). Words the reader wrote
+--- around the pieces stay notes, in the note's order. A note with no record,
+--- or whose pieces the reader has rewritten, is the reader's. Pure but for
+--- the record's read.
+-- @param annotation table { note, datetime, ... }
+-- @param record the book's settings object (noteRecord), nil = none
+-- @return table the lines, each one bracketed
+function ContextExtractor.noteLines(annotation, record)
+    local note = annotation.note
+    local parts
+    if record then
+        local ok, _state, found = pcall(require("koassistant.chat.highlight_note").recordOf, record, annotation)
+        if ok then parts = found end
+    end
+    if type(parts) ~= "table" or #parts == 0 then
+        return { "[Note: " .. note .. "]" }
+    end
+    local lines = {}
+    local function own(text)
+        text = text:gsub("^%s+", ""):gsub("%s+$", "")
+        if text ~= "" then lines[#lines + 1] = "[Note: " .. text .. "]" end
+    end
+    local at = 1
+    for _idx, part in ipairs(parts) do
+        own(note:sub(at, part.from - 1))
+        local label = SAVED_ANSWER[part.kind]
+        if not label then
+            label = part.action_name and ("Saved AI answer (" .. part.action_name .. ")") or "Saved AI answer"
+        end
+        local answer = part.lead and part.text:sub(part.lead + 1) or part.text
+        lines[#lines + 1] = "[" .. label .. ": " .. answer .. "]"
+        at = part.from + part.len
+    end
+    own(note:sub(at))
+    return lines
+end
+
 --- Format a raw annotations array into annotations (highlights with user notes).
 -- @param annotations table Array of annotation tables from ui.annotation or sidecar
--- @param options table { max_count = 100, include_chapter = true }
+-- @param options table { max_count = 100, include_chapter = true,
+--   record = the book's record of the notes the plugin wrote (noteRecord): every caller passes it }
 -- @return table { formatted = "...", count = number, items = array }
 function ContextExtractor.formatAnnotations(annotations, options)
     options = options or {}
@@ -1324,7 +1385,7 @@ function ContextExtractor.formatAnnotations(annotations, options)
             })
             local line = '- "' .. annotation.text .. '"'
             if annotation.note and annotation.note ~= "" then
-                line = line .. "\n  [Note: " .. annotation.note .. "]"
+                line = line .. "\n  " .. table.concat(ContextExtractor.noteLines(annotation, options.record), "\n  ")
             end
             if include_chapter and annotation.chapter then
                 line = line .. "\n  (Chapter: " .. annotation.chapter .. ")"
@@ -1345,16 +1406,20 @@ end
 -- @param options table { max_count = 100, include_chapter = true }
 -- @return table { formatted = "...", count = number, items = array }
 function ContextExtractor:getAnnotations(options)
+    local doc_path = self:getDocumentPath()
+    -- the caller's options and the book's record of the notes the plugin wrote
+    local with_record = { record = ContextExtractor.noteRecord(doc_path, self.ui) }
+    for k, v in pairs(options or {}) do with_record[k] = v end
+
     -- Open book: read from annotation module
     if self:isAvailable() and self.ui.annotation and self.ui.annotation.annotations then
-        return ContextExtractor.formatAnnotations(self.ui.annotation.annotations, options)
+        return ContextExtractor.formatAnnotations(self.ui.annotation.annotations, with_record)
     end
 
     -- Sidecar fallback: read from DocSettings on disk
-    local doc_path = self:getDocumentPath()
     if doc_path then
         local annotations = ContextExtractor.readSidecarAnnotations(doc_path)
-        return ContextExtractor.formatAnnotations(annotations, options)
+        return ContextExtractor.formatAnnotations(annotations, with_record)
     end
 
     return { formatted = "", count = 0, items = {} }

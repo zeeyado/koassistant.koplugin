@@ -6329,9 +6329,9 @@ function AskGPT:_toggleMinimalPopupAction(action_id)
   self:_toggleActionList("minimal_popup_actions", action_id)
 end
 
--- The actions whose answers are saved as a note by themselves (Highlight
--- Settings: Save Answers as Notes; features.auto_note_actions, none unless
--- ticked). The seam is the dialogs module's showResponseDialog.
+-- The actions whose answers are saved as a note automatically (Highlight
+-- Settings: Auto-save Answers as Notes; features.auto_note_actions, none
+-- unless ticked). The seam is the dialogs module's showResponseDialog.
 function AskGPT:buildAutoNoteActionsMenu()
   return self:_actionListMenu("auto_note_actions")
 end

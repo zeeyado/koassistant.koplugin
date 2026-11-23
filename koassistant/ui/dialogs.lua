@@ -3467,9 +3467,9 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             mp_f.enable_streaming = nil
         end
     end
-    -- An answer kept as a note by itself (Highlight Settings: Save Answers as
-    -- Notes): the actions the reader ticked, read now (the popup's own switch
-    -- writes the same list). Saved before the answer is shown, so the popup's
+    -- An answer kept as a note automatically (Highlight Settings: Auto-save
+    -- Answers as Notes): the actions the reader ticked, read now (the popup's
+    -- own switch writes the same list). Saved before the answer is shown, so the popup's
     -- mark arrives ticked; a cut-off answer is not kept unasked.
     local kept_note, auto_switch
     local note_action = mp_f and mp_f._note_action
@@ -3484,7 +3484,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
         auto_switch = {
             text = function()
                 return (autoOn() and "\u{25CF} " or "\u{25CB} ")
-                    .. T(_("Save every %1 answer"), history.prompt_action or note_action)
+                    .. T(_("Auto-save %1 answers"), history.prompt_action or note_action)
             end,
             flip = function()
                 plugin:_toggleAutoNoteAction(note_action)
@@ -4056,7 +4056,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
             end
         end
         -- The action whose answer this is, for the seam that keeps an answer
-        -- as a note by itself (Highlight Settings: Save Answers as Notes) and
+        -- as a note automatically (Highlight Settings: Auto-save Answers as Notes) and
         -- for the popup's own switch of it. A highlight action's first answer
         -- only; a page translation has no selection to keep it with.
         if prompt.id and prompt.context == "highlight"
@@ -4989,7 +4989,8 @@ if prune_book_text then
                     -- Annotations (with degradation)
                     if prompt.use_annotations and b_annotations then
                         local annotations = ContextExtractor.readSidecarAnnotations(book.file)
-                        local result = ContextExtractor.formatAnnotations(annotations)
+                        local result = ContextExtractor.formatAnnotations(annotations,
+                            { record = ContextExtractor.noteRecord(book.file, ui) })
                         if result.formatted ~= "" then
                             book._annotations = result.formatted
                             book._annotations_count = result.count

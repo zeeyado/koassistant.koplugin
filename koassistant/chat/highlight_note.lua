@@ -19,11 +19,12 @@ Which answers the plugin wrote is recorded per book (RECORD_KEY, in the book's
 plugin settings file), by the annotation's creation time: KOReader's own
 identity for an annotation, kept when a highlight is extended, while a field
 of ours on the item would be lost there (the item is rebuilt from a fixed list
-of fields). A line holds one PIECE per saved answer: its kind, when, where it
-sits in the note and its fingerprint. So a reader of the record can take the
-translation alone out of a note that holds more, and can tell a piece the
-reader has changed since, which is then the reader's (recordOf). Nothing is
-added to the note's text.
+of fields). A line holds one PIECE per saved answer: its kind, the action the
+answer came from, when, where it sits in the note and its fingerprint. So a
+reader of the record can take the translation alone out of a note that holds
+more, can say which action wrote a piece whatever the note's own text shows,
+and can tell a piece the reader has changed since, which is then the reader's
+(recordOf). Nothing is added to the note's text.
 ]]
 
 local logger = require("koassistant.core.logger")
@@ -31,7 +32,14 @@ local logger = require("koassistant.core.logger")
 local HighlightNote = {}
 
 --- The per-book record:
---- { [annotation.datetime] = { parts = { { kind, at, from, len, sum }, ... } } }
+--- { [annotation.datetime] = { parts = { { kind, action, action_name, lead, at, from, len, sum }, ... } } }
+--- `action` = the action's id where the request named one, `action_name` = its
+--- name as the reader saw it then (an id of the reader's own action can come to
+--- mean another one, a name is in the language of that day: the pair says both).
+--- `lead` = how many bytes of the piece stand before the answer (the line that
+--- names the action, in a note saved as Question + Response): the answer alone
+--- is the piece from there on. 0 = the piece is the answer; absent = the piece
+--- is questions and answers, or was saved before this field.
 HighlightNote.RECORD_KEY = "koassistant_written_notes"
 
 --- A fingerprint of a text (its length and an Adler sum): enough to tell a
@@ -123,8 +131,8 @@ local function intact(line, note)
         if type(part) == "table" and type(part.from) == "number" and type(part.len) == "number" then
             local text = note:sub(part.from, part.from + part.len - 1)
             if #text == part.len and HighlightNote.fingerprint(text) == part.sum then
-                out[#out + 1] = { kind = part.kind, at = part.at, from = part.from, len = part.len,
-                    sum = part.sum, text = text }
+                out[#out + 1] = { kind = part.kind, action = part.action, action_name = part.action_name,
+                    lead = part.lead, at = part.at, from = part.from, len = part.len, sum = part.sum, text = text }
             end
         end
     end
@@ -132,7 +140,12 @@ local function intact(line, note)
 end
 
 local function stored(part)
-    return { kind = part.kind, at = part.at, from = part.from, len = part.len, sum = part.sum }
+    return { kind = part.kind, action = part.action, action_name = part.action_name, lead = part.lead,
+        at = part.at, from = part.from, len = part.len, sum = part.sum }
+end
+
+local function name(value)
+    return type(value) == "string" and value ~= "" and value or nil
 end
 
 local function readRecord(ds)
@@ -142,9 +155,9 @@ local function readRecord(ds)
 end
 
 -- A piece of the record for the text just written at the end of the note.
--- `old` = the note the highlight had before. The lines of highlights that are
--- gone go with them.
-local function remember(ds, annotations, annotation, kind, old, text)
+-- `who` = the save's own opts (kind, action, action_name), `old` = the note the
+-- highlight had before. The lines of highlights that are gone go with them.
+local function remember(ds, annotations, annotation, who, old, text)
     if not (ds and annotation.datetime) then return end
     local all = readRecord(ds)
     local live = {}
@@ -159,7 +172,10 @@ local function remember(ds, annotations, annotation, kind, old, text)
         parts[#parts + 1] = stored(part)
     end
     parts[#parts + 1] = {
-        kind = kind,
+        kind = who.kind,
+        action = name(who.action),
+        action_name = name(who.action_name),
+        lead = type(who.lead) == "number" and who.lead >= 0 and who.lead < #text and who.lead or nil,
         at = os.time(),
         from = old and (#old + 3) or 1,
         len = #text,
@@ -192,7 +208,7 @@ end
 --   "mixed" (it holds the plugin's pieces and other words), "changed" (a line
 --   exists and no piece stands as written: the reader's now), nil (no line)
 -- @return table the plugin's pieces that stand as written, in the note's
---   order: { kind, at, from, len, text }
+--   order: { kind, action, action_name, lead, at, from, len, text }
 function HighlightNote.recordOf(ds, annotation)
     if not (ds and annotation and annotation.datetime) then return nil, {} end
     local line = readRecord(ds)[annotation.datetime]
@@ -220,7 +236,10 @@ end
 -- @param selection { pos0, pos1, text, sboxes, pboxes, ext, drawer, color } as captured at the selection; never written to
 -- @param text the note
 -- @param opts { extend = the passage as KOReader's Add note saves it (not for a looked-up word),
---               kind = "translate" | "dictionary" | "chat", store = the book's settings object (tests) }
+--               kind = "translate" | "dictionary" | "chat",
+--               action = the id of the action the answer came from, action_name = its name as shown,
+--               lead = how many bytes of `text` stand before the answer (all three optional),
+--               store = the book's settings object (tests) }
 -- @return table|nil { index, annotation, text = what was written, created = a highlight was made,
 --                     appended = it had a note, already = nothing to write }
 -- @return string|nil why not: "no_reader" | "no_selection" | "no_text" | "no_highlight"
@@ -263,7 +282,7 @@ function HighlightNote.save(ui, selection, text, opts)
     end
     redraw(ui)
 
-    local ok, err = pcall(remember, bookStore(ui, opts), ui.annotation.annotations, annotation, opts.kind, old, text)
+    local ok, err = pcall(remember, bookStore(ui, opts), ui.annotation.annotations, annotation, opts, old, text)
     if not ok then logger.warn("KOAssistant: the note was saved, its record was not:", err) end
     return { index = index, annotation = annotation, text = text, created = created, appended = old ~= nil, already = false }
 end

@@ -1756,19 +1756,19 @@ local SettingsSchema = {
                 },
                 {
                     -- One value, two doors: Translate's place on the list under
-                    -- Highlight Settings (Save Answers as Notes)
+                    -- Highlight Settings (Auto-save Answers as Notes)
                     id = "translate_auto_note",
                     type = "action",
                     text_func = function(plugin)
                         local f = plugin.settings:readSetting("features") or {}
                         if Constants.resolveAutoNoteActions(f.auto_note_actions).translate then
-                            return _("Save Translations as Notes: On")
+                            return _("Auto-save Translations as Notes: On")
                         end
-                        return _("Save Translations as Notes: Off")
+                        return _("Auto-save Translations as Notes: Off")
                     end,
                     callback = "toggleAutoNoteTranslate",
                     keep_menu_open = true,
-                    help_text = _("Save every translation of text you select by itself as a note on that text, with no tap. The same switch as Translate under Highlight Settings, Save Answers as Notes."),
+                    help_text = _("Every translation of text you select is saved automatically as a note on that text, with no tap. The same switch as Translate under Highlight Settings, Auto-save Answers as Notes."),
                     separator = true,
                 },
                 -- Original text visibility
@@ -1979,11 +1979,11 @@ local SettingsSchema = {
                         local f = plugin.settings:readSetting("features") or {}
                         local n = 0
                         for _k in pairs(Constants.resolveAutoNoteActions(f.auto_note_actions)) do n = n + 1 end
-                        if n == 0 then return _("Save Answers as Notes: Off") end
-                        return T(_("Save Answers as Notes: %1"), n)
+                        if n == 0 then return _("Auto-save Answers as Notes: Off") end
+                        return T(_("Auto-save Answers as Notes: %1"), n)
                     end,
                     callback = "buildAutoNoteActionsMenu",
-                    help_text = _("Answers of the ticked actions are saved by themselves as a note on the text you selected, the way Save to Note saves them, with no tap. None by default. In the Minimal Popup such an answer arrives with a tick; tap the tick to take that one back out."),
+                    help_text = _("Answers of the ticked actions are saved automatically as a note on the text you selected, the way Save to Note saves them, with no tap. None by default. In the Minimal Popup such an answer arrives with a tick; tap the tick to take that one back out."),
                 },
                 -- (Highlight-menu visibility toggles + actions manager live in
                 -- Menus & Buttons; behavior settings stay here)

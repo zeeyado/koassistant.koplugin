@@ -197,7 +197,7 @@ end
 
 --- Whether a chat is one answer with nothing the reader typed: an action run
 --- on a selection, its prompt a context message. Such a chat has no question
---- to put beside its answer (a note's Question + Response is then the answer).
+--- to put beside its answer: what was asked is the action (singleAnswerNote).
 --- Pure.
 -- @param data what fromHistory / fromSavedChat returned
 function Export.isSingleAnswer(data)
@@ -210,6 +210,34 @@ function Export.isSingleAnswer(data)
         end
     end
     return shown == 1 and last.role == "assistant"
+end
+
+--- A note's Question + Response for a chat that is one answer with nothing
+--- the reader typed (isSingleAnswer): one line that names the action, the
+--- answer under it ("Explain:", a line break, the answer). No model name and
+--- no heading (a note is read beside its passage, and is the reader's to keep
+--- short). The answer alone for a chat that has no action. Pure.
+---
+--- The line is plain words and a colon, NEVER the export's "[Action]" form:
+--- KOReader's own note window takes a note whose first character is "[", "#"
+--- or "*" for Markdown (ReaderHighlight:showHighlightNoteOrDialog), and its
+--- Markdown library draws "[Explain]" as a link with no address, the brackets
+--- gone and the word run into the answer's first line. A colon also reads
+--- right where a list or an export puts the note on one line.
+-- @param data what fromHistory / fromSavedChat returned
+-- @param action_name the action's name as the reader sees it (nil = none)
+-- @return string the note's text
+-- @return number how many bytes of it stand before the answer (0 = none)
+function Export.singleAnswerNote(data, action_name)
+    local answer = data and data.last_response or ""
+    if answer == "" or type(action_name) ~= "string" or not action_name:find("%S") then
+        return answer, 0
+    end
+    local line = action_name:gsub("^%s+", ""):gsub("%s+$", "")
+    -- a name that ends a sentence itself ("Why?") takes no colon
+    if not line:find("[%?!:%.]$") then line = line .. ":" end
+    line = line .. "\n"
+    return line .. answer, #line
 end
 
 --- Build export data from a MessageHistory object (live chats)
