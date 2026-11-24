@@ -109,6 +109,8 @@ Registry.SETTINGS_SUBKEYS = {
         "_dismissed_gesture_actions",                        -- top-level (see TOPLEVEL_SUBKEYS): the gesture defaults the reader removed (B581)
         "minimal_popup_actions",
         "auto_note_actions",        -- the actions whose answers are saved as a note automatically (none unless ticked; B722)
+        "anki_export_actions",      -- the actions whose saved answers go into a book's file for Anki (nil = the defaults; B722)
+        "anki_column_names",        -- that file's first three column names, "a, b, c" (nil = ID, Front, Back)
         "ollama_num_ctx",           -- ollama context-window cap (model menu row; nil = automatic sizing)
         "xray_default_categories",  -- global default for new X-Rays' category groups (presets v0.21)
         "xray_default_depth",       -- global default for new X-Rays' depth rung (light/standard/deep; nil = standard)

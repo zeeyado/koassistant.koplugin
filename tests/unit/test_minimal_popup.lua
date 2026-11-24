@@ -759,6 +759,170 @@ TestRunner:test("a hold anywhere else is the text's, then the box's, as before; 
     end)
 end)
 
+-- ── a hold on white is the box's ────────────────────────────────────────────
+TestRunner:test("whose a hold is: the box's wherever the finger lands on no text, the text's on a line of text", function()
+    local frame = { x = 100, y = 100, w = 600, h = 200 }
+    local text = { x = 125, y = 125, w = 550, h = 150 }
+    -- two lines: a full one, then a short last line; a paragraph of one line further down
+    local lines = {
+        { x0 = 0, y0 = 0, x1 = 550, y1 = 30 },
+        { x0 = 0, y0 = 30, x1 = 200, y1 = 60 },
+        { x0 = 0, y0 = 90, x1 = 320, y1 = 120 },
+    }
+    local function owner(x, y, known)
+        return MinimalPopup.holdOwner({ x = x, y = y }, frame, text, 20, known ~= false and lines or nil, 4)
+    end
+    TestRunner:assertEqual(owner(300, 140), "text", "on the first line")
+    TestRunner:assertEqual(owner(200, 170), "text", "on the short line")
+    TestRunner:assertEqual(owner(328, 170), "text", "a finger's width past its last word still counts")
+    TestRunner:assertEqual(owner(400, 170), "box", "the white after a short last line")
+    TestRunner:assertEqual(owner(300, 200), "box", "the white between two paragraphs")
+    TestRunner:assertEqual(owner(300, 260), "box", "the white under the last line")
+    TestRunner:assertEqual(owner(110, 180), "box", "the frame's own margin")
+    TestRunner:assertEqual(owner(690, 110), "box")
+    TestRunner:assertEqual(owner(90, 180), "box", "a strip just outside the border")
+    TestRunner:assertEqual(owner(400, 315), "box", "under the frame too")
+    TestRunner:assertEqual(owner(79, 180), nil, "beyond the strip: not the popup's")
+    TestRunner:assertEqual(owner(400, 321), nil)
+    -- a view whose lines are not known (Plain Text): its whole area is the text's, the edges still the box's
+    TestRunner:assertEqual(owner(400, 170, false), "text")
+    TestRunner:assertEqual(owner(300, 260, false), "text")
+    TestRunner:assertEqual(owner(110, 180, false), "box")
+    TestRunner:assertEqual(owner(90, 180, false), "box")
+end)
+
+TestRunner:test("a hold on white moves the box as far as the finger went; a hold on a line of text still selects", function()
+    withWidgets(function()
+        local calls = {}
+        MinimalPopup.showForResponse({ history = history("An answer."), viewer = keepingViewer(calls) })
+        local p = shown
+        painted(p)
+        -- the answer's text area and its one short line, as the page engine reports them
+        local reads = 0
+        p.scroll_w.htmlbox_widget.dimen = { x = 125, y = 125, w = 550, h = 150 }
+        p.scroll_w.htmlbox_widget.page_number = 1
+        p.scroll_w.htmlbox_widget.document = { openPage = function()
+            reads = reads + 1
+            return { getPageText = function() return { { x0 = 0, y0 = 0, x1 = 200, y1 = 30 } } end, close = function() end }
+        end }
+        local box = {}
+        p.movable.onMovableHold = function(_m, _arg, ges) box[#box + 1] = { "hold", ges.pos.x, ges.pos.y } return true end
+        p.movable.onMovableHoldPan = function(_m, _arg, ges) box[#box + 1] = { "pan", ges.pos.x, ges.pos.y } return true end
+        p.movable.onMovableHoldRelease = function(_m, _arg, ges) box[#box + 1] = { "release", ges.pos.x, ges.pos.y } return true end
+        local seen = {}
+        local handle = p.handleEvent
+        p.handleEvent = function(self, event)
+            seen[#seen + 1] = event.name
+            return handle(self, event)
+        end
+        -- on the white after the short line, dragged 40 right and 90 up
+        TestRunner:assertEqual(p:onPopupHold(nil, { pos = at(500, 140) }), true)
+        p:onPopupHoldPan(nil, { pos = at(520, 100) })
+        p:onPopupHoldRelease("the selection's callback", { pos = at(540, 50) })
+        TestRunner:assertEqual(#seen, 0, "nothing of it reaches the text: no word is marked")
+        TestRunner:assertEqual(#box, 3, "the box takes the hold, the drag and the release")
+        TestRunner:assertEqual(box[1][2] .. "," .. box[1][3], "500,140", "where the finger is")
+        TestRunner:assertEqual(box[3][2] .. "," .. box[3][3], "540,50")
+        -- in the strip outside the border: handed over as a hold ON the border, every point moved alike
+        box = {}
+        p:onPopupHold(nil, { pos = at(92, 180) })
+        p:onPopupHoldRelease(nil, { pos = at(92, 380) })
+        TestRunner:assertEqual(box[1][2] .. "," .. box[1][3], "101,180", "a hold KOReader's container takes as on it (past its edge)")
+        TestRunner:assertEqual(box[2][2] .. "," .. box[2][3], "101,380", "the same 200 down as the finger")
+        TestRunner:assertEqual(#seen, 0)
+        -- on the line of text: the text's, as before
+        box = {}
+        p:onPopupHold(nil, { pos = at(200, 140) })
+        p:onPopupHoldPan(nil, { pos = at(260, 140) })
+        p:onPopupHoldRelease("the selection's callback", { pos = at(260, 140) })
+        TestRunner:assertEqual(table.concat(seen, ","), "HoldStartText,HoldPanText,HoldReleaseText")
+        TestRunner:assertEqual(reads, 1, "the page's lines are read once")
+        TestRunner:assertEqual(#calls, 0, "and the keep mark's choices never opened")
+    end)
+end)
+
+-- KOReader's container as far as the popup's own switch asks it: where the box is, and how see-through
+local function standInBox(p, at)
+    local m = p.movable
+    -- (its rectangle as KOReader's geometry class gives it: copied and joined for the redraw)
+    m.dimen = setmetatable({ x = 100, y = 100, w = 600, h = 200 },
+        { __index = { copy = function(d) return d end, combine = function(d) return d end } })
+    m.offset = { x = at.x, y = at.y }
+    m.getMovedOffset = function(self) return { x = self.offset.x, y = self.offset.y } end
+    m.setMovedOffset = function(self, to) self.offset = { x = to.x, y = to.y } end
+    m.resets, m.releases = 0, 0
+    m.resetEventState = function(self) self.resets = self.resets + 1 end
+    m.onMovableHold = function() return true end
+    m.onMovableHoldRelease = function(self) self.releases = self.releases + 1 return true end
+    return m
+end
+
+TestRunner:test("a hold on the box lifted where it began: back to where the box first stood, and there see-through", function()
+    withWidgets(function()
+        MinimalPopup.showForResponse({ history = history("An answer."), viewer = keepingViewer({}) })
+        local p = shown
+        painted(p)
+        p.scroll_w.htmlbox_widget.dimen = { x = 125, y = 125, w = 550, h = 150 }
+        -- a box its selection placed: KOReader's container holds that place as an offset
+        p.home = { x = 0, y = -346 }
+        local m = standInBox(p, { x = 0, y = -176 })
+        local redrawn = 0
+        local real_dirty = rawget(UIManager, "setDirty")
+        UIManager.setDirty = function(_um, what) if what == "all" then redrawn = redrawn + 1 end end
+        local function lift(x, y)
+            p:onPopupHold(nil, { pos = at(x, y) })
+            return p:onPopupHoldRelease(nil, { pos = at(x + 2, y - 1) })
+        end
+        TestRunner:assertEqual(lift(110, 180), true)
+        TestRunner:assertEqual(m.offset.x .. "," .. m.offset.y, "0,-346", "moved earlier: back to where it first stood, not to the middle of the screen")
+        TestRunner:assertEqual(m.alpha, nil, "and still solid")
+        lift(110, 180)
+        TestRunner:assertEqual(m.alpha, MinimalPopup.SEE_THROUGH, "lifted again there: see-through")
+        TestRunner:assertEqual(m.offset.y, -346, "where it stands")
+        lift(110, 180)
+        TestRunner:assertEqual(m.alpha, nil, "and solid again")
+        TestRunner:assertEqual(m.releases, 0, "KOReader's own switch is never run: it would send the box to the screen's middle")
+        TestRunner:assertEqual(m.resets, 3, "its container is told each hold is over")
+        TestRunner:assertEqual(redrawn, 3, "and the screen under the box is drawn again each time")
+        -- a hold that travels is a move, KOReader's own
+        p:onPopupHold(nil, { pos = at(110, 180) })
+        p:onPopupHoldRelease(nil, { pos = at(110, 260) })
+        TestRunner:assertEqual(m.releases, 1)
+        UIManager.setDirty = real_dirty
+    end)
+end)
+
+TestRunner:test("a popup nothing is selected in (the X-Ray card's): a hold anywhere on it is the box's", function()
+    withWidgets(function()
+        local p = MinimalPopup:new{ content = htmlWidget(100), font_size = 20 }
+        TestRunner:assertTrue(p.on_select == nil and p.keep == nil, "no chat window behind it: nothing to select, nothing to keep")
+        painted(p)
+        local m = standInBox(p, { x = 0, y = 0 })
+        local holds = 0
+        m.onMovableHold = function() holds = holds + 1 return true end
+        local seen = {}
+        p.handleEvent = function(_self, event) seen[#seen + 1] = event.name return false end
+        TestRunner:assertEqual(p:onPopupHold(nil, { pos = at(400, 200) }), true, "in the middle of its text")
+        p:onPopupHoldRelease(nil, { pos = at(400, 300) })
+        TestRunner:assertEqual(holds, 1)
+        TestRunner:assertEqual(m.releases, 1, "dragged: moved")
+        TestRunner:assertEqual(#seen, 0, "nothing is handed to the text")
+    end)
+end)
+
+TestRunner:test("the panel does not move: a hold in it is the text's or nobody's", function()
+    withWidgets(function()
+        MinimalPopup.showForResponse({ history = history("An answer."), viewer = keepingViewer({}), style = "panel" })
+        local p = shown
+        TestRunner:assertEqual(p.movable, nil, "no box to move")
+        p.frame.dimen = { x = 0, y = 600, w = 1072, h = 200 }
+        local seen = {}
+        p.handleEvent = function(_self, event) seen[#seen + 1] = event.name return false end
+        p:onPopupHold(nil, { pos = at(5, 605) })
+        TestRunner:assertEqual(seen[1], "HoldStartText", "handed to the text as before")
+    end)
+end)
+
 -- ── a kept answer shown again (showForNote) ─────────────────────────────────
 -- The chat window the popup builds for a note, as a stand-in: what it was
 -- built with, and a drawing of `needs` pixels

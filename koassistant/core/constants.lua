@@ -258,6 +258,26 @@ function Constants.resolveMinimalPopupActions(saved)
     return set
 end
 
+--- The actions whose saved answers go into a book's file for Anki (Highlight
+--- Settings: Answers Exported for Anki; koassistant/chat/anki_export.lua): the
+--- short answers a card is made of. A long explanation or a whole chat kept as
+--- a note is no card unless the reader ticks its action.
+Constants.DEFAULT_ANKI_EXPORT_ACTIONS = {
+    "translate", "quick_define", "dictionary",
+}
+
+--- That list as a lookup set. PURE. nil = never customized, the defaults (read
+--- through, as the minimal popup's list is); an edited list is taken as it is,
+--- an empty one included.
+---@param saved table|nil features.anki_export_actions (array of action ids)
+---@return table set: { [action_id] = true }
+function Constants.resolveAnkiExportActions(saved)
+    local list = type(saved) == "table" and saved or Constants.DEFAULT_ANKI_EXPORT_ACTIONS
+    local set = {}
+    for _idx, id in ipairs(list) do set[id] = true end
+    return set
+end
+
 --- The actions whose answers are saved as a note automatically (Highlight
 --- Settings: Auto-save Answers as Notes) as a lookup set. PURE. None unless the
 --- reader ticked some: a note is never written on a book unasked.

@@ -1995,6 +1995,33 @@ local SettingsSchema = {
                     default = true,
                     help_text = _("A tap on a highlighted passage whose note is an answer KOAssistant saved shows that answer in the minimal popup again, beside the passage. It applies to the actions on the Minimal Popup list, while the popup is on. Tap the popup for KOReader's own note window (Edit note, Delete note, Highlight menu). Off: KOReader's note window opens at once."),
                 },
+                {
+                    -- Which saved answers go into a book's file for Anki
+                    -- (koassistant/chat/anki_export.lua; the row that writes
+                    -- the file is in the Book Hub's menu)
+                    id = "anki_export_actions",
+                    type = "submenu",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        local n = 0
+                        for _k in pairs(Constants.resolveAnkiExportActions(f.anki_export_actions)) do n = n + 1 end
+                        return T(_("Answers Exported for Anki: %1"), n)
+                    end,
+                    callback = "buildAnkiExportActionsMenu",
+                    help_text = _("A book's saved answers can be written as a file that Anki imports: open the book's Book Hub, tap the menu icon, then Export saved answers for Anki. Each highlight whose note holds a saved answer of a ticked action becomes one row: the passage, and the note as it reads. Translate, Quick Define and Dictionary by default. The whole file is written at every export, and Anki adds what is new."),
+                },
+                {
+                    id = "anki_column_names",
+                    type = "action",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        return T(_("Anki Column Names: %1"),
+                            require("koassistant.chat.anki_export").columnNamesText(f.anki_column_names))
+                    end,
+                    callback = "showAnkiColumnNames",
+                    keep_menu_open = true,
+                    help_text = _("The names of the file's first three columns: the highlight's id, the passage, the note. Anki fills a note type's fields from the columns of the same name, so Front and Back fill Anki's own note types with no mapping. With a note type of your own, type its field names here."),
+                },
                 -- (Highlight-menu visibility toggles + actions manager live in
                 -- Menus & Buttons; behavior settings stay here)
             },

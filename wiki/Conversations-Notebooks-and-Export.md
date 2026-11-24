@@ -24,6 +24,29 @@ The document view lists, in order: a **Starred** folder with every starred chat 
 
 **Where files go**: **Settings → Chat & Export Settings → Save Location**: the **KOAssistant exports folder** (the default, `koassistant_exports/` under KOReader's data folder), a **Custom folder** (the folder picker opens when you pick it), or **Ask every time**. In the exports or custom folder, files are sorted into `book_chats/`, `general_chats/` and `library_chats/`. The **Save book chats alongside books** row (off by default) puts book chats in a `chats/` folder next to the book instead; general and library chats always use the central folder. File names read `[book title]_[chat title]_[YYYYMMDD_HHMMSS].md` (`.txt` in Plain Text), spaces turned into underscores: the book title cut to about 30 characters (left out next to the book), the chat title cut to about 25, and a time. From Chat History the chat title is the saved chat's title (yours if you renamed it) and the time is the chat's last save; from the chat window it is the action's name (none for a typed question) and the time the chat started (its last save for a chat reopened from Chat History).
 
+## Export saved answers for Anki
+
+The answers you saved as notes in a book ([Save to Note](Contexts-and-Chat#save-to-note), the Minimal Popup's **+**, or saved automatically) can be written as a text file that [Anki](https://apps.ankiweb.net) imports, one card per highlight: the passage on one side, its note on the other. Nothing is sent anywhere and no AI request is made.
+
+**To export:** open the book's [Book Hub](Book-Settings-and-Book-Hub#the-book-hub), tap the ☰ menu, then **Export saved answers for Anki**. A notice says how many answers were exported and where the file is. It lands in an `anki/` folder of your export folder (the Save Location above; with **Ask every time** you pick the folder), named after the book.
+
+**In Anki:** **File → Import**, pick the file, choose your note type and deck. The file says by itself that it is tab-separated and holds HTML, and which column is the tags.
+
+**What a row holds:**
+
+| Column | Holds |
+|---|---|
+| **ID** | When the highlight was made. It never changes, so the same highlight is the same row at every export |
+| **Front** | The highlighted passage |
+| **Back** | The note as it reads now: the saved answer, with anything you added or corrected. A definition's bold words and lists stay formatted |
+| **Book**, **Chapter**, **Page** | Where the highlight is |
+| **Kind** | The action that made the answer (Translate, Quick Define, …) |
+| **Tags** | `KOAssistant`, the action, and the book's title |
+
+- **Which answers:** those saved by Translate, Quick Define and Dictionary, unless you change the list under **Settings → Highlight Settings → Answers Exported for Anki**. A long explanation kept as a note is left out until you tick its action; ticked, it is exported the next time. Notes you wrote yourself on a highlight with no saved answer are not exported (KOReader's own **Export highlights** has them).
+- **Exporting again:** every export writes the whole file again, so export whenever you like and import the same file. Anki recognises the notes it already has: in its import window, **Existing notes** set to **Preserve** adds only the new ones and leaves what you changed in Anki alone, **Update** also brings in notes you corrected in KOReader.
+- **Your own note type:** Anki fills a note type's fields from the columns of the same name, so **Front** and **Back** fill Anki's stock note types with no mapping, and the other columns are simply left out there. If your note type has other field names, type them under **Settings → Highlight Settings → Anki Column Names** (three names: the id, the passage, the note) and they fill by themselves too. A note type whose first field is an id (a number or a time of its own) gets the **ID** column there, and the same words highlighted in two places stay two notes.
+
 ## Notebooks
 
 A notebook is one persistent Markdown file per book for the AI insights, notes and observations you want to keep, as opposed to chat history, which keeps whole conversations. Custom actions can read it with the `{notebook}` placeholder ([Template Variables](Template-Variables)), and **→ Chat** in the notebook's window ("Chat about this notebook") tells the AI the notebook is your own notes. Both follow the notebook's value: Ask by default (the chat asks the first time, and **Allow for this book** keeps your answer), **Settings → Privacy & Data → Notebook** for all books, a trusted provider, or the book's own value ([Privacy and Data](Privacy-and-Data)).

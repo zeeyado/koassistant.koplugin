@@ -16,6 +16,8 @@ local Gen = {}
 -- Owner page per row or submenu id. A row without an entry inherits its
 -- nearest ancestor's; the fallback is the Settings-Reference page itself.
 Gen.OWNERS = {
+    anki_export_actions = "Conversations-Notebooks-and-Export",
+    anki_column_names = "Conversations-Notebooks-and-Export",
     gestures_screen = "Setup-Gestures-and-Panels",
     setup_wizard = "Setup-Gestures-and-Panels",
     about = "Backups-and-Updates",
@@ -127,6 +129,8 @@ Gen.DYNAMIC_LABELS = {
     minimal_popup_actions = "Actions Using Minimal Popup: …",
     highlight_bypass_action = "Bypass Action: …",
     auto_note_actions = "Auto-save Answers as Notes: …",
+    anki_export_actions = "Answers Exported for Anki: …",
+    anki_column_names = "Anki Column Names: ID, Front, Back",
     translate_auto_note = "Auto-save Translations as Notes: …",
     manage_behaviors = "Manage Behaviors (N)",
     default_domain_research = "Default Domain & Research (…)",

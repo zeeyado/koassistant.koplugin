@@ -6345,6 +6345,76 @@ function AskGPT:_toggleAutoNoteAction(action_id)
   self:_toggleActionList("auto_note_actions", action_id)
 end
 
+-- The actions whose saved answers go into a book's file for Anki (Highlight
+-- Settings: Answers Exported for Anki; features.anki_export_actions, nil =
+-- Constants.DEFAULT_ANKI_EXPORT_ACTIONS; koassistant/chat/anki_export.lua).
+function AskGPT:buildAnkiExportActionsMenu()
+  return self:_actionListMenu("anki_export_actions")
+end
+
+-- The names of that file's first three columns (features.anki_column_names,
+-- nil = ID, Front, Back): a reader's own note type fills from the columns
+-- named after its fields. A box with the three names; names the file cannot
+-- carry are refused in the box, which stays open.
+function AskGPT:showAnkiColumnNames(touchmenu_instance)
+  local AnkiExport = require("koassistant.chat.anki_export")
+  local InputDialog = require("ui/widget/inputdialog")
+  local self_ref = self
+  local f = self.settings:readSetting("features") or {}
+  local function store(value)
+    local ff = self_ref.settings:readSetting("features") or {}
+    ff.anki_column_names = value
+    self_ref.settings:saveSetting("features", ff)
+    self_ref.settings:flush()
+    self_ref:updateConfigFromSettings()
+    if touchmenu_instance then touchmenu_instance:updateItems() end
+  end
+  local dialog
+  dialog = InputDialog:new{
+    title = _("Anki Column Names"),
+    description = _("Three names, separated by commas: the id, the passage, the note. Use the names of your own note type's fields and Anki fills them with no mapping."),
+    input = AnkiExport.columnNamesText(f.anki_column_names),
+    buttons = {{
+      {
+        text = _("Cancel"),
+        id = "close",
+        callback = function() UIManager:close(dialog) end,
+      },
+      {
+        text = _("Default"),
+        callback = function()
+          UIManager:close(dialog)
+          store(nil)
+        end,
+      },
+      {
+        text = _("Save"),
+        is_enter_default = true,
+        callback = function()
+          local own, why = AnkiExport.parseColumnNames(dialog:getInputText())
+          if not own then
+            local reasons = {
+              count = _("Three names are needed, separated by commas."),
+              twice = _("Each column needs a name of its own. Book, Chapter, Page, Kind and Tags are taken."),
+            }
+            UIManager:show(InfoMessage:new{
+              text = reasons[why] or _("A name cannot be empty or hold a quotation mark."),
+              timeout = 4,
+            })
+            return
+          end
+          UIManager:close(dialog)
+          local text = table.concat(own, ", ")
+          -- the defaults are stored as "nothing set"
+          if text == AnkiExport.columnNamesText(nil) then store(nil) else store(text) end
+        end,
+      },
+    }},
+  }
+  UIManager:show(dialog)
+  dialog:onShowKeyboard()
+end
+
 -- Translate Settings' door to the same list: Translate's own place on it
 function AskGPT:toggleAutoNoteTranslate(touchmenu_instance)
   self:_toggleAutoNoteAction("translate")
@@ -6423,12 +6493,14 @@ function AskGPT:_showKeptNote(hl, index)
   })
 end
 
--- A list of highlight actions the reader ticks, as a set: the two such lists
--- share this reader, the picker and the writer below
+-- A list of highlight actions the reader ticks, as a set: the three such
+-- lists share this reader, the picker and the writer below
 function AskGPT:_actionListSet(key)
   local f = self.settings:readSetting("features") or {}
   if key == "minimal_popup_actions" then
     return Constants.resolveMinimalPopupActions(f[key])
+  elseif key == "anki_export_actions" then
+    return Constants.resolveAnkiExportActions(f[key])
   end
   return Constants.resolveAutoNoteActions(f[key])
 end

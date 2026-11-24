@@ -304,6 +304,83 @@ if S.check(r.popup ~= nil, "a popup to hold a word in") then
     end
 end
 done(r)
+
+-- 7b. A hold on white is the box's: it moves by a hold and a drag, and every
+-- selection stays (the maintainer, 2026-11-24: "moving the minimal popup is
+-- not very easy, it ends up selecting text instead ... a long press on the
+-- white part does not select nearest text and instead moves")
+looked = {}
+local function frameAt() local f = r.popup.frame.dimen return { x = f.x, y = f.y, w = f.w, h = f.h } end
+local function hold(x, y, dx, dy)
+    gesture("hold", x, y)
+    if dx ~= 0 or dy ~= 0 then gesture("hold_pan", x + dx, y + dy) end
+    gesture("hold_release", x + dx, y + dy)
+    UIManager:forceRePaint()
+end
+r = ask(SHORT, { ui = lookup_ui })
+if S.check(r.popup ~= nil, "a popup to move") then
+    local box = r.popup.scroll_w.htmlbox_widget
+    local first = frameAt()
+    local _wx, wy = wordAt(r.popup, "ledger")
+    -- the white after the first line (it ends long before the text area's right edge)
+    local white_x = box.dimen.x + box.dimen.w - 20
+    local lines = r.popup:textLines()
+    S.check(type(lines) == "table" and #lines >= 2, "the page's lines are read from the page engine (" .. tostring(lines and #lines) .. ")")
+    local owner = MinimalPopup.holdOwner({ x = white_x, y = wy }, first, box.dimen,
+        Screen:scaleBySize(MinimalPopup.GRAB), lines, Screen:scaleBySize(MinimalPopup.LINE_SLACK))
+    if S.check(owner == "box", "the point after the short first line is white (" .. tostring(owner) .. ")") then
+        hold(white_x, wy, 0, 150)
+        local now = frameAt()
+        S.check(now.x == first.x and now.y == first.y + 150, ("a hold on white, dragged 150 down: the box went %d,%d"):format(now.x - first.x, now.y - first.y))
+        S.check(box.highlight_rects == nil and #looked == 0 and isUp(r), "no word is marked, nothing is looked up, the popup stays")
+        -- the word is still the text's, where the box now stands
+        local x2, y2 = wordAt(r.popup, "ledger")
+        hold(x2, y2, 0, 0)
+        S.check(looked[1] == "ledger", "a held word is still looked up after the move (" .. tostring(looked[1]) .. ")")
+        S.check(frameAt().y == now.y, "and the box stays where it is")
+        -- the strip just outside the border: the border is the handle
+        local strip = Screen:scaleBySize(MinimalPopup.GRAB)
+        hold(now.x + math.floor(now.w / 2), now.y - math.floor(strip / 2), 0, -60)
+        local up = frameAt()
+        S.check(up.y == now.y - 60 and up.x == now.x, ("a hold just above the border, dragged 60 up: the box went %d,%d"):format(up.x - now.x, up.y - now.y))
+        -- beyond the strip the hold is not the popup's
+        hold(up.x + math.floor(up.w / 2), up.y - strip - 30, 0, -40)
+        S.check(frameAt().y == up.y and isUp(r), "a hold well outside the box moves nothing")
+        -- lifted where it began: KOReader's own switch (back to the first place, then see-through)
+        local margin_x, margin_y = up.x + 4, up.y + math.floor(up.h / 2)
+        hold(margin_x, margin_y, 0, 0)
+        local back = frameAt()
+        S.check(back.x == first.x and back.y == first.y, "a hold lifted in place puts the box back where it first stood")
+        hold(first.x + 4, first.y + math.floor(first.h / 2), 0, 0)
+        S.check(r.popup.movable.alpha ~= nil, "and once more there makes it see-through, as KOReader's windows do")
+        hold(first.x + 4, first.y + math.floor(first.h / 2), 0, 0)
+        S.check(r.popup.movable.alpha == nil, "and solid again")
+        S.check(#looked == 1 and r.expanded == 0 and r.closed == 0, "none of it selected, opened or closed anything")
+    end
+end
+done(r)
+-- A box its selection placed stands at an offset of KOReader's container from
+-- the start, and KOReader's own switch for a hold lifted in place goes to
+-- offset zero: the middle of the screen. The popup's own goes back to the
+-- selection, and turns see-through there.
+r = ask(SHORT, { ui = lookup_ui, boxes = { { x = 100, y = math.floor(sh * 0.2), w = 120, h = 30 } } })
+if S.check(r.popup ~= nil, "a popup placed by its selection") then
+    local first = frameAt()
+    local centred = math.floor((sh - first.h) / 2)
+    S.check(math.abs(first.y - centred) > 100, ("it stands by the selection (%d), not in the screen's middle (%d)"):format(first.y, centred))
+    local mx = first.x + 4
+    hold(mx, first.y + math.floor(first.h / 2), 0, 300)
+    local moved = frameAt()
+    S.check(moved.y == first.y + 300, "a hold on its margin, dragged 300 down, moves it 300 down (" .. (moved.y - first.y) .. ")")
+    hold(mx, moved.y + math.floor(moved.h / 2), 0, 0)
+    local back = frameAt()
+    S.check(back.x == first.x and back.y == first.y, ("lifted in place: back by the selection (%d), not the screen's middle"):format(back.y))
+    hold(mx, first.y + math.floor(first.h / 2), 0, 0)
+    S.check(r.popup.movable.alpha ~= nil and frameAt().y == first.y, "lifted in place there: see-through, where it stands")
+    hold(mx, first.y + math.floor(first.h / 2), 0, 0)
+    S.check(r.popup.movable.alpha == nil and frameAt().y == first.y, "and solid again")
+end
+done(r)
 -- the Plain Text view's widget selects too
 looked = {}
 r = ask(long(), { ui = lookup_ui, features = { render_markdown = false } })

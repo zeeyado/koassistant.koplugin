@@ -362,6 +362,53 @@ local function exportAllArtifacts(ctx)
     })
 end
 
+--- The book's saved answers as a file for Anki (koassistant/chat/anki_export.lua):
+--- written whole at every export into the export folder's "anki" folder (the
+--- folder asked for when the export setting says Ask every time), then a
+--- notice with the file's place, or with why there is none.
+-- @param ctx table { plugin, ui, file, title } (the page's own context)
+function BookPage.exportForAnki(ctx)
+    local AnkiExport = require("koassistant.chat.anki_export")
+    local Export = require("koassistant.chat.export")
+    local InfoMessage = require("ui/widget/infomessage")
+    local features = ctx.plugin.settings and ctx.plugin.settings.data
+        and ctx.plugin.settings.data.features or {}
+    local function write(dir)
+        local done, why = AnkiExport.forBook({
+            file = ctx.file, ui = ctx.ui, features = features, title = ctx.title, dir = dir,
+        })
+        if done then
+            UIManager:show(InfoMessage:new{
+                text = T(_("Saved answers exported for Anki: %1\n\n%2\n\nIn Anki, use File > Import."),
+                    done.count, done.path),
+            })
+        elseif why == "none" then
+            UIManager:show(InfoMessage:new{
+                text = _("This book has no saved answers to export.\n\nAn answer is exported when it was saved as a highlight's note by an action ticked under Settings → Highlight Settings → Answers Exported for Anki."),
+            })
+        else
+            UIManager:show(InfoMessage:new{
+                text = T(_("The file for Anki could not be written:\n%1"), tostring(why)),
+            })
+        end
+    end
+    local dir, err = Export.getDirectory(features, ctx.file, "anki")
+    if dir then return write(dir) end
+    if err then
+        UIManager:show(InfoMessage:new{ text = T(_("The file for Anki could not be written:\n%1"), err) })
+        return
+    end
+    -- Save Location: Ask every time
+    UIManager:show(require("ui/widget/pathchooser"):new{
+        title = _("Select export folder"),
+        path = require("datastorage"):getDataDir(),
+        show_hidden = false,
+        select_directory = true,
+        select_file = false,
+        onConfirm = write,
+    })
+end
+
 --- Delete-all confirm (A4 hamburger). ActionCache.clearAll takes the X-Ray's
 --- checkpoint ring and version ladder with it by construction; chats,
 --- notebook, pinned items and generated images live in other stores.
@@ -415,6 +462,13 @@ local function showHamburger(ctx)
                 callback = function()
                     UIManager:close(dialog)
                     exportAllArtifacts(ctx)
+                end,
+            }},
+            {{
+                text = _("Export saved answers for Anki"),
+                callback = function()
+                    UIManager:close(dialog)
+                    BookPage.exportForAnki(ctx)
                 end,
             }},
             {{

@@ -9,6 +9,15 @@ nothing more that way). A word or a passage held in the text is its caller's
 (on_select): for an answer, what the chat window does with one (a word is
 looked up, a passage gets the selection menu).
 
+The box moves as KOReader's own windows do, by a hold and a drag, and a hold
+is the box's wherever it lands on no text (holdOwner): on the frame's margin,
+in a strip just outside its border, on the white inside the text's area. A
+hold on a line of text is the text's, so every selection stays. Lifted where
+it began, a hold on the box puts it back where it first stood, and there it
+turns the box see-through, or solid again (onBoxLifted: KOReader's own switch
+for its windows, which would send a box placed by a selection to the middle
+of the screen first).
+
 The text sits as far from the frame's top and bottom as from its sides: the
 content starts at the top of its area (no margin of its own above the first
 line, see ChatGPTViewer:answerWidget), and under a text that fits the frame
@@ -98,6 +107,51 @@ MinimalPopup.STYLES = { box = true, panel = true }
 MinimalPopup.KEEP_SIDE = 22
 MinimalPopup.KEEP_MARGIN = 14
 MinimalPopup.KEEP_FONT = { plus = 28, tick = 22 }
+
+-- A hold on the box (KOReader's screen units): how far outside the frame's
+-- border a hold still takes the box (with the frame's own margin inside it,
+-- the border is a handle about 5 mm wide, and the box looks the same), and
+-- how near a line of text a finger still counts as on it
+MinimalPopup.GRAB = 15
+MinimalPopup.LINE_SLACK = 4
+-- How much of the page shows through a box made see-through (KOReader's own
+-- value for its windows)
+MinimalPopup.SEE_THROUGH = 0.7
+
+--- Whose a hold is, pure: "box" (the popup itself: dragged it moves, lifted
+--- where it began it is KOReader's own switch, see-through and back) or
+--- "text" (the answer's: a word to look up, a passage to select). The box's
+--- wherever the finger lands on no text: on the frame's margin, in a strip
+--- just outside its border, and on the white inside the text area (after a
+--- short line, between paragraphs, under the last line) where the lines'
+--- boxes are known. Every selection stays as it was: a hold on a line of
+--- text is the text's.
+-- @param pos {x, y} a point of the screen
+-- @param frame {x, y, w, h} the frame on screen
+-- @param text {x, y, w, h} the text's area on screen
+-- @param strip number how far outside the frame still counts
+-- @param lines table|nil the lines of text in that area, { x0, y0, x1, y1 }
+--   each in the area's own coordinates; nil = not known, and every point of
+--   the area is the text's
+-- @param slack number how near a line still counts as on it
+-- @return "box" | "text" | nil (neither: beyond the strip)
+function MinimalPopup.holdOwner(pos, frame, text, strip, lines, slack)
+    if pos.x < frame.x - strip or pos.x >= frame.x + frame.w + strip
+            or pos.y < frame.y - strip or pos.y >= frame.y + frame.h + strip then
+        return nil
+    end
+    local x, y = pos.x - text.x, pos.y - text.y
+    if x < 0 or x >= text.w or y < 0 or y >= text.h then return "box" end
+    if type(lines) ~= "table" then return "text" end
+    for _idx, line in ipairs(lines) do
+        if type(line) == "table" and line.x0 and line.y0 and line.x1 and line.y1
+                and y >= line.y0 - slack and y < line.y1 + slack
+                and x >= line.x0 - slack and x < line.x1 + slack then
+            return "text"
+        end
+    end
+    return "box"
+end
 
 --- Where the text sits, pure. The box is the chat window's rectangle: its
 --- content width and its text inset, so the same text wraps the same way in
@@ -292,9 +346,9 @@ function MinimalPopup:init()
     else
         self.movable = MovableContainer:new{
             anchor = self:buildAnchor(),
-            -- A hold is the text's first (a word to look up); one the text
-            -- does not take is handed on to the box below, as before
-            ignore_events = (self.on_select or self.keep) and { "hold", "hold_pan", "hold_release" } or nil,
+            -- A hold is this popup's to hand out (onPopupHold): the text's
+            -- where it lands on text, else the box's
+            ignore_events = { "hold", "hold_pan", "hold_release" },
             framed,
         }
         self[1] = WidgetContainer:new{
@@ -312,11 +366,11 @@ function MinimalPopup:init()
             -- that starts on the text is the content's (it scrolls)
             self.ges_events.Swipe = { GestureRange:new{ ges = "swipe", range = whole } }
         end
-        if self.on_select or self.keep then
+        if self.on_select or self.keep or self.movable then
             -- A hold is this popup's to hand out (onPopupHold): the keep
-            -- mark's when it starts on the mark, else the text's (the content
-            -- widget selects, the chat window's wiring; the release hands it
-            -- this callback)
+            -- mark's when it starts on the mark, the box's where it lands on
+            -- no text, else the text's (the content widget selects, the chat
+            -- window's wiring; the release hands it this callback)
             self.ges_events.PopupHold = { GestureRange:new{ ges = "hold", range = whole } }
             self.ges_events.PopupHoldPan = { GestureRange:new{ ges = "hold_pan", range = whole,
                 rate = Screen.low_pan_rate and 5.0 or 30.0 } }
@@ -480,17 +534,112 @@ local function toText(self, name, arg, ges)
     return self:handleEvent(require("ui/event"):new(name, arg, ges))
 end
 
+-- The lines of text on the page the answer shows, as boxes in the text
+-- area's own coordinates: what tells a hold on text from a hold on white.
+-- Read once a page from the page engine (KOReader's own text widget reads the
+-- same boxes for a selection). nil in the Plain Text view, whose widget has
+-- none to give: every point of its area is then the text's.
+function MinimalPopup:textLines()
+    local inner = self.scroll_w and self.scroll_w.htmlbox_widget
+    if not (inner and inner.document and inner.page_number) then return nil end
+    self.lines_of = self.lines_of or {}
+    local lines = self.lines_of[inner.page_number]
+    if lines == nil then
+        local ok, got = pcall(function()
+            local page = inner.document:openPage(inner.page_number)
+            local boxes = page:getPageText()
+            page:close()
+            return boxes
+        end)
+        lines = ok and type(got) == "table" and got or false
+        self.lines_of[inner.page_number] = lines
+    end
+    return lines or nil
+end
+
+-- A gesture as the box is handed it: the finger's place moved by `by`. A hold
+-- that began in the strip outside the border is handed over as one that
+-- began on the border (KOReader's movable container takes a hold that starts
+-- on it), and every later point moves the same way, so the box travels
+-- exactly as far as the finger did.
+local function shifted(ges, by)
+    local copy = {}
+    for k, v in pairs(ges) do copy[k] = v end
+    copy.pos = Geom:new{ x = ges.pos.x + by.x, y = ges.pos.y + by.y, w = 0, h = 0 }
+    return copy
+end
+
+-- Where the box first stood (the place its selection gave it is an offset
+-- of KOReader's container, set at its first paint): what a hold lifted in
+-- place goes back to
+function MinimalPopup:paintTo(bb, x, y)
+    InputContainer.paintTo(self, bb, x, y)
+    if self.movable and not self.home then
+        local at = self.movable:getMovedOffset()
+        self.home = { x = at.x, y = at.y }
+    end
+end
+
+--- A hold on the box lifted where it began: the box goes back to where it
+--- first stood; there, it turns see-through, and solid again at the next
+function MinimalPopup:onBoxLifted()
+    local movable = self.movable
+    local before = movable.dimen and movable.dimen:copy()
+    local at, home = movable:getMovedOffset(), self.home
+    if home and (at.x ~= home.x or at.y ~= home.y) then
+        movable:setMovedOffset(Geom:new{ x = home.x, y = home.y })
+    elseif movable.alpha == nil then
+        movable.alpha = MinimalPopup.SEE_THROUGH
+    else
+        movable.alpha = nil
+    end
+    -- everything between the old place and the new is drawn again, as
+    -- KOReader's container does after a move
+    UIManager:setDirty("all", function()
+        local now = movable.dimen
+        return "ui", before and now and before:combine(now) or now
+    end)
+    return true
+end
+
 function MinimalPopup:onPopupHold(arg, ges)
     self.keep_held = self.keep ~= nil and self:onKeepMark(ges.pos)
     if self.keep_held then
         self.keep.menu(function(kept) self:setKept(kept) end, function() self:onClose() end, self:keepAnchor())
         return true
     end
+    self.box_held = nil
+    local frame = self.movable and self.frame.dimen
+    if frame then
+        local strip = Screen:scaleBySize(MinimalPopup.GRAB)
+        local owner
+        if self.on_select or self.keep then
+            local inner = self.scroll_w.htmlbox_widget or self.scroll_w.text_widget
+            local area = inner and inner.dimen and inner.dimen.x and inner.dimen or self.scroll_w.dimen
+            owner = area and MinimalPopup.holdOwner(ges.pos, frame, area, strip, self:textLines(),
+                Screen:scaleBySize(MinimalPopup.LINE_SLACK))
+        else
+            -- a popup with no chat window behind it (the X-Ray card's):
+            -- nothing in it takes a selection, the whole box is the box's
+            owner = MinimalPopup.holdOwner(ges.pos, frame, { x = 0, y = 0, w = 0, h = 0 }, strip)
+        end
+        if owner == "box" then
+            -- (a point is on a rectangle for KOReader past its left and top
+            -- edges, not on them)
+            self.box_held = {
+                x = math.max(frame.x + 1, math.min(ges.pos.x, frame.x + frame.w - 1)) - ges.pos.x,
+                y = math.max(frame.y + 1, math.min(ges.pos.y, frame.y + frame.h - 1)) - ges.pos.y,
+                from = { x = ges.pos.x, y = ges.pos.y },
+            }
+            return self.movable:onMovableHold(arg, shifted(ges, self.box_held))
+        end
+    end
     return toText(self, "HoldStartText", arg, ges)
 end
 
 function MinimalPopup:onPopupHoldPan(arg, ges)
     if self.keep_held then return true end
+    if self.box_held then return self.movable:onMovableHoldPan(arg, shifted(ges, self.box_held)) end
     return toText(self, "HoldPanText", arg, ges)
 end
 
@@ -499,10 +648,23 @@ function MinimalPopup:onPopupHoldRelease(arg, ges)
         self.keep_held = false
         return true
     end
+    if self.box_held then
+        local held = self.box_held
+        self.box_held = nil
+        local least = self.movable.move_threshold or Screen:scaleBySize(5)
+        if math.abs(ges.pos.x - held.from.x) < least and math.abs(ges.pos.y - held.from.y) < least then
+            -- lifted where it began: the box's own switch, not KOReader's
+            -- (whose container is told its hold is over)
+            if self.movable.resetEventState then self.movable:resetEventState() end
+            return self:onBoxLifted()
+        end
+        return self.movable:onMovableHoldRelease(arg, shifted(ges, held))
+    end
     return toText(self, "HoldReleaseText", arg, ges)
 end
 
--- A hold the text did not take (on the frame's edge): the box's own
+-- A hold the text did not take and the test above could not place (a view
+-- whose lines are not known): the box's own
 function MinimalPopup:onHoldStartText(arg, ges)
     return self.movable and self.movable:onMovableHold(arg, ges) or false
 end

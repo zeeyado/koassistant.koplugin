@@ -375,10 +375,20 @@ function Export.getFilename(book_title, chat_title, chat_timestamp, extension, s
     return table.concat(parts, "_") .. "." .. extension
 end
 
+--- The name of a book's file for Anki: one file per book, written again at
+--- every export (no time in the name), so the reader imports the same file
+-- @param book_title string|nil
+-- @return string
+function Export.getAnkiFilename(book_title)
+    local safe = sanitizeForFilename(book_title, 60)
+    if safe == "" then safe = "Book" end
+    return safe .. "_Anki.txt"
+end
+
 --- Get the export directory based on settings
 -- @param settings table Features settings table
 -- @param book_path string|nil Path to the current book (for "book_folder" option)
--- @param chat_type string|nil "book" | "general" | "library" (default: "book")
+-- @param chat_type string|nil "book" | "general" | "library" | "anki" (default: "book")
 -- @return string|nil Directory path, or nil if "ask" mode
 -- @return string|nil Error message if path is invalid
 -- @return boolean skip_book_title Whether to omit book title from filename (true when saving alongside book)
@@ -457,6 +467,7 @@ function Export.getDirectory(settings, book_path, chat_type)
         book = "book_chats",
         general = "general_chats",
         library = "library_chats",
+        anki = "anki",  -- a book's file for Anki (koassistant/chat/anki_export.lua)
     }
     target_dir = base_dir .. "/" .. (subfolder_map[chat_type] or "book_chats")
 
