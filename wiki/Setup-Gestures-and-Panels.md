@@ -49,6 +49,8 @@ Give each a gesture for one-tap access ([Gestures](#gestures)), or add them to a
 
 Assign **KOAssistant: Quick Settings** to a gesture for one-tap access to a two-column panel of commonly used settings.
 
+A gesture works on the reading screen and in the file browser. A full page of KOAssistant's covers both (the Book Hub, a Group Hub and the Groups list, the X-Ray browser, Chat History, the notebooks list, the artifact browser, the picture gallery), so each such page's ☰ menu ends with a **Quick Settings** row that opens the panel over the page.
+
 ![Quick Settings panel](https://raw.githubusercontent.com/zeeyado/koassistant.koplugin/main/screenshots/QSpanel.png)
 
 *The screenshot shows an earlier version of the panel; today's has more tiles and no Temp tile.*

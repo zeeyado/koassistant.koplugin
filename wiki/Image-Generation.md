@@ -91,7 +91,7 @@ The images show as thumbnails, newest first, nine to a page (eight with the read
   - **Delete image…** deletes it after a confirmation.
 
   An image with no recorded prompt (made by a version before the prompt was kept) goes straight to the delete confirmation.
-- The **menu button** in the title bar deletes every image shown after a confirmation: all of them, or just one book's.
+- The **☰ menu** in the title bar has **Delete all images…** (**Delete these images…** in one book's set), which deletes every image shown after a confirmation, and **Quick Settings**.
 
 A prompt drawn again goes to the image provider in effect with what it carries (and to the prompt writer's provider as well when it restyles the prompt): a prompt made from the text around the passage or from X-Ray descriptions asks the same privacy question a new image does when that data is on Ask, naming both providers when there are two, and is refused when it is set to Never. It has no **Continue without**, since what a written prompt took from them cannot be taken out ([Privacy and Data](Privacy-and-Data)). On a device without a touchscreen the gallery is a list of names with the same tap and hold.
 

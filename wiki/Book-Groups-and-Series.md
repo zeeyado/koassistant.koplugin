@@ -59,7 +59,7 @@ To reorder, hold a book on the hub: **↑** and **↓** move it one place and th
 
 The Groups list (Settings → Groups) shows every group with "Kind · N books" beside it, and an icon per kind if you turn on Settings → Display Settings → Emoji → Emoji Menu Icons. Tap a group for its hub. Hold it for **↑** and **↓** to move it in the list, **Kind: …**, **Group settings…**, **Rename…** and **Delete group…**. Deleting a group never touches the books or their artifacts; only the grouping is removed.
 
-The title-bar ☰ menu repeats the create rows and adds **Sort groups…**: **By name** or **By kind, then name**. A sort reorders the list once; you can still move groups by hand afterwards.
+The title-bar ☰ menu repeats the create rows and adds **Sort groups…** (**By name** or **By kind, then name**) and **Quick Settings**. A sort reorders the list once; you can still move groups by hand afterwards.
 
 ## The Group Hub
 
@@ -70,7 +70,7 @@ A full-screen page per group: the title is the group's name, the subtitle its au
 - The books in order. Tap one for its Book Hub; hold it to move, open or remove it. The open book is marked "open", a book whose file is gone "(missing)".
 - The add rows.
 
-The ☰ menu has the add rows, **Kind: …**, **Rename…** and **Delete group…**; the bottom-left up-arrow goes to the Groups list.
+The ☰ menu has the add rows, **Kind: …**, **Rename…**, **Delete group…** and **Quick Settings**; the bottom-left up-arrow goes to the Groups list.
 
 Other ways in: the **Group** row of a book's Book Settings or Book Hub (a **Which group?** chooser when the book is in several groups), the **Group Hub** button of the Quick Actions panel (shown only when the open book is in a group), the **→ Group** button in the window of a grouped book's saved artifact (a summary, an analysis and the like), and **Group hub…** in the group's member list (see [Moving between the group's X-Rays](#moving-between-the-groups-x-rays)). A grouped book's Book Hub has a bottom-left up-arrow back to its Group Hub.
 

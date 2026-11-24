@@ -415,7 +415,9 @@ gesture("tap", cf.x + math.floor(cf.w / 2), cf.y + math.floor(cf.h / 2))
 S.check(S.top() ~= card and opened == 1, "and a tap opens its entry")
 
 -- 9. A kept answer shown again (showForNote): a chat window of the note's
--- kind built for it and never shown, the same popup, no keep mark
+-- kind built for it and never shown, the same popup, no keep mark; shown
+-- whatever its length (taller than a new answer's popup may be, then it
+-- scrolls), and with the note's menu in its corner when the caller has rows
 local function note(parts, features, opts)
     opts = opts or {}
     local n = { expanded = 0 }
@@ -424,6 +426,7 @@ local function note(parts, features, opts)
     last_html = ""
     n.shown = MinimalPopup.showForNote({
         parts = parts, features = f, boxes = opts.boxes, ui = opts.boxes and {} or nil,
+        rows = opts.rows, info = opts.info,
         on_expand = function() n.expanded = n.expanded + 1 end,
     })
     S.settle()
@@ -469,8 +472,105 @@ away(n)
 n = note({ { kind = "translate", text = "A line.\nAnother." } }, { render_markdown = false })
 S.check(n.popup ~= nil and n.popup.scroll_w.text_widget ~= nil, "the reader's view is Plain Text: the plain widget")
 away(n)
-n = note({ { kind = "translate", text = long() } }, { minimal_popup_mode = "short" })
-S.check(n.shown == false and n.popup == nil, "When it fits: a note taller than the popup is handed back (KOReader's window opens)")
+-- a note is shown whatever its length, and the reader's When setting is about new answers
+local answer_cap = math.floor(Screen:getHeight() * MinimalPopup.CAP)
+local note_cap = math.floor(Screen:getHeight() * MinimalPopup.NOTE_CAP)
+local function paragraphsOf(count)
+    local out = {}
+    for k = 1, count do
+        out[#out + 1] = "Paragraph " .. k .. " of the note. The old keeper wrote three lines in the margin and passed "
+            .. "the page across the table without a word."
+    end
+    return table.concat(out, "\n\n")
+end
+-- a note that needs more than a new answer's cap and less than a note's: the
+-- paragraph count that makes one on this screen is looked for
+local whole
+for count = 8, 3, -1 do
+    n = note({ { kind = "chat", text = paragraphsOf(count) } }, { minimal_popup_mode = "short" })
+    if n.popup and n.popup.text_h > answer_cap and not n.popup:hasOverflow() then
+        whole = count
+        break
+    end
+    away(n)
+end
+if S.check(whole ~= nil, "When it fits: a note taller than a new answer's popup may be is shown all the same, whole") then
+    S.note(("%d paragraphs: the note's text area %d px; a new answer's cap %d, a note's %d"):format(
+        whole, n.popup.text_h, answer_cap, note_cap))
+    local nf = n.popup.frame.dimen
+    S.check(nf.y >= 0 and nf.y + nf.h <= Screen:getHeight(), "and all of it on the screen")
+    S.shot("popup_kept_note_tall")
+end
+away(n)
+n = note({ { kind = "chat", text = paragraphsOf(40) } }, { minimal_popup_mode = "short" })
+if S.check(n.popup ~= nil and n.popup:hasOverflow(), "a note longer than four fifths of the screen scrolls, in the popup") then
+    S.check(n.popup.text_h <= note_cap and n.popup.text_h > answer_cap, "in an area up to the note's cap (" .. n.popup.text_h .. ")")
+    local first = page(n)
+    key("RPgFwd")
+    S.check(S.top() == n.popup and page(n) == first + 1, "the page key turns its page")
+end
+away(n)
+
+-- the note's menu: a sign in the corner, the rows behind a tap on it or anywhere inside
+local ran = {}
+local function menuRows()
+    return {
+        { text = "Edit note", callback = function() ran[#ran + 1] = "edit" end },
+        { text = "Open in KOReader's note window", callback = function() ran[#ran + 1] = "window" end },
+        { separator = true },
+        { text = "Delete note", callback = function() ran[#ran + 1] = "delete" end },
+    }
+end
+local INFO = "Translate · small-model · 2026-11-24"
+local function buttonOf(menu, text)
+    for _i, row in ipairs(menu.buttontable.buttons_layout or {}) do
+        for _j, button in ipairs(row) do
+            if button.text == text then return button end
+        end
+    end
+end
+n = note({ { kind = "translate", text = "The first line of it.\nThe second line." } }, nil, { rows = menuRows(), info = INFO })
+if S.check(n.popup ~= nil and n.popup.more ~= nil and n.popup.keep_mark ~= nil, "a kept note with a menu carries its sign") then
+    local pop = n.popup
+    S.check(pop.keep == nil and pop.keep_mark[1].text == MinimalPopup.SIGNS.more, "the menu's sign, not the keep mark")
+    local nf = pop.frame.dimen
+    local sign = pop.keep_place.sign
+    S.check(sign.x + sign.w <= nf.w and sign.y + sign.h <= nf.h, "inside the frame's foot corner")
+    S.shot("popup_kept_note_sign")
+    gesture("tap", nf.x + math.floor(nf.w / 3), nf.y + math.floor(nf.h / 2))
+    UIManager:forceRePaint()
+    local menu = S.top()
+    if S.check(menu ~= pop and type(menu) == "table" and menu.buttontable ~= nil, "a tap inside opens the menu") then
+        S.check(UIManager:isWidgetShown(pop) and n.expanded == 0, "the popup stays under it, and no other window opens")
+        S.check(menu.title == INFO, "its title says where the answer came from")
+        local m = menu.movable.dimen
+        S.note(("the popup %d,%d %dx%d; the menu %d,%d %dx%d"):format(nf.x, nf.y, nf.w, nf.h, m.x, m.y, m.w, m.h))
+        S.check(math.abs((m.x + m.w) - (nf.x + nf.w)) <= 2, "the menu's far edge on the popup's")
+        S.check(math.abs(m.y - (nf.y + nf.h)) <= 2 or math.abs((m.y + m.h) - nf.y) <= 2,
+            "under the popup, or over it: nothing of the note is covered")
+        S.shot("popup_kept_note_menu")
+        local row = buttonOf(menu, "Delete note")
+        if S.check(row ~= nil and row.dimen ~= nil, "the rows are on screen") then
+            gesture("tap", row.dimen.x + math.floor(row.dimen.w / 2), row.dimen.y + math.floor(row.dimen.h / 2))
+            S.check(ran[1] == "delete" and #ran == 1, "a row runs")
+            S.check(not UIManager:isWidgetShown(menu) and not UIManager:isWidgetShown(pop), "after the menu and the popup closed")
+        end
+    end
+end
+away(n)
+n = note({ { kind = "translate", text = "The first line of it.\nThe second line." } }, nil, { rows = menuRows(), info = INFO })
+if S.check(n.popup ~= nil, "shown again") then
+    local pop = n.popup
+    local nf, sign = pop.frame.dimen, pop.keep_place.sign
+    gesture("tap", nf.x + sign.x + math.floor(sign.w / 2), nf.y + sign.y + math.floor(sign.h / 2))
+    local menu = S.top()
+    S.check(menu ~= pop and type(menu) == "table" and menu.buttontable ~= nil, "a tap on the sign opens the same menu")
+    -- a tap outside the menu closes the menu alone
+    gesture("tap", 5, 5)
+    S.check(S.top() == pop, "a tap outside the menu closes it; the popup stays")
+    gesture("tap", 5, 5)
+    S.check(not UIManager:isWidgetShown(pop), "and a tap outside the popup closes that")
+end
 away(n)
 
 Box.setContent = setContent

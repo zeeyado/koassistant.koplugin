@@ -6445,12 +6445,13 @@ end
 -- The kept passage's note, before KOReader shows it. First the note's format
 -- as KOReader is told it (HighlightNote.keepFormat: Markdown for a note of
 -- the plugin's own answers, kept through what the reader changes in it and
--- taken back when the note is gone). Then the popup: a note whose saved
--- answers came from actions that show in the minimal popup opens in that
--- popup again, as it is now, the reader's own changes included
+-- taken back when the note is gone). Then the popup: a note the plugin saved
+-- an answer in, whatever action it came from, opens in the plugin's own
+-- popup, as it is now, the reader's own changes included
 -- (HighlightNote.piecesOf, popupParts; Highlight Settings, Show Saved
--- Answers in the Minimal Popup), where a tap inside opens KOReader's own
--- note window for the same highlight.
+-- Answers in the Minimal Popup). A tap in it opens the note's menu: the
+-- buttons of KOReader's note window (through the note's one writer), that
+-- window itself, and under its title where the answers came from.
 -- @return boolean the popup is shown (false = KOReader's window is to open)
 function AskGPT:_showKeptNote(hl, index)
   local list = self.ui and self.ui.annotation and self.ui.annotation.annotations
@@ -6475,6 +6476,12 @@ function AskGPT:_showKeptNote(hl, index)
     end
   end
   local ui = self.ui
+  -- the highlight where it stands when a row is tapped
+  local function place()
+    for i, item in ipairs(ui.annotation.annotations) do
+      if item == annotation then return i end
+    end
+  end
   return require("koassistant.ui.minimal_popup").showForNote({
     parts = show,
     note = annotation.note,
@@ -6482,14 +6489,23 @@ function AskGPT:_showKeptNote(hl, index)
     plugin = self,
     ui = ui,
     boxes = boxes,
-    on_expand = function()
-      -- KOReader's own note window, for the highlight where it stands now
-      for i, item in ipairs(ui.annotation.annotations) do
-        if item == annotation then
-          return hl._koassistant_original_showNote(hl, i)
-        end
-      end
-    end,
+    info = HighlightNote.sourceText(show),
+    rows = {
+      { text = _("Edit note"), callback = function() HighlightNote.editExisting(ui, annotation) end },
+      { text = _("Open in KOReader's note window"), callback = function()
+        local i = place()
+        if i then hl._koassistant_original_showNote(hl, i) end
+      end },
+      { text = _("Highlight menu"), callback = function()
+        local i = place()
+        if i then hl:showHighlightDialog(i) end
+      end },
+      { separator = true },
+      { text = _("Delete note"), callback = function() HighlightNote.deleteNote(ui, annotation, { store = ds }) end },
+      { text = _("Delete highlight"), callback = function()
+        HighlightNote.deleteHighlight(ui, annotation, { store = ds })
+      end },
+    },
   })
 end
 

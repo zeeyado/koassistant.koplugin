@@ -8,7 +8,7 @@ By default every chat is saved, except dictionary lookups and translations ([Dic
 
 ## Chat History
 
-**Settings → Chat History**: with a book open that has saved chats, it opens that book's chats, and the bottom-left up-arrow leads to the full list; the Chat History tile in Quick Settings always opens the full list. Its ☰ menu goes to the Notebooks and Artifacts browsers, groups the chats by domain (**View by Domain**) or by tag (**View by Tag**), and holds **Delete all chats**.
+**Settings → Chat History**: with a book open that has saved chats, it opens that book's chats, and the bottom-left up-arrow leads to the full list; the Chat History tile in Quick Settings always opens the full list. Its ☰ menu goes to the Notebooks and Artifacts browsers, groups the chats by domain (**View by Domain**) or by tag (**View by Tag**), and holds **Delete all chats** and **Quick Settings**.
 
 The document view lists, in order: a **Starred** folder with every starred chat across all documents (shown when any chat is starred), General AI Chats, Library Chats (comparisons and analyses across several books), then the books, the one with the newest chat first. With emoji menu icons on, entries carry a type prefix (💬 general, 📚 library, 📖 book); a starred chat carries a ★ in its list either way. Tap a document for its chat list; hold it for Open Book (books only), Delete All Chats, Cancel.
 
@@ -76,7 +76,7 @@ Changing the location offers to move every existing notebook (Custom folder asks
 
 ### Reading and editing a notebook
 
-- **Browse all notebooks:** **Settings → Browse Notebooks**, newest change first; its ☰ menu goes to Chat History and the artifact browser.
+- **Browse all notebooks:** **Settings → Browse Notebooks**, newest change first; its ☰ menu goes to Chat History and the artifact browser, and to **Quick Settings**.
 - **From the file browser:** long-press a book → **Notebook (KOA)** (when one exists).
 - **From the chat window:** the Notebook button's View or Edit.
 - **Outside KOReader:** the `.md` file opens in any Markdown editor or in Obsidian.

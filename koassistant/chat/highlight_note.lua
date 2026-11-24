@@ -32,9 +32,10 @@ by the annotation's `note_format` or, without one, by the note's first
 character: the plugin names the format of a note that is its own and holds
 answers written in Markdown (wantsMarkdown, keepFormat), and the mark then
 stays through what the reader changes in the note, until the note is gone.
-And a note whose saved answers came from actions that show in the minimal
-popup opens in that popup again (piecesOf, popupParts), KOReader's own window
-one tap further. Both follow what the note was MADE of, not whether the
+And a note the plugin saved an answer in opens in the plugin's own popup
+(piecesOf, popupParts), whatever action the answer came from, with the note's
+buttons one tap further (editExisting, deleteNote, deleteHighlight: KOReader's
+own, done here). Both follow what the note was MADE of, not whether the
 reader has edited it since: an answer does not lose its formatting or its
 popup to a word added under it.
 
@@ -44,16 +45,18 @@ be: the answer counts as the plugin's while it stands as proposed, and what
 the reader changed there is theirs.
 ]]
 
-local Constants = require("koassistant.core.constants")
 local logger = require("koassistant.core.logger")
+local _ = require("koassistant.core.gettext")
 
 local HighlightNote = {}
 
 --- The per-book record:
---- { [annotation.datetime] = { md, parts = { { kind, action, action_name, chat, lead, at, from, len, sum }, ... } } }
+--- { [annotation.datetime] = { md, parts = { { kind, action, action_name, model, provider, chat, lead, at, from, len, sum }, ... } } }
 --- `action` = the action's id where the request named one, `action_name` = its
 --- name as the reader saw it then (an id of the reader's own action can come to
 --- mean another one, a name is in the language of that day: the pair says both).
+--- `model`, `provider` = what answered (kept since v0.26; an answer saved before
+--- has neither): where an answer came from, for a reader who asks (sourceText).
 --- `chat` = the id of the chat the answer came from, the one it is saved under
 --- when it is saved (a chat window's chats are, by default; a translation or a
 --- lookup is not, and its id then names nothing): the way back, no door yet.
@@ -148,7 +151,8 @@ end
 -- the note's order, each with its text. A piece the reader has changed, or
 -- that an edit before it has moved, is not among them: it is the reader's now.
 local function stored(part)
-    return { kind = part.kind, action = part.action, action_name = part.action_name, chat = part.chat,
+    return { kind = part.kind, action = part.action, action_name = part.action_name,
+        model = part.model, provider = part.provider, chat = part.chat,
         lead = part.lead, at = part.at, from = part.from, len = part.len, sum = part.sum }
 end
 
@@ -185,7 +189,7 @@ local function readRecord(ds)
 end
 
 -- A piece of the record for the text just written at the end of the note.
--- `who` = the save's own opts (kind, action, action_name, chat), `old` = the
+-- `who` = the save's own opts (kind, action, action_name, model, provider, chat), `old` = the
 -- note the highlight had before. The lines of highlights that are gone go with them.
 local function remember(ds, annotations, annotation, who, old, text)
     if not (ds and annotation.datetime) then return end
@@ -206,6 +210,8 @@ local function remember(ds, annotations, annotation, who, old, text)
         kind = who.kind,
         action = name(who.action),
         action_name = name(who.action_name),
+        model = name(who.model),
+        provider = name(who.provider),
         chat = name(who.chat),
         lead = type(who.lead) == "number" and who.lead >= 0 and who.lead < #text and who.lead or nil,
         at = os.time(),
@@ -272,7 +278,7 @@ end
 --- whatever the reader has done to it since. A piece that stands carries its
 --- `text` (recordOf reports those alone); one the reader rewrote, or that
 --- their words before it moved, has none.
--- @return table|nil { kind, action, action_name, chat, lead, at, from, len, text }, ...;
+-- @return table|nil { kind, action, action_name, model, provider, chat, lead, at, from, len, text }, ...;
 --   nil = the plugin has saved nothing in this note
 function HighlightNote.piecesOf(ds, annotation)
     if not (ds and annotation and annotation.datetime) then return nil end
@@ -369,28 +375,44 @@ function HighlightNote.keepFormat(ds, annotation, written)
     return "cleared"
 end
 
---- Whether a tap on a kept passage shows its note in the minimal popup again,
+--- Whether a tap on a kept passage shows its note in the plugin's own popup,
 --- pure: the pieces to hand the popup, or nil = KOReader's own note window
---- opens, as for any note. The popup takes a note whose every saved answer
---- came from an action that shows in the popup TODAY (the reader's Minimal
---- Popup list, the popup not off), whatever window the answer was saved from:
---- what shows in the popup when asked shows in the popup when kept. It goes
---- by what the note was made of (piecesOf), so a note the reader has written
---- in since, or whose answer they corrected, still opens there, shown as it
---- is now. `kept_answer_popup` is the reader's switch (Highlight Settings),
---- on unless turned off.
+--- opens, as for any note. Every note the plugin has saved an answer in opens
+--- there, whatever action the answer came from and however a NEW answer of
+--- that action is shown: the Minimal Popup list and its mode say how an answer
+--- arrives, and a saved one is shown again at no cost. It goes by what the
+--- note was made of (piecesOf), so a note the reader has written in since, or
+--- whose answer they corrected, still opens there, shown as it is now.
+--- `kept_answer_popup` is the reader's switch (Highlight Settings), on unless
+--- turned off.
 -- @param pieces what piecesOf returned
 -- @param features the reader's settings
 function HighlightNote.popupParts(pieces, features)
     features = features or {}
     if features.kept_answer_popup == false then return nil end
-    if (features.minimal_popup_mode or "short") == "off" then return nil end
     if type(pieces) ~= "table" or #pieces == 0 then return nil end
-    local shown = Constants.resolveMinimalPopupActions(features.minimal_popup_actions)
-    for _idx, part in ipairs(pieces) do
-        if not (part.action and shown[part.action]) then return nil end
-    end
     return pieces
+end
+
+--- Where a note's saved answers came from, a line each, for a reader who asks
+--- (the title of the popup's menu on a kept passage): what made the answer
+--- (the action's name as the reader saw it, else the kind of answer), the
+--- model where the record has it, the day it was saved.
+-- @param pieces what piecesOf returned
+-- @return string|nil
+function HighlightNote.sourceText(pieces)
+    if type(pieces) ~= "table" then return nil end
+    local kinds = { translate = _("Translation"), dictionary = _("Dictionary answer"), chat = _("AI answer") }
+    local lines = {}
+    for _idx, piece in ipairs(pieces) do
+        local bits = { name(piece.action_name) or kinds[piece.kind] or kinds.chat }
+        if name(piece.model) then bits[#bits + 1] = piece.model end
+        if type(piece.at) == "number" then bits[#bits + 1] = os.date("%Y-%m-%d", piece.at) end
+        local line = table.concat(bits, " · ")
+        if line ~= lines[#lines] then lines[#lines + 1] = line end
+    end
+    if #lines == 0 then return nil end
+    return table.concat(lines, "\n")
 end
 
 local function redraw(ui)
@@ -404,8 +426,9 @@ end
 -- @param opts { extend = the passage as KOReader's Add note saves it (not for a looked-up word),
 --               kind = "translate" | "dictionary" | "chat",
 --               action = the id of the action the answer came from, action_name = its name as shown,
+--               model, provider = what answered,
 --               chat = the id of the chat it came from,
---               lead = how many bytes of `text` stand before the answer (all four optional),
+--               lead = how many bytes of `text` stand before the answer (all six optional),
 --               store = the book's settings object (tests) }
 -- @return table|nil { index, annotation, text = what was written, created = a highlight was made,
 --                     appended = it had a note, already = nothing to write }
@@ -520,7 +543,7 @@ end
 --- stands there as proposed, and whatever the reader changed or added is
 --- theirs (recordOf). The note's format is decided as for a save at once
 --- (keepFormat), whatever the reader changed.
--- @param opts as save's (extend, kind, action, action_name, chat, lead, store)
+-- @param opts as save's (extend, kind, action, action_name, model, provider, chat, lead, store)
 -- @return boolean|nil the editor is opening (after KOReader's own question, where the reader has one)
 -- @return string|nil why not (as save)
 function HighlightNote.edit(ui, selection, text, opts)
@@ -568,6 +591,66 @@ function HighlightNote.edit(ui, selection, text, opts)
     index = hl:saveHighlight(opts.extend == true)
     made(index)
     if not index then return nil, "no_highlight" end
+    return true
+end
+
+-- The highlight's place in the book's list as it is now (it moves when the
+-- reader adds or deletes a highlight before it)
+local function placeOf(ui, annotation)
+    if not (ui and ui.highlight and ui.annotation and ui.annotation.annotations) then return nil, "no_reader" end
+    for index, item in ipairs(ui.annotation.annotations) do
+        if item == annotation then return index end
+    end
+    return nil, "gone"
+end
+
+--- KOReader's "Edit note", for a window of the plugin's that shows a kept note
+--- (the popup's menu): KOReader's own editor on the note as it is. What the
+--- reader saves there is read against the record at the next tap, as after
+--- KOReader's own button.
+-- @return boolean|nil the editor is opening
+-- @return string|nil why not: "no_reader" | "gone" (the highlight is no longer there)
+function HighlightNote.editExisting(ui, annotation)
+    local index, why = placeOf(ui, annotation)
+    if not index then return nil, why end
+    ui.highlight:editNote(index)
+    return true
+end
+
+--- KOReader's "Delete note", step for step: the note leaves the highlight,
+--- which stays. The plugin's record of the note goes with it, and the format
+--- it named (keepFormat).
+-- @param opts { store = the book's settings object (tests) }
+-- @return boolean|nil removed
+-- @return string|nil why not (as editExisting)
+function HighlightNote.deleteNote(ui, annotation, opts)
+    local index, why = placeOf(ui, annotation)
+    if not index then return nil, why end
+    annotation.note = nil
+    local Event = require("ui/event")
+    ui:handleEvent(Event:new("AnnotationsModified",
+        { annotation, nb_highlights_added = 1, nb_notes_added = -1 }))
+    ui.highlight:writePdfAnnotation("content", annotation, "")
+    redraw(ui)
+    local ok, err = pcall(function()
+        HighlightNote.keepFormat(bookStore(ui, opts or {}), annotation)
+    end)
+    if not ok then logger.warn("KOAssistant: the note was deleted, its record was not:", err) end
+    return true
+end
+
+--- KOReader's "Delete highlight": its own delete (the PDF's copy, the list,
+--- the counters, the page), then the record's line.
+-- @return boolean|nil removed
+-- @return string|nil why not (as editExisting)
+function HighlightNote.deleteHighlight(ui, annotation, opts)
+    local index, why = placeOf(ui, annotation)
+    if not index then return nil, why end
+    ui.highlight:deleteHighlight(index)
+    local ok, err = pcall(function()
+        forget(bookStore(ui, opts or {}), annotation, nil, nil, true)
+    end)
+    if not ok then logger.warn("KOAssistant: the highlight was deleted, its record was not:", err) end
     return true
 end
 

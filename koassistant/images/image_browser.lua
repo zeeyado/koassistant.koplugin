@@ -382,6 +382,15 @@ local function showSet(set, on_close)
         })
     end
 
+    -- The ☰ menu, the same in both views: its rows hang from the icon, the
+    -- settings row last
+    local function showMenu(items)
+        require("koassistant.ui.icon_menu").show(view, {
+            { text = set.key == "all" and _("Delete all images…") or _("Delete these images…"),
+                callback = function() deleteAll(items) end },
+        }, pluginInstance())
+    end
+
     local function close()
         if view then UIManager:close(view) end
         view = nil
@@ -396,7 +405,7 @@ local function showSet(set, on_close)
             items = items,
             on_tap = onTap,
             on_hold = onHold,
-            on_menu = function() deleteAll(view.items) end,
+            on_menu = function() showMenu(view.items) end,
             on_close = function()
                 view = nil
                 if on_close then on_close() end
@@ -440,7 +449,7 @@ local function showSet(set, on_close)
         width = Screen:getWidth(),
         height = Screen:getHeight(),
         title_bar_left_icon = "appbar.menu",
-        onLeftButtonTap = function() deleteAll(list_items) end,
+        onLeftButtonTap = function() showMenu(list_items) end,
         onMenuSelect = function(_self_menu, item)
             if item and item.callback then item.callback() end
             return true

@@ -798,27 +798,119 @@ TestRunner:test("a format the plugin did not name is never touched; a note witho
     eq(HighlightNote.keepFormat(r.store, nil), nil)
 end)
 
-TestRunner:test("popupParts: a note whose saved answers came from actions that show in the minimal popup today", function()
+TestRunner:test("popupParts: every note the plugin saved an answer in, whatever action made it and however new answers are shown", function()
     local t = { kind = "translate", action = "translate", text = "Le matin." }
     local q = { kind = "chat", action = "quick_explain", text = "Quick Explain:\n\nEarly." }
     local e = { kind = "chat", action = "explain", text = "Explain:\n\nEarly." }
     local old = { kind = "translate", text = "Saved before the action was recorded." }
     local corrected = { kind = "translate", action = "translate" }   -- on record, no longer standing as it was saved
     local f = {}
-    ok(HighlightNote.popupParts({ t }, f), "Translate is on the list by default")
+    ok(HighlightNote.popupParts({ t }, f), "a translation")
     eq(#HighlightNote.popupParts({ t, q }, f), 2, "the whole note")
-    eq(HighlightNote.popupParts({ t, e }, f), nil, "Explain opens in a chat window: KOReader's note window")
-    eq(HighlightNote.popupParts({ old }, f), nil, "no action recorded")
-    ok(HighlightNote.popupParts({ corrected }, f), "an answer the reader corrected is still what Translate made")
-    eq(HighlightNote.popupParts({}, f), nil, "the plugin saved nothing in this note")
+    eq(#HighlightNote.popupParts({ t, e }, f), 2, "an explanation too: its new answers open in a chat window, a saved one here")
+    ok(HighlightNote.popupParts({ old }, f), "an answer saved before its action was recorded")
+    ok(HighlightNote.popupParts({ corrected }, f), "an answer the reader corrected is still a saved answer's note")
+    eq(HighlightNote.popupParts({}, f), nil, "the plugin saved nothing in this note: KOReader's window")
     eq(HighlightNote.popupParts(nil, f), nil)
-    -- today's settings, not the day it was saved
-    ok(HighlightNote.popupParts({ e }, { minimal_popup_actions = { "explain" } }), "Explain put on the list since")
-    eq(HighlightNote.popupParts({ t }, { minimal_popup_actions = { "explain" } }), nil, "Translate taken off it")
-    eq(HighlightNote.popupParts({ t }, { minimal_popup_mode = "off" }), nil, "the popup is off")
+    -- how a NEW answer arrives does not decide where a saved one is shown
+    ok(HighlightNote.popupParts({ t }, { minimal_popup_actions = { "explain" } }), "Translate taken off the popup's list")
+    ok(HighlightNote.popupParts({ t }, { minimal_popup_mode = "off" }), "the popup off for new answers")
     ok(HighlightNote.popupParts({ t }, { minimal_popup_mode = "always" }))
     eq(HighlightNote.popupParts({ t }, { kept_answer_popup = false }), nil, "the reader's switch")
     ok(HighlightNote.popupParts({ t }, nil), "no settings: the defaults")
+end)
+
+TestRunner:test("the record keeps what answered, the model and the provider, through later saves", function()
+    local r = newReader()
+    local sel = selection("/body/p[3].0", "/body/p[3].22")
+    local first = HighlightNote.save(r.ui, sel, "Le matin se leva gris.", { kind = "translate", action = "translate",
+        action_name = "Translate", model = "small-model", provider = "acme", store = r.store })
+    HighlightNote.save(r.ui, sel, "Explain:\n\nEarly.", { kind = "chat", action = "explain", action_name = "Explain",
+        model = "large-model", provider = "", store = r.store })
+    local pieces = HighlightNote.piecesOf(r.store, first.annotation)
+    eq(#pieces, 2)
+    eq(pieces[1].model, "small-model")
+    eq(pieces[1].provider, "acme")
+    eq(pieces[2].model, "large-model")
+    eq(pieces[2].provider, nil, "an empty name is no name")
+    local _state, standing = HighlightNote.recordOf(r.store, first.annotation)
+    eq(standing[1].model, "small-model", "the standing pieces carry it too")
+    -- a save with neither (an answer of before): the piece is recorded all the same
+    local other = HighlightNote.save(r.ui, selection("/body/p[5].0", "/body/p[5].9"), "Un mot.", { kind = "translate", store = r.store })
+    eq(HighlightNote.piecesOf(r.store, other.annotation)[1].model, nil)
+end)
+
+TestRunner:test("sourceText: where a note's answers came from, a line each", function()
+    local day = os.time({ year = 2026, month = 11, day = 24, hour = 12 })
+    eq(HighlightNote.sourceText({ { kind = "translate", action_name = "Translate", model = "small-model", at = day } }),
+        "Translate · small-model · 2026-11-24")
+    eq(HighlightNote.sourceText({ { kind = "dictionary", at = day } }), "Dictionary answer · 2026-11-24",
+        "no action on record: the kind of answer; no model: none shown")
+    eq(HighlightNote.sourceText({ { kind = "translate" } }), "Translation")
+    eq(HighlightNote.sourceText({ { kind = "chat", action_name = "" } }), "AI answer", "an empty name is no name")
+    eq(HighlightNote.sourceText({
+        { kind = "translate", action_name = "Translate", model = "small-model", at = day },
+        { kind = "chat", action_name = "Explain", model = "large-model", at = day },
+    }), "Translate · small-model · 2026-11-24\nExplain · large-model · 2026-11-24")
+    eq(HighlightNote.sourceText({
+        { kind = "translate", action_name = "Translate", model = "small-model", at = day },
+        { kind = "translate", action_name = "Translate", model = "small-model", at = day },
+    }), "Translate · small-model · 2026-11-24", "the same line is said once")
+    eq(HighlightNote.sourceText({}), nil)
+    eq(HighlightNote.sourceText(nil), nil)
+end)
+
+TestRunner:test("KOReader's note buttons, done by the writer: Edit note opens KOReader's editor on the highlight where it stands", function()
+    local r = newReader()
+    highlightOf(r, "/body/p[1].0", "/body/p[1].4", "an earlier highlight")
+    local saved = HighlightNote.save(r.ui, selection("/body/p[3].0", "/body/p[3].22"), "Le matin se leva gris.",
+        { kind = "translate", action = "translate", store = r.store })
+    eq(HighlightNote.editExisting(r.ui, saved.annotation), true)
+    eq(#r.edits, 1)
+    eq(r.edits[1].index, 2, "the highlight's own place")
+    eq(r.edits[1].text, nil, "nothing filled in: the note as it is")
+    -- the reader deletes a highlight before it: the place is read again
+    table.remove(r.list, 1)
+    HighlightNote.editExisting(r.ui, saved.annotation)
+    eq(r.edits[2].index, 1)
+    local gone, why = HighlightNote.editExisting(r.ui, { datetime = "nobody's" })
+    eq(gone, nil)
+    eq(why, "gone")
+    eq(select(2, HighlightNote.editExisting(nil, saved.annotation)), "no_reader")
+end)
+
+TestRunner:test("Delete note: the note leaves as KOReader's button leaves it, and the plugin's record and format mark go with it", function()
+    local r = newReader()
+    local saved = HighlightNote.save(r.ui, selection("/body/p[3].0", "/body/p[3].22"), "Explain:\n\n**Early** she was up.",
+        { kind = "chat", action = "explain", store = r.store })
+    local item = saved.annotation
+    eq(item.note_format, "md", "named by the plugin at the save")
+    eq(HighlightNote.deleteNote(r.ui, item, { store = r.store }), true)
+    eq(item.note, nil)
+    eq(#r.list, 1, "the highlight stays")
+    eq(countEvents(r, -1), 1, "one note less, one highlight more: KOReader's own event")
+    eq(r.pdf[#r.pdf].action, "content")
+    eq(r.pdf[#r.pdf].content, "", "the PDF's copy of the note emptied")
+    eq(item.note_format, nil, "the plugin's mark goes with the note")
+    eq(r.store.data[HighlightNote.RECORD_KEY][item.datetime], nil, "and its line")
+    eq(HighlightNote.piecesOf(r.store, item), nil, "a note the reader writes there later is theirs alone")
+    eq(select(2, HighlightNote.deleteNote(r.ui, { datetime = "nobody's" }, { store = r.store })), "gone")
+end)
+
+TestRunner:test("Delete highlight: KOReader's own delete, then the record's line", function()
+    local r = newReader()
+    local kept = HighlightNote.save(r.ui, selection("/body/p[3].0", "/body/p[3].22"), "Le matin se leva gris.",
+        { kind = "translate", action = "translate", store = r.store })
+    local other = HighlightNote.save(r.ui, selection("/body/p[7].0", "/body/p[7].9"), "Un mot.",
+        { kind = "translate", action = "translate", store = r.store })
+    eq(HighlightNote.deleteHighlight(r.ui, kept.annotation, { store = r.store }), true)
+    eq(r.deleted, 1)
+    eq(#r.list, 1)
+    eq(r.list[1], other.annotation, "the other highlight is untouched")
+    eq(r.store.data[HighlightNote.RECORD_KEY][kept.annotation.datetime], nil, "the deleted one's line is gone")
+    ok(r.store.data[HighlightNote.RECORD_KEY][other.annotation.datetime], "the other's stays")
+    eq(select(2, HighlightNote.deleteHighlight(r.ui, kept.annotation, { store = r.store })), "gone", "a second tap finds nothing")
+    eq(r.deleted, 1)
 end)
 
 TestRunner:test("piecesOf: what the note was made of, standing or not; the reader's edits do not change where it opens", function()

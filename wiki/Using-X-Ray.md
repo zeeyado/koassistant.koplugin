@@ -248,6 +248,7 @@ The X-Ray browser's ☰ menu holds:
 - **Carried entries: …**, when the book has carried entries: whether they also show inside the categories.
 - **Info**: model, progress, date, type, what it was built with (the preset, or Custom with its categories, depth and Current State), source, whether reasoning or web search was used, merges and the books background came from, how many checkpoints exist and which one is installed.
 - **Open Book**, when the X-Ray was opened from the file browser.
+- **Quick Settings**, last: the [panel](Setup-Gestures-and-Panels#quick-settings), over the browser.
 
 A version you are viewing gets **Install or delete this version…** (**Install or delete this checkpoint…** for a checkpoint) and **Other versions…** instead. A section X-Ray's menu has **Delete Section X-Ray** and **Info**.
 

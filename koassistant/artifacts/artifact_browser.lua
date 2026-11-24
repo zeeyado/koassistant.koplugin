@@ -658,7 +658,8 @@ function ArtifactBrowser:showBrowserMenuOptions(opts)
     end
 
     dialog = ButtonDialog:new{
-        buttons = {
+        -- (the rows, then the way to the settings: every full page's menu ends with it)
+        buttons = require("koassistant.ui.icon_menu").withSettings({
             -- Uniform browser carousel (maintainer 2026-08-13): the SAME three
             -- rows in the same order in every browser hamburger — " →" leaves
             -- this browser (the navClose rows), the grayed "● " row is the
@@ -696,7 +697,7 @@ function ArtifactBrowser:showBrowserMenuOptions(opts)
                 UIManager:close(dialog)
                 self_ref:showBrowseByType(opts)
             end }},
-        },
+        }, self_ref:getAskGPTInstance(), function() UIManager:close(dialog) end),
         shrink_unneeded_width = true,
         anchor = function()
             return self_ref.current_menu.title_bar.left_button.image.dimen, true

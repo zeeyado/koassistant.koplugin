@@ -53,11 +53,18 @@ the answer and this module builds no HTML of its own. Without a builder the
 popup shows `text` as plain text in KOReader's interface font (the X-Ray
 card's popup style).
 
+A kept note shown again carries the other sign in the same corner (`more`,
+its caller's rows): a tap on the sign or anywhere inside the popup opens them
+as a menu that hangs from that corner, the popup left standing under it, and
+a row closes both before it runs. Such a popup may be taller (NOTE_CAP): it
+is read for itself, a new answer against its page.
+
 Consumers: actions registered in the Minimal Popup settings
 (features.minimal_popup_actions, Translate and Quick Define by default;
 showResponseDialog decides; this module never reads settings), the X-Ray
 card, and a kept answer shown again when its passage is tapped (showForNote:
-the same popup, with no keep mark and KOReader's own note window behind a tap). "When it fits" mode rides opts.only_if_fits: the caller asks whether the
+the same popup, with the note's menu where a new answer has its keep mark).
+"When it fits" mode rides opts.only_if_fits: the caller asks whether the
 whole answer fits under the cap (hasOverflow: the laid-out content, so script
 density and font size are handled by construction) and falls back to the full
 viewer when it does not.
@@ -96,17 +103,24 @@ local MinimalPopup = InputContainer:extend{
     on_close = nil,         -- dismissed without expanding
     on_select = nil,        -- function(text, hold_duration, clear_highlight): a word or a passage held in the text
     keep = nil,             -- { kept, toggle = function(set), menu = function(set, close, anchor) }: the mark that keeps the answer
+    more = nil,             -- { rows = { { text, callback } | { separator = true }, ... }, title }: a kept note's own menu
+    cap_share = nil,        -- how tall the text may be, of the screen's height (CAP when nil)
 }
 
--- How tall the text may be, of the screen's height, before it scrolls
+-- How tall the text may be, of the screen's height, before it scrolls: a new
+-- answer, read against its page, and a kept note shown again, read for itself
 MinimalPopup.CAP = 0.45
+MinimalPopup.NOTE_CAP = 0.8
 MinimalPopup.STYLES = { box = true, panel = true }
--- The keep mark: its sign's box and a finger's margin around it, in
--- KOReader's screen units (scaleBySize), and each sign's font size (the tick
--- is the larger glyph of the two: the sizes make them one height)
+-- The sign in the frame's foot corner (the keep mark, or a kept note's menu
+-- sign): its box and a finger's margin around it, in KOReader's screen units
+-- (scaleBySize), and each sign's glyph and font size (the sizes make them one
+-- height). The menu sign is KOReader's own symbol font's, as the icons on its
+-- buttons are.
 MinimalPopup.KEEP_SIDE = 22
 MinimalPopup.KEEP_MARGIN = 14
-MinimalPopup.KEEP_FONT = { plus = 28, tick = 22 }
+MinimalPopup.KEEP_FONT = { plus = 28, tick = 22, more = 20 }
+MinimalPopup.SIGNS = { plus = "+", tick = "\u{2713}", more = "\u{F0C9}" }
 
 -- A hold on the box (KOReader's screen units): how far outside the frame's
 -- border a hold still takes the box (with the frame's own margin inside it,
@@ -156,14 +170,15 @@ end
 --- Where the text sits, pure. The box is the chat window's rectangle: its
 --- content width and its text inset, so the same text wraps the same way in
 --- the popup and in the window a tap opens. The panel is the screen's width.
+--- @param share how tall the text may be, of the screen's height (CAP when nil)
 --- @return table { panel, border, text_w, cap }
-function MinimalPopup.geometry(style, screen_w, screen_h, chat_w, inset, border)
+function MinimalPopup.geometry(style, screen_w, screen_h, chat_w, inset, border, share)
     local panel = style == "panel"
     return {
         panel = panel,
         border = panel and 0 or border,
         text_w = (panel and screen_w or chat_w) - 2 * inset,
-        cap = math.floor(screen_h * MinimalPopup.CAP),
+        cap = math.floor(screen_h * (share or MinimalPopup.CAP)),
     }
 end
 
@@ -205,16 +220,17 @@ function MinimalPopup.keepPlace(frame_w, frame_h, s, mirrored)
     }
 end
 
--- The mark: a plus until the answer is kept, a tick once it is (the tick of
--- KOReader's own menus). Signs of the interface font: only their strokes are
--- drawn, over whatever the frame shows there
-local function keepMark(kept, side)
+-- The corner's sign: a plus until the answer is kept, a tick once it is (the
+-- tick of KOReader's own menus), three bars for a kept note's menu. Signs of
+-- the interface font and its fallbacks: only their strokes are drawn, over
+-- whatever the frame shows there
+local function cornerSign(which, side)
     return CenterContainer:new{
         dimen = Geom:new{ w = side, h = side },
         TextWidget:new{
-            text = kept and "\u{2713}" or "+",
-            face = Font:getFace("cfont", kept and MinimalPopup.KEEP_FONT.tick or MinimalPopup.KEEP_FONT.plus),
-            bold = true,
+            text = MinimalPopup.SIGNS[which],
+            face = Font:getFace("cfont", MinimalPopup.KEEP_FONT[which]),
+            bold = which ~= "more",
         },
     }
 end
@@ -270,7 +286,7 @@ function MinimalPopup:init()
     local Viewer = require("koassistant.ui.chatgptviewer")
     local inset = Viewer.text_padding + Viewer.text_margin
     local g = MinimalPopup.geometry(self.style, screen_w, screen_h,
-        require("koassistant.ui.constants").CHAT_WIDTH(), inset, Size.border.window)
+        require("koassistant.ui.constants").CHAT_WIDTH(), inset, Size.border.window, self.cap_share)
     local build = self.content or function(w, h, dialog)
         return MinimalPopup.plainWidget(self.text, w, h, dialog, self)
     end
@@ -286,10 +302,11 @@ function MinimalPopup:init()
     self.scroll_w.onTapScrollText = function() return false end
 
     local pad_bottom = MinimalPopup.footPadding(inset, blankUnder(self.scroll_w, self.text_h), Size.padding.small)
-    -- The keep mark's sizes, when the answer can be kept. Under a text that
-    -- scrolls the foot is as tall as the sign, so the scroll bar ends above it
+    -- The corner sign's sizes: the keep mark when the answer can be kept, a
+    -- kept note's menu sign. Under a text that scrolls the foot is as tall as
+    -- the sign, so the scroll bar ends above it
     local sign
-    if self.keep then
+    if self.keep or self.more then
         sign = {
             side = Screen:scaleBySize(MinimalPopup.KEEP_SIDE), gap = Screen:scaleBySize(1),
             border = g.border, margin = Screen:scaleBySize(MinimalPopup.KEEP_MARGIN),
@@ -316,8 +333,8 @@ function MinimalPopup:init()
         local size = self.frame:getSize()
         local place = MinimalPopup.keepPlace(size.w, size.h, sign, BD.mirroredUILayout() == true)
         self.keep_place = place
-        self.kept = self.keep.kept == true
-        self.keep_mark = keepMark(self.kept, place.sign.w)
+        self.kept = self.keep ~= nil and self.keep.kept == true
+        self.keep_mark = cornerSign(self.more and "more" or (self.kept and "tick" or "plus"), place.sign.w)
         self.keep_holder = WidgetContainer:new{
             dimen = Geom:new{ w = place.sign.w, h = place.sign.h },
             self.keep_mark,
@@ -366,9 +383,9 @@ function MinimalPopup:init()
             -- that starts on the text is the content's (it scrolls)
             self.ges_events.Swipe = { GestureRange:new{ ges = "swipe", range = whole } }
         end
-        if self.on_select or self.keep or self.movable then
-            -- A hold is this popup's to hand out (onPopupHold): the keep
-            -- mark's when it starts on the mark, the box's where it lands on
+        if self.on_select or self.keep or self.more or self.movable then
+            -- A hold is this popup's to hand out (onPopupHold): the corner
+            -- sign's when it starts on the sign, the box's where it lands on
             -- no text, else the text's (the content widget selects, the chat
             -- window's wiring; the release hands it this callback)
             self.ges_events.PopupHold = { GestureRange:new{ ges = "hold", range = whole } }
@@ -494,7 +511,7 @@ function MinimalPopup:setKept(kept)
     kept = kept == true
     if not self.keep_holder or self.kept == kept then return end
     self.kept = kept
-    self.keep_mark = keepMark(kept, self.keep_place.sign.w)
+    self.keep_mark = cornerSign(kept and "tick" or "plus", self.keep_place.sign.w)
     self.keep_holder[1] = self.keep_mark
     -- the popup is drawn again (the sign has no ground of its own to cover
     -- the old one), the screen refreshed where the sign is
@@ -503,9 +520,51 @@ function MinimalPopup:setKept(kept)
     end)
 end
 
+--- A kept note's menu (`more`): its caller's rows, hanging from the popup's
+--- corner that holds the sign, as the keep mark's choices do, the popup left
+--- standing under them. A row closes the menu and the popup, then runs: each
+--- leads somewhere else (an editor, KOReader's own window) or takes the note
+--- away.
+function MinimalPopup:openMore()
+    local ButtonDialog = require("ui/widget/buttondialog")
+    local dialog
+    local buttons = {}
+    for _idx, row in ipairs(self.more.rows) do
+        if row.separator then
+            buttons[#buttons + 1] = {}
+        else
+            buttons[#buttons + 1] = {{
+                text = row.text,
+                align = "left",
+                callback = function()
+                    UIManager:close(dialog)
+                    self:onClose()
+                    row.callback()
+                end,
+            }}
+        end
+    end
+    local place = self:keepAnchor()
+    dialog = ButtonDialog:new{
+        title = self.more.title,
+        -- the title is a note under the rows' own size (where the answers came from)
+        info_face = Font:getFace("x_smallinfofont"),
+        buttons = buttons,
+        shrink_unneeded_width = true,
+        anchor = function() return place(dialog) end,
+    }
+    UIManager:show(dialog)
+    return dialog
+end
+
 function MinimalPopup:onTap(_arg, ges)
     if self.keep and self:onKeepMark(ges.pos) then
         self.keep.toggle(function(kept) self:setKept(kept) end)
+        return true
+    end
+    if self.more and (self:onKeepMark(ges.pos)
+            or (self.frame.dimen and ges.pos:intersectWith(self.frame.dimen))) then
+        self:openMore()
         return true
     end
     if self.frame.dimen and ges.pos:intersectWith(self.frame.dimen) then
@@ -603,9 +662,13 @@ function MinimalPopup:onBoxLifted()
 end
 
 function MinimalPopup:onPopupHold(arg, ges)
-    self.keep_held = self.keep ~= nil and self:onKeepMark(ges.pos)
+    self.keep_held = (self.keep ~= nil or self.more ~= nil) and self:onKeepMark(ges.pos)
     if self.keep_held then
-        self.keep.menu(function(kept) self:setKept(kept) end, function() self:onClose() end, self:keepAnchor())
+        if self.more then
+            self:openMore()
+        else
+            self.keep.menu(function(kept) self:setKept(kept) end, function() self:onClose() end, self:keepAnchor())
+        end
         return true
     end
     self.box_held = nil
@@ -710,7 +773,9 @@ end
 -- @param opts { history, viewer, style, selection_data, ui, only_if_fits,
 --               on_expand, on_close, kept, auto; without a viewer also
 --               rtl_language, features, is_dictionary; text = the answer
---               itself, for a caller that has no history (showForNote) }
+--               itself, for a caller that has no history (showForNote), whose
+--               are also more = a kept note's menu { rows, title } and
+--               cap_share = how tall the text may be }
 --        viewer: the chat window a tap opens (built, not shown). The popup
 --        shows the answer the way that window would (answerWidget): its view
 --        mode, font, size, alignment and direction; a word or a passage held
@@ -752,6 +817,8 @@ function MinimalPopup.showForResponse(opts)
         ui = opts.ui,
         on_expand = opts.on_expand,
         on_close = opts.on_close,
+        more = opts.more,
+        cap_share = opts.cap_share,
     }
     local viewer = opts.viewer
     if viewer and viewer.answerWidget then
@@ -854,22 +921,26 @@ function MinimalPopup.noteKind(parts)
     return kind
 end
 
---- A kept answer shown again: the note of a highlighted passage, when its
---- saved answers came from actions that show in this popup
---- (HighlightNote.popupParts decides; its caller is the tap on the passage).
---- The popup the answer came in when it was new: the drawing of a chat
+--- A kept answer shown again: the note of a highlighted passage the plugin
+--- saved an answer in (HighlightNote.popupParts decides; its caller is the
+--- tap on the passage). The popup a new answer comes in, drawn by a chat
 --- window of the note's kind (a translate window keeps a translation's lines
 --- apart, a dictionary window follows Text Mode for Dictionary and the
 --- dictionary language), built for this and never shown, so a word or a
 --- passage held in the text is that window's too. The note is shown as it
---- is now, what the reader has written in it since included. No keep mark:
---- the answer is kept, and its note is the reader's to change in KOReader's
---- own window, which a tap inside opens (on_expand).
+--- is now, what the reader has written in it since included, as tall as it
+--- is up to NOTE_CAP of the screen, and it scrolls beyond that (never handed
+--- to another window for its length: When it fits is about new answers).
+--- No keep mark: the answer is kept. In its corner the note's menu (`rows`):
+--- what can be done with the note, behind a tap on the sign or anywhere
+--- inside; without rows a tap inside is on_expand, as for a new answer.
 -- @param opts { parts = the note's saved answers on record (HighlightNote.piecesOf: each with its kind,
 --               and with from and text where it still stands as saved); note = the note's text as it is now
 --               (without it the pieces' texts are shown one under the other); features = the reader's settings;
---               plugin, ui = the reader; boxes = the highlight's rectangles on screen; on_expand }
--- @return boolean shown (false = it does not fit under "When it fits": KOReader's window is the caller's to open)
+--               plugin, ui = the reader; boxes = the highlight's rectangles on screen;
+--               rows = the menu's rows { { text, callback } | { separator = true } }, info = its title
+--               (where the answers came from); on_expand }
+-- @return boolean shown (false = there is nothing to show: KOReader's window is the caller's to open)
 function MinimalPopup.showForNote(opts)
     local parts = opts.parts
     if type(parts) ~= "table" or #parts == 0 then return false end
@@ -933,7 +1004,8 @@ function MinimalPopup.showForNote(opts)
         style = features.minimal_popup_style,
         selection_data = opts.boxes and { sboxes = opts.boxes } or nil,
         ui = opts.ui,
-        only_if_fits = (features.minimal_popup_mode or "short") == "short",
+        cap_share = MinimalPopup.NOTE_CAP,
+        more = type(opts.rows) == "table" and #opts.rows > 0 and { rows = opts.rows, title = opts.info } or nil,
         on_expand = function()
             release()
             if opts.on_expand then opts.on_expand() end

@@ -3,10 +3,11 @@
 -- Every tap on a highlight goes through one function of KOReader's,
 -- ReaderHighlight:showHighlightNoteOrDialog. main.lua puts two things in
 -- front of it for a note that is the plugin's own: what KOReader is told of
--- the note's format follows the note as it is now, and a note of answers
--- whose actions show in the minimal popup opens in that popup again, where a
--- tap inside opens KOReader's own window. Everything else, and any failure,
--- is KOReader's window as before.
+-- the note's format follows the note as it is now, and a note the plugin
+-- saved an answer in, whatever action made it, opens in the plugin's own
+-- popup, with the note's menu behind a tap: KOReader's buttons, KOReader's
+-- own window, and where the answers came from. Everything else, and any
+-- failure, is KOReader's window as before.
 --
 -- main.lua's own two functions, cut from the source and run on a stand-in
 -- reader, with the real note writer's record and a stand-in for the popup.
@@ -39,6 +40,12 @@ local HighlightNote = require("koassistant.chat.highlight_note")
 -- process runs the suite)
 local POPUP = "koassistant.ui.minimal_popup"
 local saved_popup = package.loaded[POPUP]
+-- KOReader's event, as the writer's Delete note sends one (put back too)
+local saved_event = package.loaded["ui/event"]
+package.loaded["ui/event"] = { new = function(_cls, name, arg) return { name = name, arg = arg } end }
+local UIManager = require("ui/uimanager")
+local saved_setDirty = rawget(UIManager, "setDirty")
+UIManager.setDirty = function() end
 local popup = { calls = {}, shows = true, fails = false }
 package.loaded[POPUP] = {
     showForNote = function(opts)
@@ -65,6 +72,7 @@ local function cut(name)
 end
 local AskGPT = assert(load(table.concat({
     "local logger = ...",
+    "local _ = function(text) return text end",
     "local AskGPT = {}",
     cut("syncKeptNotePopup"),
     cut("_showKeptNote"),
@@ -82,12 +90,20 @@ local function newReader(features)
     }
     r.list = {}
     r.original = function(_hl, index) r.opened[#r.opened + 1] = index end
+    r.edited, r.menus, r.deleted, r.events = {}, {}, {}, {}
     r.hl = {
         showHighlightNoteOrDialog = r.original,
         getHighlightVisibleBoxes = function(_hl, _index) return r.rects end,
+        -- KOReader's own, as the note's menu ends in them
+        dialog = "the reader's dialog",
+        editNote = function(_hl, index) r.edited[#r.edited + 1] = index end,
+        showHighlightDialog = function(_hl, index) r.menus[#r.menus + 1] = index end,
+        deleteHighlight = function(_hl, index) r.deleted[#r.deleted + 1] = table.remove(r.list, index) end,
+        writePdfAnnotation = function() end,
     }
     r.plugin = setmetatable({
-        ui = { highlight = r.hl, annotation = { annotations = r.list }, document = { file = "/books/a.epub" } },
+        ui = { highlight = r.hl, annotation = { annotations = r.list }, document = { file = "/books/a.epub" },
+            handleEvent = function(_ui, event) r.events[#r.events + 1] = event end },
         settings = { readSetting = function() return r.features end },
         _openBookDS = function() return r.store end,
     }, { __index = AskGPT })
@@ -141,34 +157,81 @@ TestRunner:test("a kept translation: the popup, with the note's pieces and the h
     TestRunner:assertTrue(opts.boxes[1] ~= r.rects[1] and opts.boxes[1].live == nil, "a copy, never KOReader's own table")
 end)
 
-TestRunner:test("a tap inside the popup: KOReader's own note window, for the highlight where it stands now", function()
+-- A row of the menu the popup was handed, by its words
+local function row(opts, text)
+    for _i, item in ipairs(opts.rows) do
+        if item.text == text then return item end
+    end
+    error("the menu has no row " .. text)
+end
+
+TestRunner:test("the note's menu: KOReader's buttons and its window, each on the highlight where it stands now", function()
     reset()
     local r = newReader()
     r.plugin:syncKeptNotePopup()
     local item = kept(r, { TRANSLATION })
     r.hl:showHighlightNoteOrDialog(1)
+    local opts = popup.calls[1]
+    local words = {}
+    for i, entry in ipairs(opts.rows) do words[i] = entry.separator and "--" or entry.text end
+    TestRunner:assertEqual(table.concat(words, " | "),
+        "Edit note | Open in KOReader's note window | Highlight menu | -- | Delete note | Delete highlight",
+        "what leads on first, what takes away last and apart")
+    TestRunner:assertEqual(opts.on_expand, nil, "a tap inside is the menu, not a window")
     -- the reader's list changed while the popup stood (a highlight made above this one)
     table.insert(r.list, 1, { datetime = "2026-11-23 09:00:00", drawer = "lighten" })
-    popup.calls[1].on_expand()
+    row(opts, "Edit note").callback()
+    TestRunner:assertEqual(r.list[r.edited[1]], item, "KOReader's editor, on the same highlight at its place now")
+    row(opts, "Open in KOReader's note window").callback()
+    TestRunner:assertEqual(r.list[r.opened[1]], item, "KOReader's own window, not the popup again")
+    TestRunner:assertEqual(#popup.calls, 1)
+    row(opts, "Highlight menu").callback()
+    TestRunner:assertEqual(r.list[r.menus[1]], item)
+    -- Delete note: the note goes, the highlight stays, the record's line leaves
+    row(opts, "Delete note").callback()
+    TestRunner:assertEqual(item.note, nil)
+    TestRunner:assertEqual(#r.list, 2)
+    TestRunner:assertEqual(r.events[1].arg.nb_notes_added, -1, "KOReader's own event")
+    TestRunner:assertEqual(r.store.data[HighlightNote.RECORD_KEY][item.datetime], nil)
+    -- Delete highlight, on another kept passage
+    local second = kept(r, { TRANSLATION })
+    r.hl:showHighlightNoteOrDialog(3)
+    row(popup.calls[2], "Delete highlight").callback()
+    TestRunner:assertEqual(r.deleted[1], second)
+    TestRunner:assertEqual(r.store.data[HighlightNote.RECORD_KEY][second.datetime], nil)
+    -- a row tapped for a highlight that is gone meanwhile: nothing, no error
+    row(popup.calls[2], "Highlight menu").callback()
+    row(popup.calls[2], "Open in KOReader's note window").callback()
+    row(popup.calls[2], "Edit note").callback()
+    TestRunner:assertEqual(#r.menus, 1)
     TestRunner:assertEqual(#r.opened, 1)
-    TestRunner:assertEqual(r.list[r.opened[1]], item, "the same highlight, at its place now")
-    -- the highlight deleted meanwhile: nothing to open, no error
-    table.remove(r.list, 2)
-    popup.calls[1].on_expand()
-    TestRunner:assertEqual(#r.opened, 1)
+    TestRunner:assertEqual(#r.edited, 1)
 end)
 
-TestRunner:test("a note the popup does not take: KOReader's window, as for any note", function()
+TestRunner:test("the menu's title says where the answers came from", function()
     reset()
     local r = newReader()
     r.plugin:syncKeptNotePopup()
-    kept(r, { EXPLANATION })                                   -- Explain shows in a chat window
-    kept(r, { TRANSLATION, EXPLANATION })                      -- one of its answers does
+    local item = kept(r, { TRANSLATION })
+    local line = r.store.data[HighlightNote.RECORD_KEY][item.datetime]
+    line.parts[1].action_name, line.parts[1].model = "Translate", "small-model"
+    line.parts[1].at = os.time({ year = 2026, month = 11, day = 24, hour = 12 })
+    r.hl:showHighlightNoteOrDialog(1)
+    TestRunner:assertEqual(popup.calls[1].info, "Translate · small-model · 2026-11-24")
+end)
+
+TestRunner:test("every note the plugin saved an answer in opens in the popup; a note of the reader's own is KOReader's", function()
+    reset()
+    local r = newReader()
+    r.plugin:syncKeptNotePopup()
+    kept(r, { EXPLANATION })                                   -- a new Explain answer opens in a chat window
+    kept(r, { TRANSLATION, EXPLANATION })
     r.list[#r.list + 1] = { datetime = "2026-11-23 11:00:00", note = "my own note" }   -- no record
     r.list[#r.list + 1] = { datetime = "2026-11-23 11:00:01", drawer = "lighten" }     -- no note: the highlight's menu
     for index = 1, 4 do r.hl:showHighlightNoteOrDialog(index) end
-    TestRunner:assertEqual(#popup.calls, 0)
-    TestRunner:assertEqual(table.concat(r.opened, ","), "1,2,3,4")
+    TestRunner:assertEqual(#popup.calls, 2, "the two notes with saved answers")
+    TestRunner:assertEqual(#popup.calls[2].parts, 2, "the whole note, both kinds")
+    TestRunner:assertEqual(table.concat(r.opened, ","), "3,4", "the other two are KOReader's, as before")
 end)
 
 TestRunner:test("a note the reader has written in since still opens in the popup, as it is now", function()
@@ -203,30 +266,30 @@ TestRunner:test("a note the reader has written in since still opens in the popup
     TestRunner:assertEqual(table.concat(r.opened, ","), "3,3")
 end)
 
-TestRunner:test("the reader's switches: the setting off, the popup off, Translate taken off the popup's list", function()
+TestRunner:test("the reader's switch sends a kept passage to KOReader's window; how new answers are shown does not", function()
+    reset()
+    local off = newReader({ kept_answer_popup = false })
+    off.plugin:syncKeptNotePopup()
+    kept(off, { TRANSLATION })
+    off.hl:showHighlightNoteOrDialog(1)
+    TestRunner:assertEqual(#popup.calls, 0)
+    TestRunner:assertEqual(#off.opened, 1)
     for _i, features in ipairs({
-        { kept_answer_popup = false },
-        { minimal_popup_mode = "off" },
-        { minimal_popup_actions = { "quick_define" } },
+        { minimal_popup_mode = "off" },                     -- the popup off for new answers
+        { minimal_popup_actions = { "quick_define" } },     -- Translate taken off its list
+        { minimal_popup_mode = "short" },                   -- When it fits is about new answers
     }) do
         reset()
         local r = newReader(features)
         r.plugin:syncKeptNotePopup()
         kept(r, { TRANSLATION })
         r.hl:showHighlightNoteOrDialog(1)
-        TestRunner:assertEqual(#popup.calls, 0)
-        TestRunner:assertEqual(#r.opened, 1)
+        TestRunner:assertEqual(#popup.calls, 1)
+        TestRunner:assertEqual(#r.opened, 0)
     end
-    -- and an action put on the list since its answer was saved
-    reset()
-    local r = newReader({ minimal_popup_actions = { "explain" } })
-    r.plugin:syncKeptNotePopup()
-    kept(r, { EXPLANATION })
-    r.hl:showHighlightNoteOrDialog(1)
-    TestRunner:assertEqual(#popup.calls, 1, "today's list decides, not the day it was saved")
 end)
 
-TestRunner:test("the popup says no (the answer does not fit under When it fits): KOReader's window", function()
+TestRunner:test("the popup has nothing to show: KOReader's window", function()
     reset()
     local r = newReader()
     r.plugin:syncKeptNotePopup()
@@ -255,7 +318,8 @@ end)
 
 TestRunner:test("the note's format is settled before KOReader shows the note", function()
     reset()
-    local r = newReader()
+    -- (the popup switched off: KOReader's window is what shows the format)
+    local r = newReader({ kept_answer_popup = false })
     r.plugin:syncKeptNotePopup()
     -- an explanation kept before the plugin named formats: named at the first tap
     local item = kept(r, { EXPLANATION })
@@ -269,7 +333,6 @@ TestRunner:test("the note's format is settled before KOReader shows the note", f
     seen = nil
     r.hl:showHighlightNoteOrDialog(1)
     TestRunner:assertEqual(seen, "md", "an added line does not take the formatting away")
-    TestRunner:assertEqual(#popup.calls, 0, "and a note with the reader's words in it is KOReader's window's")
     -- the note deleted in KOReader's window: the mark is taken back before anything else is shown
     item.note = nil
     seen = "not asked"
@@ -283,6 +346,14 @@ TestRunner:test("the note's format is settled before KOReader shows the note", f
     local line = kept(t, { TRANSLATION })
     t.hl:showHighlightNoteOrDialog(1)
     TestRunner:assertEqual(line.note_format, nil)
+    -- and with the popup on, the format is settled before the popup shows the note
+    reset()
+    local p = newReader()
+    p.plugin:syncKeptNotePopup()
+    local shown = kept(p, { EXPLANATION })
+    p.hl:showHighlightNoteOrDialog(1)
+    TestRunner:assertEqual(#popup.calls, 1)
+    TestRunner:assertEqual(shown.note_format, "md", "so KOReader's window, one row further, draws it too")
 end)
 
 TestRunner:test("a PDF: no rectangles are handed over (the popup stands in the middle, as a new answer's does)", function()
@@ -328,5 +399,7 @@ TestRunner:test("both starts install it: the plugin's own start and the reader's
 end)
 
 package.loaded[POPUP] = saved_popup
+package.loaded["ui/event"] = saved_event
+UIManager.setDirty = saved_setDirty
 
 return TestRunner:summary()

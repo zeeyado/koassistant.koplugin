@@ -8808,6 +8808,8 @@ function XrayBrowser:showOptions()
     if self.options_dialog then
         UIManager:close(self.options_dialog)
     end
+    -- every full page's menu ends with the way to the settings (IconMenu)
+    require("koassistant.ui.icon_menu").withSettings(buttons, self.metadata.plugin, closeOptions)
     self.options_dialog = ButtonDialog:new{
         buttons = buttons,
         shrink_unneeded_width = true,

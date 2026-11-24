@@ -1993,7 +1993,7 @@ local SettingsSchema = {
                     text = _("Show Saved Answers in the Minimal Popup"),
                     path = "features.kept_answer_popup",
                     default = true,
-                    help_text = _("A tap on a highlighted passage whose note is an answer KOAssistant saved shows that answer in the minimal popup again, beside the passage. It applies to the actions on the Minimal Popup list, while the popup is on. Tap the popup for KOReader's own note window (Edit note, Delete note, Highlight menu). Off: KOReader's note window opens at once."),
+                    help_text = _("A tap on a highlighted passage whose note holds an answer KOAssistant saved shows the note in the minimal popup, beside the passage, with its formatting. It applies to every saved answer, whatever action it came from and whether or not the popup is on for new answers. Tap the popup for the note's menu: Edit note, Delete note, Highlight menu, KOReader's own note window, and where the answer came from. Off: KOReader's note window opens at once."),
                 },
                 {
                     -- Which saved answers go into a book's file for Anki

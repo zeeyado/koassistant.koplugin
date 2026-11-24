@@ -72,6 +72,8 @@ function ChatHistoryDialog:showChatListMenuOptions(ui, document, chat_history_ma
         end }},
     }
 
+    -- every full page's menu ends with the way to the settings (IconMenu)
+    require("koassistant.ui.icon_menu").withSettings(buttons, ui and ui.koassistant, function() safeClose(dialog) end)
     dialog = ButtonDialog:new{
         buttons = buttons,
         shrink_unneeded_width = true,
@@ -148,6 +150,8 @@ function ChatHistoryDialog:showDocumentMenuOptions(ui, chat_history_manager, con
         end }},
     }
 
+    -- every full page's menu ends with the way to the settings (IconMenu)
+    require("koassistant.ui.icon_menu").withSettings(buttons, ui and ui.koassistant, function() safeClose(dialog) end)
     dialog = ButtonDialog:new{
         buttons = buttons,
         shrink_unneeded_width = true,
@@ -202,6 +206,8 @@ function ChatHistoryDialog:showDomainBrowserMenuOptions(ui, chat_history_manager
         end }},
     }
 
+    -- every full page's menu ends with the way to the settings (IconMenu)
+    require("koassistant.ui.icon_menu").withSettings(buttons, ui and ui.koassistant, function() safeClose(dialog) end)
     dialog = ButtonDialog:new{
         buttons = buttons,
         shrink_unneeded_width = true,
@@ -256,6 +262,8 @@ function ChatHistoryDialog:showTagBrowserMenuOptions(ui, chat_history_manager, c
            callback = function() end }},
     }
 
+    -- every full page's menu ends with the way to the settings (IconMenu)
+    require("koassistant.ui.icon_menu").withSettings(buttons, ui and ui.koassistant, function() safeClose(dialog) end)
     dialog = ButtonDialog:new{
         buttons = buttons,
         shrink_unneeded_width = true,
@@ -2946,7 +2954,7 @@ function ChatHistoryDialog:showStarredMenuOptions(ui, chat_history_manager, conf
     end
 
     dialog = ButtonDialog:new{
-        buttons = {
+        buttons = require("koassistant.ui.icon_menu").withSettings({
             {{ text = _("Chat History"), align = "left", callback = function()
                 local mc = navClose()
                 safeClose(mc)
@@ -2964,7 +2972,7 @@ function ChatHistoryDialog:showStarredMenuOptions(ui, chat_history_manager, conf
                 local AskGPT = ui and ui.koassistant
                 if AskGPT then AskGPT:showArtifactBrowser() end
             end }},
-        },
+        }, ui and ui.koassistant, function() safeClose(dialog) end),
         shrink_unneeded_width = true,
         anchor = function()
             return self_ref.current_menu.title_bar.left_button.image.dimen, true

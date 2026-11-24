@@ -436,7 +436,8 @@ end
 
 --- Title-bar hamburger (A4): book-level operations — the X-Ray browser's
 --- title_bar_left_icon idiom; the page was the only full-screen KOA surface
---- without one. The rows hang from the icon, as every page's do (IconMenu).
+--- without one. The rows hang from the icon, as every page's do, and end
+--- with the way to the settings (IconMenu).
 local function showHamburger(ctx)
     local InfoMessage = require("ui/widget/infomessage")
     require("koassistant.ui.icon_menu").show(BookPage._menu, {
@@ -473,7 +474,7 @@ local function showHamburger(ctx)
             text = _("Delete all artifacts…"),
             callback = function() confirmDeleteAll(ctx) end,
         },
-    })
+    }, ctx.plugin)
 end
 
 --- Show the book page.

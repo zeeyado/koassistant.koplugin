@@ -5166,11 +5166,16 @@ end
 -- is made: the kind of answer, the action the chat was started with (its id
 -- where the request named one, a highlight action; its name as the reader saw
 -- it), where the answer starts in the saved text (after the action's line),
--- and the chat itself: the id it is saved under, when it is saved (the way back)
+-- what answered (the chat's model and provider: where an answer came from,
+-- for a reader who asks later), and the chat itself: the id it is saved
+-- under, when it is saved (the way back)
 function ChatGPTViewer:_noteOrigin(history, spec, lead)
-  local features = self.configuration and self.configuration.features or {}
+  local config = self.configuration or {}
+  local features = config.features or {}
   return { extend = spec.extend, kind = self:noteKind(), action = features._note_action,
     action_name = history.prompt_action, lead = lead,
+    model = history.getModel and history:getModel() or config.model,
+    provider = history.provider or config.provider,
     chat = history.chat_id or history.conversation_id }
 end
 

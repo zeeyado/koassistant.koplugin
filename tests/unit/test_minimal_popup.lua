@@ -114,6 +114,9 @@ TestRunner:test("where the text sits: the box is the chat window's rectangle, th
     TestRunner:assertEqual(panel.cap, box.cap, "one cap for both shapes")
     TestRunner:assertEqual(MinimalPopup.geometry(nil, 1072, 1448, 1018, 22, 2).panel, false, "the box when no shape is named")
     TestRunner:assertEqual(MinimalPopup.geometry("sideways", 1072, 1448, 1018, 22, 2).panel, false, "and for a shape that is not one")
+    -- a kept note shown again may be taller: the caller says how much of the screen
+    TestRunner:assertEqual(MinimalPopup.geometry("box", 1072, 1448, 1018, 22, 2, MinimalPopup.NOTE_CAP).cap, math.floor(1448 * 0.8))
+    TestRunner:assertEqual(MinimalPopup.geometry("panel", 1072, 1448, 1018, 22, 2, 0.8).cap, math.floor(1448 * 0.8))
 end)
 
 -- ── The flow, on stand-ins ──────────────────────────────────────────────────
@@ -1061,17 +1064,106 @@ TestRunner:test("a note the reader has written in: shown as it is now, each answ
     end)
 end)
 
-TestRunner:test("When it fits: a note taller than the popup is handed back; Always shows it", function()
-    withNoteWindow(CAP * 3, function(made)
-        local parts = { { kind = "translate", text = "long" } }
-        TestRunner:assertEqual(MinimalPopup.showForNote({ parts = parts, features = {} }), false, "the default mode")
-        TestRunner:assertEqual(shown, nil, "nothing shown: KOReader's window is the caller's to open")
-        TestRunner:assertEqual(made[1].freed, 1, "the window built to measure it is let go")
-        TestRunner:assertEqual(MinimalPopup.showForNote({ parts = parts, features = { minimal_popup_mode = "always" } }), true)
-        TestRunner:assertTrue(shown ~= nil and shown:hasOverflow(), "shown, scrolling")
+TestRunner:test("a kept note is shown whatever its length: as tall as it is up to four fifths of the screen, then it scrolls", function()
+    local NOTE_CAP = math.floor(Screen:getHeight() * MinimalPopup.NOTE_CAP)
+    TestRunner:assertTrue(NOTE_CAP > CAP, "taller than a new answer's popup may be")
+    local parts = { { kind = "translate", text = "long" } }
+    -- taller than a new answer's cap and under the note's: whole, nothing to scroll
+    withNoteWindow(CAP + 50, function(made)
+        TestRunner:assertEqual(MinimalPopup.showForNote({ parts = parts, features = {} }), true,
+            "the default mode, When it fits, is about new answers")
+        TestRunner:assertEqual(shown.cap, NOTE_CAP)
+        TestRunner:assertEqual(shown:hasOverflow(), false, "shown whole")
+        TestRunner:assertEqual(made[1].freed, 0)
+    end)
+    -- taller than that: it scrolls, in the popup, whatever the reader's When setting
+    withNoteWindow(NOTE_CAP * 2, function()
+        for _i, mode in ipairs({ "short", "always", "off" }) do
+            shown = nil
+            TestRunner:assertEqual(MinimalPopup.showForNote({ parts = parts, features = { minimal_popup_mode = mode } }), true, mode)
+            TestRunner:assertTrue(shown ~= nil and shown:hasOverflow(), mode .. ": shown, scrolling")
+        end
+    end)
+    -- a new answer's popup keeps its own cap
+    withWidgets(function()
+        MinimalPopup.showForResponse({ history = history("An answer."), viewer = keepingViewer({}) })
+        TestRunner:assertEqual(shown.cap, CAP)
     end)
     TestRunner:assertEqual(MinimalPopup.showForNote({ parts = {}, features = {} }), false)
     TestRunner:assertEqual(MinimalPopup.showForNote({ features = {} }), false)
+end)
+
+TestRunner:test("a kept note's menu: its sign in the corner; a tap on the sign or anywhere inside opens the rows, hanging from the popup's corner", function()
+    withNoteWindow(100, function(made)
+        local ran, expanded = {}, 0
+        local rows = {
+            { text = "Edit note", callback = function() ran[#ran + 1] = "edit" end },
+            { separator = true },
+            { text = "Delete note", callback = function() ran[#ran + 1] = "delete" end },
+        }
+        MinimalPopup.showForNote({ parts = { { kind = "translate", text = "Une ligne." } }, features = {},
+            rows = rows, info = "Translate · small-model · 2026-11-24",
+            on_expand = function() expanded = expanded + 1 end })
+        local p = shown
+        TestRunner:assertEqual(p.keep, nil, "no keep mark: the answer is kept")
+        TestRunner:assertTrue(p.more ~= nil and p.keep_mark ~= nil, "the menu's sign")
+        TestRunner:assertEqual(p.keep_mark[1].text, MinimalPopup.SIGNS.more)
+        TestRunner:assertEqual(p.keep_holder.overlap_offset[1], 600 - 1 - SIDE, "in the corner a new answer's mark has")
+        painted(p)
+        local closes = {}
+        local real_close = UIManager.close
+        UIManager.close = function(_um, w) closes[#closes + 1] = w end
+        local ok, err = pcall(function()
+            -- a tap inside: the menu, the popup left standing under it
+            TestRunner:assertEqual(p:onTap(nil, { pos = at(300, 150) }), true)
+            local menu = shown
+            TestRunner:assertTrue(menu ~= p and type(menu.buttons) == "table", "a menu opens")
+            TestRunner:assertEqual(#closes, 0, "the popup stays")
+            TestRunner:assertEqual(expanded, 0, "and no other window opens")
+            TestRunner:assertEqual(menu.title, "Translate · small-model · 2026-11-24", "its title: where the answer came from")
+            TestRunner:assertEqual(menu.shrink_unneeded_width, true, "as wide as its rows")
+            TestRunner:assertEqual(#menu.buttons, 3)
+            TestRunner:assertEqual(menu.buttons[1][1].text, "Edit note")
+            TestRunner:assertEqual(menu.buttons[1][1].align, "left")
+            TestRunner:assertEqual(#menu.buttons[2], 0, "the double line")
+            -- it hangs from the popup's corner that holds the sign, as the keep mark's choices do
+            -- (a box at 100,100, 600 by 200, on a screen 600 tall: a menu 300 by 250 fits under it)
+            menu.movable = { dimen = { w = 300, h = 250 } }
+            local where, below = menu.anchor()
+            TestRunner:assertEqual(where.x, 100 + 600 - 300, "its far edge on the popup's")
+            TestRunner:assertEqual(where.y, 100)
+            TestRunner:assertEqual(where.h, 200, "under the popup, nothing of the note covered")
+            TestRunner:assertEqual(below, true)
+            -- a row closes the menu and the popup, then runs
+            menu.buttons[3][1].callback()
+            TestRunner:assertEqual(closes[1], menu)
+            TestRunner:assertEqual(closes[2], p)
+            TestRunner:assertEqual(ran[1], "delete")
+            TestRunner:assertEqual(made[1].freed, 1, "the window that was never shown is let go")
+            -- a tap on the sign opens the same menu, and so does a hold on it, at once
+            shown = nil
+            p:onTap(nil, { pos = at(ON_SIGN[1], ON_SIGN[2]) })
+            TestRunner:assertTrue(shown ~= nil and shown.buttons ~= nil, "a tap on the sign")
+            shown = nil
+            TestRunner:assertEqual(p:onPopupHold(nil, { pos = at(ON_SIGN[1], ON_SIGN[2]) }), true)
+            TestRunner:assertTrue(shown ~= nil and shown.buttons ~= nil, "a hold: while the finger still rests there")
+            TestRunner:assertEqual(p:onPopupHoldPan(nil, { pos = at(ON_SIGN[1], ON_SIGN[2]) }), true)
+            TestRunner:assertEqual(p:onPopupHoldRelease(nil, { pos = at(ON_SIGN[1], ON_SIGN[2]) }), true, "the rest of that hold opens nothing more")
+            -- a tap outside closes the popup, as ever
+            closes = {}
+            p:onTap(nil, { pos = at(10, 10) })
+            TestRunner:assertEqual(closes[1], p)
+            TestRunner:assertEqual(expanded, 0)
+        end)
+        UIManager.close = real_close
+        if not ok then error(err, 0) end
+    end)
+    -- a new answer's popup has no such menu: its corner is the keep mark's, a tap inside the full window
+    withWidgets(function()
+        MinimalPopup.showForResponse({ history = history("An answer."), viewer = keepingViewer({}) })
+        TestRunner:assertEqual(shown.more, nil)
+        TestRunner:assertEqual(shown.keep_mark[1].text, "+")
+    end)
 end)
 
 TestRunner:test("the answer handed over as text is shown without a chat's history", function()

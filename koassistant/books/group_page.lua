@@ -69,10 +69,10 @@ local function kindEmoji(kind)
 end
 
 -- The title-bar hamburger's dropdown (round 7, both pages): under the icon,
--- sized to its rows, the one copy the Book Hub's menu uses too.
--- rows = { { text, callback, enabled } }
-local function anchoredMenu(menu, rows)
-    return require("koassistant.ui.icon_menu").show(menu, rows)
+-- sized to its rows, the one copy the Book Hub's menu uses too, with the
+-- settings row last. rows = { { text, callback, enabled } }
+local function anchoredMenu(menu, rows, plugin)
+    return require("koassistant.ui.icon_menu").show(menu, rows, plugin)
 end
 
 -- "Series · 3 books": the hub's subtitle tail and the list rows' right column
@@ -331,7 +331,7 @@ local function hubHamburger(ctx, menu)
         callback = function() GroupsUI.renameFlow(ctx.group_id, flow_opts) end }
     rows[#rows + 1] = { text = _("Delete group…"),
         callback = function() GroupsUI.deleteFlow(ctx.group_id, flow_opts) end }
-    anchoredMenu(menu, rows)
+    anchoredMenu(menu, rows, ctx.plugin)
 end
 
 --- Close the hub. opts.silent = do not run on_close (code-driven closes).
@@ -426,7 +426,7 @@ local function listHamburger(ctx, menu)
             }
             UIManager:show(sort_dialog)
         end }
-    anchoredMenu(menu, rows)
+    anchoredMenu(menu, rows, ctx.plugin)
 end
 
 local function listBuild(ctx)
