@@ -3203,8 +3203,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                 -- Show content picker dialog
                 local content_dialog
                 local options = {
-                    { value = "full", label = _("Full (metadata + chat)") },
-                    { value = "qa", label = _("Question + Response") },
+                    { value = "full", label = require("koassistant.core.constants").contentLabel("full") },
+                    { value = "qa", label = require("koassistant.core.constants").contentLabel("qa") },
                     { value = "response", label = _("Last response only") },
                     { value = "everything", label = _("Everything (debug)") },
                 }
@@ -3348,6 +3348,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                                         timestamp = os.time(),
                                         model = history:getModel() or "",
                                         provider = history.provider or (temp_config and temp_config.provider),
+                                        chat_id = history.chat_id or history.conversation_id,
                                         used_book_text = pin_stamps.used_book_text,
                                         used_highlights = pin_stamps.used_highlights,
                                         used_annotations = pin_stamps.used_annotations,

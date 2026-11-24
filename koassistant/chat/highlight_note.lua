@@ -25,17 +25,32 @@ reader of the record can take the translation alone out of a note that holds
 more, can say which action wrote a piece whatever the note's own text shows,
 and can tell a piece the reader has changed since, which is then the reader's
 (recordOf). Nothing is added to the note's text.
+
+Two things read the record when a kept passage is tapped. KOReader shows a
+note in its small plain-text window or in its large one that draws Markdown,
+by the annotation's `note_format` or, without one, by the note's first
+character: the plugin names the format of a note that is its own and holds
+answers written in Markdown (wantsMarkdown, keepFormat), and takes its mark
+back when the note is no longer its own. And a note of answers whose actions
+show in the minimal popup opens in that popup again (popupParts), KOReader's
+own window one tap further.
 ]]
 
+local Constants = require("koassistant.core.constants")
 local logger = require("koassistant.core.logger")
 
 local HighlightNote = {}
 
 --- The per-book record:
---- { [annotation.datetime] = { parts = { { kind, action, action_name, lead, at, from, len, sum }, ... } } }
+--- { [annotation.datetime] = { md, parts = { { kind, action, action_name, chat, lead, at, from, len, sum }, ... } } }
 --- `action` = the action's id where the request named one, `action_name` = its
 --- name as the reader saw it then (an id of the reader's own action can come to
 --- mean another one, a name is in the language of that day: the pair says both).
+--- `chat` = the id of the chat the answer came from, the one it is saved under
+--- when it is saved (a chat window's chats are, by default; a translation or a
+--- lookup is not, and its id then names nothing): the way back, no door yet.
+--- `md` (on the line) = the plugin named this note's format for KOReader
+--- (keepFormat): only such a mark is the plugin's to take back.
 --- `lead` = how many bytes of the piece stand before the answer (the line that
 --- names the action, in a note saved as Question + Response): the answer alone
 --- is the piece from there on. 0 = the piece is the answer; absent = the piece
@@ -132,7 +147,8 @@ local function intact(line, note)
             local text = note:sub(part.from, part.from + part.len - 1)
             if #text == part.len and HighlightNote.fingerprint(text) == part.sum then
                 out[#out + 1] = { kind = part.kind, action = part.action, action_name = part.action_name,
-                    lead = part.lead, at = part.at, from = part.from, len = part.len, sum = part.sum, text = text }
+                    chat = part.chat, lead = part.lead, at = part.at, from = part.from, len = part.len,
+                    sum = part.sum, text = text }
             end
         end
     end
@@ -140,8 +156,8 @@ local function intact(line, note)
 end
 
 local function stored(part)
-    return { kind = part.kind, action = part.action, action_name = part.action_name, lead = part.lead,
-        at = part.at, from = part.from, len = part.len, sum = part.sum }
+    return { kind = part.kind, action = part.action, action_name = part.action_name, chat = part.chat,
+        lead = part.lead, at = part.at, from = part.from, len = part.len, sum = part.sum }
 end
 
 local function name(value)
@@ -155,8 +171,8 @@ local function readRecord(ds)
 end
 
 -- A piece of the record for the text just written at the end of the note.
--- `who` = the save's own opts (kind, action, action_name), `old` = the note the
--- highlight had before. The lines of highlights that are gone go with them.
+-- `who` = the save's own opts (kind, action, action_name, chat), `old` = the
+-- note the highlight had before. The lines of highlights that are gone go with them.
 local function remember(ds, annotations, annotation, who, old, text)
     if not (ds and annotation.datetime) then return end
     local all = readRecord(ds)
@@ -167,21 +183,23 @@ local function remember(ds, annotations, annotation, who, old, text)
     for stamp in pairs(all) do
         if not live[stamp] then all[stamp] = nil end
     end
+    local line = all[annotation.datetime]
     local parts = {}
-    for _idx, part in ipairs(intact(all[annotation.datetime], old)) do
+    for _idx, part in ipairs(intact(line, old)) do
         parts[#parts + 1] = stored(part)
     end
     parts[#parts + 1] = {
         kind = who.kind,
         action = name(who.action),
         action_name = name(who.action_name),
+        chat = name(who.chat),
         lead = type(who.lead) == "number" and who.lead >= 0 and who.lead < #text and who.lead or nil,
         at = os.time(),
         from = old and (#old + 3) or 1,
         len = #text,
         sum = HighlightNote.fingerprint(text),
     }
-    all[annotation.datetime] = { parts = parts }
+    all[annotation.datetime] = { parts = parts, md = type(line) == "table" and line.md or nil }
     ds:saveSetting(HighlightNote.RECORD_KEY, all)
 end
 
@@ -198,7 +216,9 @@ local function forget(ds, annotation, old, text, whole)
             if not (part.sum == sum and part.from == from) then parts[#parts + 1] = stored(part) end
         end
     end
-    all[annotation.datetime] = #parts > 0 and { parts = parts } or nil
+    -- a line with no piece left stays while it holds the format's mark: the
+    -- mark is taken back by keepFormat, which needs to know it was the plugin's
+    all[annotation.datetime] = (#parts > 0 or (line.md and not whole)) and { parts = parts, md = line.md } or nil
     ds:saveSetting(HighlightNote.RECORD_KEY, all)
 end
 
@@ -227,6 +247,80 @@ function HighlightNote.recordOf(ds, annotation)
     return "ours", parts
 end
 
+--- The kinds of answer that are written in Markdown (a chat window's answers
+--- and a dictionary window's). A translation is the passage in another
+--- language: lines, not Markdown.
+HighlightNote.MARKDOWN_KINDS = { chat = true, dictionary = true }
+
+--- Whether KOReader should draw a note as Markdown, pure: the note is the
+--- plugin's alone, it holds an answer written in Markdown, and nothing else in
+--- it would be spoiled by Markdown, which reads one line break as a space (a
+--- translation of several lines kept on the same passage would run together).
+--- A note of translations alone stays plain text: KOReader shows that in its
+--- small window, where a line or two belong, and its large one covers the page.
+-- @param state, parts what recordOf returned
+function HighlightNote.wantsMarkdown(state, parts)
+    if state ~= "ours" or type(parts) ~= "table" then return false end
+    local any = false
+    for _idx, part in ipairs(parts) do
+        if HighlightNote.MARKDOWN_KINDS[part.kind] then
+            any = true
+        elseif type(part.text) == "string" and part.text:find("[^\n]\n[^\n]") then
+            return false
+        end
+    end
+    return any
+end
+
+--- Name the note's format for KOReader, or take the plugin's own mark back,
+--- as the note is NOW (after a save, after a removal, and when the passage is
+--- tapped: the reader may have written in the note since, and their words are
+--- not Markdown). KOReader reads `annotation.note_format` when it shows a note
+--- ("md" = its large window with the Markdown drawn; nil = its guess from the
+--- note's first character) and keeps the field through its own Edit note. A
+--- format the plugin did not set is never touched.
+-- @return string|nil "set" | "cleared" (nil = nothing changed)
+function HighlightNote.keepFormat(ds, annotation)
+    if not (ds and annotation and annotation.datetime) then return nil end
+    local all = readRecord(ds)
+    local line = all[annotation.datetime]
+    if type(line) ~= "table" then return nil end
+    if HighlightNote.wantsMarkdown(HighlightNote.recordOf(ds, annotation)) then
+        if annotation.note_format ~= nil then return nil end
+        annotation.note_format = "md"
+        line.md = true
+        ds:saveSetting(HighlightNote.RECORD_KEY, all)
+        return "set"
+    end
+    if not line.md then return nil end
+    if annotation.note_format == "md" then annotation.note_format = nil end
+    line.md = nil
+    if type(line.parts) ~= "table" or #line.parts == 0 then all[annotation.datetime] = nil end
+    ds:saveSetting(HighlightNote.RECORD_KEY, all)
+    return "cleared"
+end
+
+--- The pieces a tap on a kept passage shows in the minimal popup again, pure;
+--- nil = KOReader's own note window opens, as for any note. The popup takes a
+--- note that is the plugin's alone and whose every answer came from an action
+--- that shows in the popup TODAY (the reader's Minimal Popup list, the popup
+--- not off), whatever window the answer was saved from: what shows in the
+--- popup when asked shows in the popup when kept. `kept_answer_popup` is the
+--- reader's switch (Highlight Settings), on unless turned off.
+-- @param state, parts what recordOf returned
+-- @param features the reader's settings
+function HighlightNote.popupParts(state, parts, features)
+    features = features or {}
+    if features.kept_answer_popup == false then return nil end
+    if (features.minimal_popup_mode or "short") == "off" then return nil end
+    if state ~= "ours" or type(parts) ~= "table" or #parts == 0 then return nil end
+    local shown = Constants.resolveMinimalPopupActions(features.minimal_popup_actions)
+    for _idx, part in ipairs(parts) do
+        if not (part.action and shown[part.action]) then return nil end
+    end
+    return parts
+end
+
 local function redraw(ui)
     require("ui/uimanager"):setDirty(ui.highlight.dialog, "ui")
 end
@@ -238,7 +332,8 @@ end
 -- @param opts { extend = the passage as KOReader's Add note saves it (not for a looked-up word),
 --               kind = "translate" | "dictionary" | "chat",
 --               action = the id of the action the answer came from, action_name = its name as shown,
---               lead = how many bytes of `text` stand before the answer (all three optional),
+--               chat = the id of the chat it came from,
+--               lead = how many bytes of `text` stand before the answer (all four optional),
 --               store = the book's settings object (tests) }
 -- @return table|nil { index, annotation, text = what was written, created = a highlight was made,
 --                     appended = it had a note, already = nothing to write }
@@ -282,7 +377,11 @@ function HighlightNote.save(ui, selection, text, opts)
     end
     redraw(ui)
 
-    local ok, err = pcall(remember, bookStore(ui, opts), ui.annotation.annotations, annotation, opts, old, text)
+    local ds = bookStore(ui, opts)
+    local ok, err = pcall(function()
+        remember(ds, ui.annotation.annotations, annotation, opts, old, text)
+        HighlightNote.keepFormat(ds, annotation)
+    end)
     if not ok then logger.warn("KOAssistant: the note was saved, its record was not:", err) end
     return { index = index, annotation = annotation, text = text, created = created, appended = old ~= nil, already = false }
 end
@@ -328,7 +427,11 @@ function HighlightNote.remove(ui, saved, opts)
     else
         return nil, "changed"
     end
-    local ok, err = pcall(forget, bookStore(ui, opts), annotation, note, text, removed == "highlight")
+    local ds = bookStore(ui, opts)
+    local ok, err = pcall(function()
+        forget(ds, annotation, note, text, removed == "highlight")
+        if removed ~= "highlight" then HighlightNote.keepFormat(ds, annotation) end
+    end)
     if not ok then logger.warn("KOAssistant: the note was removed, its record was not:", err) end
     return removed
 end

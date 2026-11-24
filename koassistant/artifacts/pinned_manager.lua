@@ -187,6 +187,11 @@ function PinnedManager.writeFile(path, pinned)
             if type(entry.provider) == "string" then
                 file:write(string.format("        provider = %q,\n", entry.provider))
             end
+            -- The chat the answer was pinned from, by the id it is saved under
+            -- (the way back to it; nothing opens it yet)
+            if type(entry.chat_id) == "string" and entry.chat_id ~= "" then
+                file:write(string.format("        chat_id = %q,\n", entry.chat_id))
+            end
             for _k, key in ipairs({ "used_book_text", "used_highlights", "used_annotations", "used_notebook" }) do
                 if type(entry[key]) == "boolean" then
                     file:write(string.format("        %s = %s,\n", key, tostring(entry[key])))

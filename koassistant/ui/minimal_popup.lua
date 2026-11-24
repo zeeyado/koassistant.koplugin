@@ -46,8 +46,9 @@ card's popup style).
 
 Consumers: actions registered in the Minimal Popup settings
 (features.minimal_popup_actions, Translate and Quick Define by default;
-showResponseDialog decides; this module never reads settings) and the X-Ray
-card. "When it fits" mode rides opts.only_if_fits: the caller asks whether the
+showResponseDialog decides; this module never reads settings), the X-Ray
+card, and a kept answer shown again when its passage is tapped (showForNote:
+the same popup, with no keep mark and KOReader's own note window behind a tap). "When it fits" mode rides opts.only_if_fits: the caller asks whether the
 whole answer fits under the cap (hasOverflow: the laid-out content, so script
 density and font size are handled by construction) and falls back to the full
 viewer when it does not.
@@ -546,7 +547,8 @@ end
 -- a MessageHistory and show it.
 -- @param opts { history, viewer, style, selection_data, ui, only_if_fits,
 --               on_expand, on_close, kept, auto; without a viewer also
---               rtl_language, features, is_dictionary }
+--               rtl_language, features, is_dictionary; text = the answer
+--               itself, for a caller that has no history (showForNote) }
 --        viewer: the chat window a tap opens (built, not shown). The popup
 --        shows the answer the way that window would (answerWidget): its view
 --        mode, font, size, alignment and direction; a word or a passage held
@@ -571,8 +573,8 @@ end
 function MinimalPopup.showForResponse(opts)
     opts = opts or {}
     local msgs = opts.history and opts.history.getMessages and opts.history:getMessages()
-    local text
-    if msgs then
+    local text = opts.text
+    if msgs and not text then
         for i = #msgs, 1, -1 do
             local m = msgs[i]
             if m.role == "assistant" and m.content and m.content ~= "" then
@@ -678,6 +680,85 @@ function MinimalPopup.showForResponse(opts)
     end
     UIManager:show(popup)
     return true
+end
+
+--- The one kind of window a note's pieces belong to, pure: the kind they all
+--- share, else "chat" (a translation and an explanation kept on one passage)
+function MinimalPopup.noteKind(parts)
+    local kind = parts[1] and parts[1].kind or "chat"
+    for _idx, part in ipairs(parts) do
+        if part.kind ~= kind then return "chat" end
+    end
+    return kind
+end
+
+--- A kept answer shown again: the note of a highlighted passage, when it is
+--- the plugin's own answers of actions that show in this popup
+--- (HighlightNote.popupParts decides; its caller is the tap on the passage).
+--- The popup the answer came in when it was new: the drawing of a chat
+--- window of the note's kind (a translate window keeps a translation's lines
+--- apart, a dictionary window follows Text Mode for Dictionary and the
+--- dictionary language), built for this and never shown, so a word or a
+--- passage held in the text is that window's too. No keep mark: the answer
+--- is kept, and its note is the reader's to change in KOReader's own window,
+--- which a tap inside opens (on_expand).
+-- @param opts { parts = the note's pieces, each with kind and text; features = the reader's settings;
+--               plugin, ui = the reader; boxes = the highlight's rectangles on screen; on_expand }
+-- @return boolean shown (false = it does not fit under "When it fits": KOReader's window is the caller's to open)
+function MinimalPopup.showForNote(opts)
+    local parts = opts.parts
+    if type(parts) ~= "table" or #parts == 0 then return false end
+    local features = opts.features or {}
+    local kind = MinimalPopup.noteKind(parts)
+    local Viewer = require("koassistant.ui.chatgptviewer")
+    -- The note's text as that window draws it. In a note of several kinds a
+    -- translation is a guest in a Markdown view, which reads one line break
+    -- as a space: its lines are told apart first, as its own window does
+    local markdown = features.render_markdown ~= false
+    local pieces = {}
+    for i, part in ipairs(parts) do
+        local piece = part.text or ""
+        if kind == "chat" and part.kind == "translate" and markdown and Viewer._lineParagraphs then
+            piece = Viewer._lineParagraphs(piece)
+        end
+        pieces[i] = piece
+    end
+    local text = table.concat(pieces, "\n\n")
+    -- A copy of the settings for that window: it reads its view from them,
+    -- and the marks of the last request have no business on a note
+    local f = {}
+    for k, v in pairs(features) do f[k] = v end
+    f.compact_view, f.dictionary_view, f.translate_view, f.minimal_buttons = nil, nil, nil, nil
+    f.page_printed_lines, f.is_full_page_translate = nil, nil
+    local viewer = Viewer:new{
+        title = "",
+        text = text,
+        configuration = { features = f, document_path = opts.ui and opts.ui.document and opts.ui.document.file },
+        compact_view = kind == "dictionary" or nil,
+        translate_view = kind == "translate" or nil,
+        _plugin = opts.plugin,
+        _ui = opts.ui,
+    }
+    -- That window is never shown: what its own layout made is let go once
+    -- the popup is done with it (the popup's content is a widget of its own)
+    local function release()
+        if viewer.free then pcall(viewer.free, viewer) end
+    end
+    local shown = MinimalPopup.showForResponse({
+        text = text,
+        viewer = viewer,
+        style = features.minimal_popup_style,
+        selection_data = opts.boxes and { sboxes = opts.boxes } or nil,
+        ui = opts.ui,
+        only_if_fits = (features.minimal_popup_mode or "short") == "short",
+        on_expand = function()
+            release()
+            if opts.on_expand then opts.on_expand() end
+        end,
+        on_close = release,
+    })
+    if not shown then release() end
+    return shown
 end
 
 return MinimalPopup

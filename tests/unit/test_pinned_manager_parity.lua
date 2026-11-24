@@ -178,5 +178,39 @@ TestRunner:test("the provider and the data stamps round-trip (B395 slice 5; drop
     assert(plain and plain.provider == nil and plain.used_highlights == nil, "an unstamped pin stays unstamped")
 end)
 
+TestRunner:test("the chat a pin came from round-trips, by the id the chat is saved under", function()
+    assert(PinnedManager.addPin(DOC_PATH, {
+        id = "pin_from_chat", action_id = "Explain", action_text = "Explain", result = "r", user_prompt = "q",
+        context_type = "book", chat_id = "1763900000_123456",
+    }), "addPin should succeed")
+    local entry = reloadById("pin_from_chat")
+    TestRunner:assertEqual(entry and entry.chat_id, "1763900000_123456", "the chat's id")
+    local plain = reloadById("pin_plain")
+    TestRunner:assertEqual(plain and plain.chat_id, nil, "a pin without one has none")
+    os.execute(string.format("rm -rf %q", TMP_ROOT))
+end)
+
+TestRunner:test("every place that makes a pin names its chat", function()
+    local plugin_dir = debug.getinfo(1, "S").source:match("@?(.*)/tests/unit/[^/]+$") or "."
+    local made, named = 0, 0
+    for _i, rel in ipairs({ "koassistant/ui/dialogs.lua", "koassistant/chat/chat_history_dialog.lua" }) do
+        local f = assert(io.open(plugin_dir .. "/" .. rel, "r"))
+        local src = f:read("*a")
+        f:close()
+        local at = 1
+        while true do
+            local s = src:find("id = PinnedManager.generateId(),", at, true)
+            if not s then break end
+            made = made + 1
+            -- the entry's own table: up to the call that stores it
+            local e = src:find("PinnedManager.addPin(", s, true) or #src
+            if src:sub(s, e):find("chat_id = ", 1, true) then named = named + 1 end
+            at = s + 1
+        end
+    end
+    TestRunner:assertEqual(made, 3, "the chat window's pin, and the chat history's two")
+    TestRunner:assertEqual(named, made, "each records the chat it was pinned from")
+end)
+
 local ok = TestRunner:summary()
 return ok

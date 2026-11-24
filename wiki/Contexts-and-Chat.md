@@ -320,18 +320,24 @@ The response window has its own page, [Chat Windows](Chat-Windows): its buttons 
 3. Tap **Save to Note** (between Copy and Notebook).
 4. The highlight is saved with the response as its note, and a short notice says so. Nothing else to confirm.
 
-To change the note before it is saved, long-press **Save to Note** and pick **Edit before saving…**: KOReader's note editor opens with the response filled in. The same long-press lets you choose what goes in the note this one time.
+To change the note before it is saved, long-press **Save to Note** and pick **Edit before saving…**: KOReader's note editor opens with the response filled in. The same long-press lets you choose what goes in the note this one time; the choice a plain tap makes carries a tick, and that is also the one **Edit before saving…** opens.
 
 **Key features:**
 
-- **Native integration:** uses KOReader's standard highlight and note system. Tap the highlight later and KOReader shows the note; it is in KOReader's own lists and exports like any note of yours.
-- **Configurable content:** question + response (the default), last response only, the full chat with metadata, everything (debug), or ask every time. Set it in Settings → Chat & Export Settings → Content Format → Note Content; long-press the button to pick the format for one save. When you ran an action and typed nothing yourself, the question is the action: the note starts with one line that names it, such as `Explain:`, and the answer comes under it. Last response only is always the answer alone.
+- **Native integration:** uses KOReader's standard highlight and note system. Tap the highlight later and the note shows again ([below](#tapping-a-highlight-that-has-a-saved-answer)); it is in KOReader's own lists and exports like any note of yours.
+- **Configurable content:** Whole chat (the default), Last response only, Whole chat + metadata, Everything (debug), or Ask every time. Set it in Settings → Chat & Export Settings → Content Format → Note Content; long-press the button to pick the format for one save. Whole chat is every message you typed and every answer, under a first line with the action and the model. When you ran an action and typed nothing yourself, the question is the action: the note starts with one line that names it, such as `Explain:`, and the answer comes under it. Last response only is always the answer alone.
 - **One tap, or edit first:** a tap saves at once; a long-press offers **Edit before saving…**.
 - **Creates a permanent highlight:** the selected text becomes a saved highlight with the note attached. From the chat window and Translate View, KOReader extends that highlight to take in the punctuation around a whole sentence in reflowable books, as its own Add note does; from the compact and dictionary windows it stays on the word.
 - **A passage that is already highlighted keeps its one highlight:** the note is added to it. If it already has a note, the new text goes under it after a blank line. Saving the same answer twice changes nothing. (In a PDF this holds when you start from the highlight's own menu; a fresh selection over the same words makes a highlight of its own.)
 - **Works with translations:** good for keeping translations alongside the original text.
 - **Not mistaken for your own notes:** when an action sends your notes to the AI (Analyze Notes, Connect), an answer saved this way is marked as a saved answer, not as something you wrote ([the kinds of data](Privacy-and-Data#the-kinds-of-data)).
 - **In every view:** the chat window and Translate View have **Save to Note**; the compact and dictionary windows have a **+Note** button. The dictionary windows and Translate View have their own Note Content settings (Settings → Dictionary Settings → Note Content, Settings → Translate Settings → Note Content), which default to the answer alone.
+
+### Tapping a highlight that has a saved answer
+
+- **In the Minimal Popup again:** when the note is an answer saved from an action on your Minimal Popup list (Translate, Quick Define and Quick Explain unless you changed it), a tap on the highlighted passage shows it in the [Minimal Popup](Chat-Windows#minimal-popup) again, beside the passage, drawn as when it was new. Tap the popup and KOReader's own note window opens, with **Edit note**, **Delete note** and the highlight's menu. This follows your settings as they are now, not the window the answer was saved from. Turn it off with **Settings → Highlight Settings → Show Saved Answers in the Minimal Popup**; with the Minimal Popup off, or set to When it fits for an answer too long for it, KOReader's note window opens at once.
+- **In KOReader's note window:** any other note opens there, as always. An answer saved from a chat window or a dictionary window is shown with its formatting (bold words, lists, headings), in the larger of KOReader's two note windows. A saved translation is plain text and opens in the small one.
+- **Once you write in the note yourself**, it is yours: it opens in KOReader's window as plain text, exactly as you typed it.
 
 ### Saving answers automatically
 

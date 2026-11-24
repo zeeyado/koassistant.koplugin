@@ -747,11 +747,14 @@ end
 -- or { separator = true } for the double line that sets setting rows apart
 -- `anchor` = KOReader's anchor for the dialog; a function is handed the dialog
 -- (its size is known by then), for a caller that places it by its size
-local function showContentPicker(title, is_translate, callback, anchor, extra)
+-- `current` = the choice a plain tap takes (the reader's setting), where the
+-- list is a button's long-press: its row carries a tick, so the list says
+-- what happens without it. nil where the list IS the tap (Ask every time).
+local function showContentPicker(title, is_translate, callback, anchor, extra, current)
     local content_dialog
     local options = {
-        { value = "full", label = _("Full (metadata + chat)") },
-        { value = "qa", label = _("Question + Response") },
+        { value = "full", label = Constants.contentLabel("full") },
+        { value = "qa", label = Constants.contentLabel("qa") },
         { value = "response", label = is_translate and _("Translation only") or _("Last response only") },
         { value = "everything", label = _("Everything (debug)") },
     }
@@ -760,7 +763,7 @@ local function showContentPicker(title, is_translate, callback, anchor, extra)
     for _idx, opt in ipairs(options) do
         table.insert(buttons, {
             {
-                text = opt.label,
+                text = opt.value == current and ("\u{2713} " .. opt.label) or opt.label,
                 callback = function()
                     UIManager:close(content_dialog)
                     callback(opt.value)
@@ -5140,9 +5143,10 @@ end
 
 -- The note's text for a content choice ("" when there is no answer). A chat
 -- that is one answer with nothing the reader typed has no question to put
--- beside it: what was asked is the action, so its Question + Response is one
--- line that names the action and the answer under it. Last response only is
--- the answer alone, always.
+-- beside it: what was asked is the action, so its Whole chat is one line that
+-- names the action and the answer under it. Last response only is the answer
+-- alone, always. A note's first line never opens with a bracket (plain_line):
+-- KOReader's note window draws one as a link with no address.
 -- @return string the text
 -- @return number|nil how many bytes of it stand before the answer, where the
 --   text is one answer under its line or alone (nil = questions and answers)
@@ -5154,7 +5158,7 @@ function ChatGPTViewer:_noteText(history, selected_content)
   if selected_content == "qa" and Export.isSingleAnswer(data) then
     return Export.singleAnswerNote(data, history.prompt_action)
   end
-  return Export.format(data, selected_content, features.export_style or "markdown"),
+  return Export.format(data, selected_content, features.export_style or "markdown", { plain_line = true }),
     selected_content == "response" and 0 or nil
 end
 
@@ -5176,11 +5180,13 @@ function ChatGPTViewer:keepAsNote(selected_content)
   if note_text == "" then return nil, _("No response to save") end
   -- The action the chat was started with rides the record: its id where the
   -- request named one (a highlight action), its name as the reader saw it,
-  -- and where the answer starts in the saved text (after the action's line)
+  -- where the answer starts in the saved text (after the action's line), and
+  -- the chat itself: the id it is saved under, when it is saved (the way back)
   local features = self.configuration and self.configuration.features or {}
   local saved = require("koassistant.chat.highlight_note").save(reader_ui, self.selection_data, note_text,
     { extend = spec.extend, kind = self:noteKind(), action = features._note_action,
-      action_name = history.prompt_action, lead = lead })
+      action_name = history.prompt_action, lead = lead,
+      chat = history.chat_id or history.conversation_id })
   if not saved then return nil, _("Failed to create highlight") end
   return saved
 end
@@ -5265,7 +5271,9 @@ function ChatGPTViewer:saveToNote(pick, opts)
     for _idx, row in ipairs(opts.extra or {}) do rows[#rows + 1] = row end
     local anchor = opts.anchor
     if not anchor and not opts.popup then anchor = self:_anchorToButton("save_to_note") end
-    showContentPicker(_("Note Content"), self.translate_view, saveNow, anchor, rows)
+    -- the row a plain tap saves, which is also what "Edit before saving…" opens
+    showContentPicker(_("Note Content"), self.translate_view, saveNow, anchor, rows,
+      content ~= "ask" and content or nil)
   else
     saveNow(content)
   end

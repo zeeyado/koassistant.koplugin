@@ -231,6 +231,56 @@ function TestConstants:runAll()
             .. table.concat(offenders, ", "))
     end)
 
+    -- What a copy, a note or a saved file holds: one copy of the names
+    self:test("contentLabel: the whole chat is named for what it is, the last answer per window", function()
+        self:assertEquals(Constants.contentLabel("full"), "Whole chat + metadata")
+        self:assertEquals(Constants.contentLabel("qa"), "Whole chat", "every typed message and every answer, not one of each")
+        self:assertEquals(Constants.contentLabel("response"), "Last response only")
+        self:assertEquals(Constants.contentLabel("response", "translate"), "Translation only")
+        self:assertEquals(Constants.contentLabel("response", "dictionary"), "Definition only (Recommended)")
+        self:assertEquals(Constants.contentLabel("everything"), "Everything (debug)")
+        self:assertEquals(Constants.contentLabel("something else"), "something else")
+    end)
+
+    self:test("no list spells the whole chat's two names itself (the settings, the long-press lists, the chat history)", function()
+        local offenders, scanned, notebook_rows = {}, 0, 0
+        for _idx, cmd in ipairs({ 'ls ./*.lua', 'find ./koassistant -name "*.lua" | sort' }) do
+            local handle = io.popen(cmd .. ' 2>/dev/null')
+            if handle then
+                for path in handle:lines() do
+                    if not path:find("koassistant/core/constants%.lua$") then
+                        local fh = io.open(path, "r")
+                        if fh then
+                            scanned = scanned + 1
+                            local n = 0
+                            for line in fh:lines() do
+                                n = n + 1
+                                if not line:find("^%s*%-%-") then
+                                    if line:find('_("Whole chat', 1, true) or line:find('"Full (metadata + chat)"', 1, true) then
+                                        offenders[#offenders + 1] = path .. ":" .. n
+                                    end
+                                    -- one list keeps the old name, rightly: a notebook entry IS the chat's
+                                    -- first question and its latest answer
+                                    if line:find('_("Question + Response")', 1, true) then
+                                        notebook_rows = notebook_rows + 1
+                                        if not path:find("koassistant/ui/chatgptviewer%.lua$") then
+                                            offenders[#offenders + 1] = path .. ":" .. n
+                                        end
+                                    end
+                                end
+                            end
+                            fh:close()
+                        end
+                    end
+                end
+                handle:close()
+            end
+        end
+        self:assert(scanned > 20, "source listing failed (" .. scanned .. " files)")
+        self:assert(#offenders == 0, "content names typed outside Constants.contentLabel: " .. table.concat(offenders, ", "))
+        self:assertEquals(notebook_rows, 1, "the notebook's own format row")
+    end)
+
     -- Summary
     print(string.format("\nResults: %d passed, %d failed\n", self.passed, self.failed))
     return self.failed == 0

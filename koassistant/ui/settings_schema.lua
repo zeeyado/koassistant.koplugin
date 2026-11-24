@@ -759,8 +759,8 @@ local SettingsSchema = {
                             default = "full",
                             options = {
                                 { value = "ask", label = _("Ask every time") },
-                                { value = "full", label = _("Full (metadata + chat)") },
-                                { value = "qa", label = _("Question + Response") },
+                                { value = "full", label = Constants.contentLabel("full") },
+                                { value = "qa", label = Constants.contentLabel("qa") },
                                 { value = "response", label = _("Last response only") },
                                 { value = "everything", label = _("Everything (debug)") },
                             },
@@ -774,8 +774,8 @@ local SettingsSchema = {
                             default = "qa",
                             options = {
                                 { value = "ask", label = _("Ask every time") },
-                                { value = "full", label = _("Full (metadata + chat)") },
-                                { value = "qa", label = _("Question + Response") },
+                                { value = "full", label = Constants.contentLabel("full") },
+                                { value = "qa", label = Constants.contentLabel("qa") },
                                 { value = "response", label = _("Last response only") },
                                 { value = "everything", label = _("Everything (debug)") },
                             },
@@ -790,8 +790,8 @@ local SettingsSchema = {
                             options = {
                                 { value = "global", label = _("Follow Copy Content") },
                                 { value = "ask", label = _("Ask every time") },
-                                { value = "full", label = _("Full (metadata + chat)") },
-                                { value = "qa", label = _("Question + Response") },
+                                { value = "full", label = Constants.contentLabel("full") },
+                                { value = "qa", label = Constants.contentLabel("qa") },
                                 { value = "response", label = _("Last response only") },
                                 { value = "everything", label = _("Everything (debug)") },
                             },
@@ -806,8 +806,8 @@ local SettingsSchema = {
                             options = {
                                 { value = "global", label = _("Follow Copy Content") },
                                 { value = "ask", label = _("Ask every time") },
-                                { value = "full", label = _("Full (metadata + chat)") },
-                                { value = "qa", label = _("Question + Response") },
+                                { value = "full", label = Constants.contentLabel("full") },
+                                { value = "qa", label = Constants.contentLabel("qa") },
                                 { value = "response", label = _("Last response only") },
                                 { value = "everything", label = _("Everything (debug)") },
                             },
@@ -1585,8 +1585,8 @@ local SettingsSchema = {
                     options = {
                         { value = "global", label = _("Follow global setting") },
                         { value = "ask", label = _("Ask every time") },
-                        { value = "full", label = _("Full (metadata + chat)") },
-                        { value = "qa", label = _("Question + Response") },
+                        { value = "full", label = Constants.contentLabel("full") },
+                        { value = "qa", label = Constants.contentLabel("qa") },
                         { value = "response", label = _("Definition only (Recommended)") },
                         { value = "everything", label = _("Everything (debug)") },
                     },
@@ -1601,8 +1601,8 @@ local SettingsSchema = {
                     options = {
                         { value = "global", label = _("Follow global setting") },
                         { value = "ask", label = _("Ask every time") },
-                        { value = "full", label = _("Full (metadata + chat)") },
-                        { value = "qa", label = _("Question + Response") },
+                        { value = "full", label = Constants.contentLabel("full") },
+                        { value = "qa", label = Constants.contentLabel("qa") },
                         { value = "response", label = _("Definition only (Recommended)") },
                         { value = "everything", label = _("Everything (debug)") },
                     },
@@ -1731,8 +1731,8 @@ local SettingsSchema = {
                     options = {
                         { value = "global", label = _("Follow global setting") },
                         { value = "ask", label = _("Ask every time") },
-                        { value = "full", label = _("Full (metadata + chat)") },
-                        { value = "qa", label = _("Question + Response") },
+                        { value = "full", label = Constants.contentLabel("full") },
+                        { value = "qa", label = Constants.contentLabel("qa") },
                         { value = "response", label = _("Translation only") },
                         { value = "everything", label = _("Everything (debug)") },
                     },
@@ -1747,8 +1747,8 @@ local SettingsSchema = {
                     options = {
                         { value = "global", label = _("Follow global setting") },
                         { value = "ask", label = _("Ask every time") },
-                        { value = "full", label = _("Full (metadata + chat)") },
-                        { value = "qa", label = _("Question + Response") },
+                        { value = "full", label = Constants.contentLabel("full") },
+                        { value = "qa", label = Constants.contentLabel("qa") },
                         { value = "response", label = _("Translation only") },
                         { value = "everything", label = _("Everything (debug)") },
                     },
@@ -1984,6 +1984,16 @@ local SettingsSchema = {
                     end,
                     callback = "buildAutoNoteActionsMenu",
                     help_text = _("Answers of the ticked actions are saved automatically as a note on the text you selected, the way Save to Note saves them, with no tap. None by default. In the Minimal Popup such an answer arrives with a tick; tap the tick to take that one back out."),
+                },
+                {
+                    -- A tap on a passage whose note the plugin wrote
+                    -- (main.lua syncKeptNotePopup, HighlightNote.popupParts)
+                    id = "kept_answer_popup",
+                    type = "toggle",
+                    text = _("Show Saved Answers in the Minimal Popup"),
+                    path = "features.kept_answer_popup",
+                    default = true,
+                    help_text = _("A tap on a highlighted passage whose note is an answer KOAssistant saved shows that answer in the minimal popup again, beside the passage. It applies to the actions on the Minimal Popup list, while the popup is on. Tap the popup for KOReader's own note window (Edit note, Delete note, Highlight menu). Off: KOReader's note window opens at once."),
                 },
                 -- (Highlight-menu visibility toggles + actions manager live in
                 -- Menus & Buttons; behavior settings stay here)

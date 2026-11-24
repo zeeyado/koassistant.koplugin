@@ -759,6 +759,142 @@ TestRunner:test("a hold anywhere else is the text's, then the box's, as before; 
     end)
 end)
 
+-- ── a kept answer shown again (showForNote) ─────────────────────────────────
+-- The chat window the popup builds for a note, as a stand-in: what it was
+-- built with, and a drawing of `needs` pixels
+local function withNoteWindow(needs, fn)
+    local real_viewer_new = Viewer.new
+    local made = {}
+    Viewer.new = function(_cls, o)
+        made[#made + 1] = o
+        o.markdown_font_size = 20
+        o.freed = 0
+        o.free = function(self) self.freed = self.freed + 1 end
+        o.answerWidget = function(_self, text, w, h)
+            o.drawn = text
+            return htmlWidget(needs)(w, h)
+        end
+        return o
+    end
+    local ok, err = pcall(withWidgets, function() fn(made) end)
+    Viewer.new = real_viewer_new
+    if not ok then error(err, 0) end
+end
+
+TestRunner:test("a note's kind: the one its pieces share, else a chat", function()
+    TestRunner:assertEqual(MinimalPopup.noteKind({ { kind = "translate" } }), "translate")
+    TestRunner:assertEqual(MinimalPopup.noteKind({ { kind = "translate" }, { kind = "translate" } }), "translate")
+    TestRunner:assertEqual(MinimalPopup.noteKind({ { kind = "dictionary" } }), "dictionary")
+    TestRunner:assertEqual(MinimalPopup.noteKind({ { kind = "translate" }, { kind = "chat" } }), "chat")
+    TestRunner:assertEqual(MinimalPopup.noteKind({ { kind = "chat" } }), "chat")
+    TestRunner:assertEqual(MinimalPopup.noteKind({ {} }), "chat")
+end)
+
+TestRunner:test("a kept translation: the translate window's drawing of the note, in the popup, with no keep mark", function()
+    withNoteWindow(100, function(made)
+        local features = { minimal_popup_style = "panel", markdown_font_size = 24, rtl_font = "naskh",
+            -- marks a request may have left on a settings table: none belongs on a note
+            compact_view = true, dictionary_view = true, translate_view = true, minimal_buttons = true,
+            page_printed_lines = true, is_full_page_translate = true }
+        local boxes = { { x = 40, y = 120, w = 600, h = 30 } }
+        local expanded = 0
+        local plugin, ui = { name = "plugin" }, { document = { file = "/books/a.epub" } }
+        local ok = MinimalPopup.showForNote({
+            parts = { { kind = "translate", text = "Premier paragraphe.\nDeuxième." } },
+            features = features, plugin = plugin, ui = ui, boxes = boxes,
+            on_expand = function() expanded = expanded + 1 end,
+        })
+        TestRunner:assertEqual(ok, true)
+        TestRunner:assertEqual(#made, 1, "one chat window is built for it")
+        local v = made[1]
+        TestRunner:assertEqual(v.translate_view, true, "a translate window: it keeps a translation's lines apart")
+        TestRunner:assertEqual(v.compact_view, nil)
+        TestRunner:assertEqual(v.text, "Premier paragraphe.\nDeuxième.", "the note as it is")
+        TestRunner:assertEqual(v.drawn, v.text, "and that is what the popup draws")
+        TestRunner:assertEqual(v._plugin, plugin)
+        TestRunner:assertEqual(v._ui, ui)
+        TestRunner:assertEqual(v.configuration.document_path, "/books/a.epub", "the window is about the open book")
+        local f = v.configuration.features
+        TestRunner:assertTrue(f ~= features, "a copy of the settings, never the reader's own table")
+        TestRunner:assertEqual(f.markdown_font_size, 24, "the reader's settings ride along")
+        TestRunner:assertEqual(f.rtl_font, "naskh")
+        for _i, mark in ipairs({ "compact_view", "dictionary_view", "translate_view", "minimal_buttons",
+                "page_printed_lines", "is_full_page_translate" }) do
+            TestRunner:assertEqual(f[mark], nil, mark .. " is not carried onto a note's window")
+        end
+        TestRunner:assertEqual(features.translate_view, true, "and the reader's table is not written to")
+        TestRunner:assertEqual(v.selection_data, nil, "nothing to keep: the answer is kept")
+        -- the popup itself
+        TestRunner:assertTrue(shown ~= nil, "shown")
+        TestRunner:assertEqual(shown.style, "panel", "the reader's shape")
+        TestRunner:assertEqual(shown.selection_data.sboxes, boxes, "by the highlight")
+        TestRunner:assertEqual(shown.ui, ui)
+        TestRunner:assertEqual(shown.keep, nil, "no keep mark")
+        TestRunner:assertEqual(v.freed, 0, "the window lives while the popup shows its drawing (a held word is its to look up)")
+        shown.on_expand()
+        TestRunner:assertEqual(expanded, 1, "a tap inside is the caller's: KOReader's own note window")
+        TestRunner:assertEqual(v.freed, 1, "and the window that was never shown is let go")
+    end)
+    -- closed without a tap inside: let go as well
+    withNoteWindow(100, function(made)
+        MinimalPopup.showForNote({ parts = { { kind = "translate", text = "Une ligne." } }, features = {} })
+        shown.on_close()
+        TestRunner:assertEqual(made[1].freed, 1)
+    end)
+end)
+
+TestRunner:test("a kept definition is a dictionary window's; answers of several kinds are a chat's, a translation's lines told apart", function()
+    withNoteWindow(100, function(made)
+        MinimalPopup.showForNote({ parts = { { kind = "dictionary", text = "**lantern** (n.)" } }, features = {} })
+        TestRunner:assertEqual(made[1].compact_view, true, "Text Mode for Dictionary and the dictionary language are that window's")
+        TestRunner:assertEqual(made[1].translate_view, nil)
+        -- a translation and an explanation kept on one passage
+        local parts = {
+            { kind = "translate", text = "Premier paragraphe.\nDeuxième." },
+            { kind = "chat", text = "Quick Explain:\n\nIt is **early**.\nStill dark." },
+        }
+        MinimalPopup.showForNote({ parts = parts, features = {} })
+        TestRunner:assertEqual(made[2].translate_view, nil)
+        TestRunner:assertEqual(made[2].compact_view, nil)
+        TestRunner:assertEqual(made[2].text,
+            "Premier paragraphe.\n\nDeuxième.\n\nQuick Explain:\n\nIt is **early**.\nStill dark.",
+            "the translation's lines a blank line apart for the Markdown view; the answer as the model wrote it")
+        -- the Plain Text view shows lines as typed: nothing to tell apart
+        MinimalPopup.showForNote({ parts = parts, features = { render_markdown = false } })
+        TestRunner:assertEqual(made[3].text,
+            "Premier paragraphe.\nDeuxième.\n\nQuick Explain:\n\nIt is **early**.\nStill dark.")
+    end)
+end)
+
+TestRunner:test("When it fits: a note taller than the popup is handed back; Always shows it", function()
+    withNoteWindow(CAP * 3, function(made)
+        local parts = { { kind = "translate", text = "long" } }
+        TestRunner:assertEqual(MinimalPopup.showForNote({ parts = parts, features = {} }), false, "the default mode")
+        TestRunner:assertEqual(shown, nil, "nothing shown: KOReader's window is the caller's to open")
+        TestRunner:assertEqual(made[1].freed, 1, "the window built to measure it is let go")
+        TestRunner:assertEqual(MinimalPopup.showForNote({ parts = parts, features = { minimal_popup_mode = "always" } }), true)
+        TestRunner:assertTrue(shown ~= nil and shown:hasOverflow(), "shown, scrolling")
+    end)
+    TestRunner:assertEqual(MinimalPopup.showForNote({ parts = {}, features = {} }), false)
+    TestRunner:assertEqual(MinimalPopup.showForNote({ features = {} }), false)
+end)
+
+TestRunner:test("the answer handed over as text is shown without a chat's history", function()
+    withWidgets(function()
+        local asked
+        local viewer = { markdown_font_size = 20, answerWidget = function(_self, text, w, h)
+            asked = text
+            return htmlWidget(100)(w, h)
+        end }
+        TestRunner:assertEqual(MinimalPopup.showForResponse({ text = "A kept answer.", viewer = viewer }), true)
+        TestRunner:assertEqual(asked, "A kept answer.")
+        -- given both, the text is the answer
+        MinimalPopup.showForResponse({ text = "This one.", history = history("not this"), viewer = viewer })
+        TestRunner:assertEqual(asked, "This one.")
+        TestRunner:assertEqual(MinimalPopup.showForResponse({ text = "  ", viewer = viewer }), false)
+    end)
+end)
+
 Event.new = real_event_new
 for i = #added, 1, -1 do added[i][1][added[i][2]] = nil end
 for _i, name in ipairs(stubbed) do package.loaded[name] = nil end

@@ -1138,6 +1138,7 @@ function ChatHistoryDialog:showChatOptions(ui, document_path, chat, chat_history
                                         timestamp = os.time(),
                                         model = chat.model or "",
                                         provider = chat.provider,
+                                        chat_id = chat.id,
                                         used_book_text = require("koassistant.ui.data_access").stampsFromKinds(chat.data_kinds).used_book_text,
                                         used_highlights = require("koassistant.ui.data_access").stampsFromKinds(chat.data_kinds).used_highlights,
                                         used_annotations = require("koassistant.ui.data_access").stampsFromKinds(chat.data_kinds).used_annotations,
@@ -2290,8 +2291,8 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                     -- Show content picker dialog
                     local content_dialog
                     local options = {
-                        { value = "full", label = _("Full (metadata + chat)") },
-                        { value = "qa", label = _("Question + Response") },
+                        { value = "full", label = Constants.contentLabel("full") },
+                        { value = "qa", label = Constants.contentLabel("qa") },
                         { value = "response", label = _("Last response only") },
                         { value = "everything", label = _("Everything (debug)") },
                     }
@@ -2392,6 +2393,7 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                                         timestamp = os.time(),
                                         model = history:getModel() or "",
                                         provider = config.provider or config.default_provider or chat.provider,
+                                        chat_id = chat.id or history.chat_id or history.conversation_id,
                                         used_book_text = require("koassistant.ui.data_access").stampsFromKinds(chat.data_kinds).used_book_text,
                                         used_highlights = require("koassistant.ui.data_access").stampsFromKinds(chat.data_kinds).used_highlights,
                                         used_annotations = require("koassistant.ui.data_access").stampsFromKinds(chat.data_kinds).used_annotations,
@@ -2664,8 +2666,8 @@ function ChatHistoryDialog:showExportOptions(document_path, chat_id, chat_histor
         -- Show content picker dialog first
         local content_dialog
         local options = {
-            { value = "full", label = _("Full (metadata + chat)") },
-            { value = "qa", label = _("Question + Response") },
+            { value = "full", label = Constants.contentLabel("full") },
+            { value = "qa", label = Constants.contentLabel("qa") },
             { value = "response", label = _("Last response only") },
             { value = "everything", label = _("Everything (debug)") },
         }

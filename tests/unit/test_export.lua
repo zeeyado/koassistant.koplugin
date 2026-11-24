@@ -709,19 +709,42 @@ local function runSingleAnswerTests()
 
     print("\n--- Export.singleAnswerNote() ---")
 
-    TestRunner:test("one line names the action, the answer under it: no model, no heading, no blank line", function()
+    TestRunner:test("one line names the action, then the answer as a paragraph of its own: no model, no heading", function()
         local data = { model = "some-model", title = "Explain", last_response = "It means the sky was overcast.",
             messages = { { role = "assistant", content = "It means the sky was overcast." } } }
         local text, lead = Export.singleAnswerNote(data, "Explain")
-        TestRunner:assertEqual(text, "Explain:\nIt means the sky was overcast.")
-        TestRunner:assertEqual(lead, #"Explain:\n", "how much of it stands before the answer")
+        -- a blank line under the action's line: where the note is drawn as Markdown
+        -- one line break is a space, and the line ran into the answer
+        TestRunner:assertEqual(text, "Explain:\n\nIt means the sky was overcast.")
+        TestRunner:assertEqual(lead, #"Explain:\n\n", "how much of it stands before the answer")
         TestRunner:assertEqual(text:sub(lead + 1), data.last_response, "the answer alone is the text from there on")
         -- the action's name as the reader sees it, whatever it holds
-        TestRunner:assertEqual((Export.singleAnswerNote(data, "Ask my tutor")), "Ask my tutor:\nIt means the sky was overcast.")
-        TestRunner:assertEqual((Export.singleAnswerNote(data, "  Explain  ")), "Explain:\nIt means the sky was overcast.")
+        TestRunner:assertEqual((Export.singleAnswerNote(data, "Ask my tutor")), "Ask my tutor:\n\nIt means the sky was overcast.")
+        TestRunner:assertEqual((Export.singleAnswerNote(data, "  Explain  ")), "Explain:\n\nIt means the sky was overcast.")
         -- a name that ends a sentence itself takes no colon
-        TestRunner:assertEqual((Export.singleAnswerNote(data, "Why?")), "Why?\nIt means the sky was overcast.")
-        TestRunner:assertEqual((Export.singleAnswerNote(data, "Note:")), "Note:\nIt means the sky was overcast.")
+        TestRunner:assertEqual((Export.singleAnswerNote(data, "Why?")), "Why?\n\nIt means the sky was overcast.")
+        TestRunner:assertEqual((Export.singleAnswerNote(data, "Note:")), "Note:\n\nIt means the sky was overcast.")
+    end)
+
+    TestRunner:test("a whole chat as a note: its first line without the brackets KOReader's note window draws as a link", function()
+        local data = { model = "some-model", title = "Explain", last_response = "Because it rained.",
+            messages = {
+                { role = "user", content = "the hidden prompt", is_context = true },
+                { role = "assistant", content = "It means the sky was overcast." },
+                { role = "user", content = "Why grey?" },
+                { role = "assistant", content = "Because it rained." },
+            } }
+        local exported = Export.format(data, "qa", "markdown")
+        TestRunner:assertEqual(exported:sub(1, #"[Explain • some-model]\n"), "[Explain • some-model]\n", "a copy or a file keeps the line as it was")
+        local note = Export.format(data, "qa", "markdown", { plain_line = true })
+        TestRunner:assertEqual(note:sub(1, #"Explain • some-model\n\n"), "Explain • some-model\n\n")
+        TestRunner:assertEqual(note:sub(1, 1):find("[%[#%*<]") == nil, true, "nothing KOReader takes for Markdown or HTML at its start")
+        TestRunner:assertEqual(note:find("[", 1, true) == nil, true)
+        -- every message that is shown, in order: the whole chat, not one question and one answer
+        TestRunner:assertEqual(note, "Explain • some-model\n\n### KOAssistant\nIt means the sky was overcast.\n\n### User\nWhy grey?\n\n### KOAssistant\nBecause it rained.\n")
+        -- the other contents have no such line: the option changes nothing
+        TestRunner:assertEqual(Export.format(data, "response", "markdown", { plain_line = true }), "Because it rained.")
+        TestRunner:assertEqual(Export.format(data, "full", "markdown", { plain_line = true }), Export.format(data, "full", "markdown"))
     end)
 
     TestRunner:test("the line never starts the way KOReader's note window takes for Markdown", function()

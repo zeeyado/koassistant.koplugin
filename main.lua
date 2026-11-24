@@ -389,6 +389,9 @@ function AskGPT:init()
   -- Install the dictionary wrapper (the X-Ray intercept and the dictionary
   -- bypass, resolved per lookup)
   self:syncDictionaryBypass()
+  -- A tap on a passage whose note the plugin wrote (the note's format for
+  -- KOReader, the minimal popup again)
+  self:syncKeptNotePopup()
 
   -- Register dictionary-popup AI buttons on KOReader's new addToDictButtons API
   -- (no-op on older builds, which use the legacy onDictButtonsReady event).
@@ -414,6 +417,8 @@ function AskGPT:init()
     -- Round 5 (per-book intercept): the dict wrapper's install gate consults
     -- the OPEN book's override, so re-evaluate per book open (idempotent)
     self:syncDictionaryBypass()
+    -- needs ui.highlight too (idempotent)
+    self:syncKeptNotePopup()
     -- Ambient X-Ray marks (slice 2): install the paint module + first scan
     self:syncXrayMarks()
     -- Backup: ensure new-API dict buttons are registered (idempotent;
@@ -6344,6 +6349,76 @@ end
 function AskGPT:toggleAutoNoteTranslate(touchmenu_instance)
   self:_toggleAutoNoteAction("translate")
   if touchmenu_instance then touchmenu_instance:updateItems() end
+end
+
+-- A tap on a highlighted passage goes through one function of KOReader's
+-- (ReaderHighlight:showHighlightNoteOrDialog: the note in its own window, or
+-- the highlight's menu when there is no note). For a note the plugin wrote,
+-- two things come first (_showKeptNote); anything else, and any failure, is
+-- KOReader's own window, untouched. Installed once per reader.
+function AskGPT:syncKeptNotePopup()
+  local hl = self.ui and self.ui.highlight
+  if not (hl and hl.showHighlightNoteOrDialog) or hl._koassistant_original_showNote then return end
+  hl._koassistant_original_showNote = hl.showHighlightNoteOrDialog
+  local self_ref = self
+  hl.showHighlightNoteOrDialog = function(hl_self, index)
+    local ok, shown = pcall(self_ref._showKeptNote, self_ref, hl_self, index)
+    if not ok then
+      logger.warn("KOAssistant: a kept note's popup failed, KOReader's own window opens:", shown)
+    elseif shown then
+      return
+    end
+    return hl._koassistant_original_showNote(hl_self, index)
+  end
+end
+
+-- The kept passage's note, before KOReader shows it. First the note's format
+-- as KOReader is told it (HighlightNote.keepFormat: Markdown for a note that
+-- is the plugin's own answers, taken back once the reader has written in it).
+-- Then the popup: a note of answers whose actions show in the minimal popup
+-- opens in that popup again (HighlightNote.popupParts; Highlight Settings,
+-- Open Kept Answers in the Popup), where a tap inside opens KOReader's own
+-- note window for the same highlight.
+-- @return boolean the popup is shown (false = KOReader's window is to open)
+function AskGPT:_showKeptNote(hl, index)
+  local list = self.ui and self.ui.annotation and self.ui.annotation.annotations
+  local annotation = list and list[index]
+  if not (annotation and annotation.datetime) then return false end
+  local HighlightNote = require("koassistant.chat.highlight_note")
+  local ds = self:_openBookDS()
+  HighlightNote.keepFormat(ds, annotation)
+  if type(annotation.note) ~= "string" or annotation.note == "" then return false end
+  local features = self.settings:readSetting("features") or {}
+  local state, parts = HighlightNote.recordOf(ds, annotation)
+  local show = HighlightNote.popupParts(state, parts, features)
+  if not show then return false end
+  -- The highlight's rectangles on this page, as plain copies. A reflowable
+  -- book's are screen coordinates; a PDF's popup stands in the middle of the
+  -- screen, as a new answer's does
+  local boxes
+  if not self.ui.paging and hl.getHighlightVisibleBoxes then
+    local rects = hl:getHighlightVisibleBoxes(index)
+    if rects then
+      boxes = {}
+      for i, r in ipairs(rects) do boxes[i] = { x = r.x, y = r.y, w = r.w, h = r.h } end
+    end
+  end
+  local ui = self.ui
+  return require("koassistant.ui.minimal_popup").showForNote({
+    parts = show,
+    features = features,
+    plugin = self,
+    ui = ui,
+    boxes = boxes,
+    on_expand = function()
+      -- KOReader's own note window, for the highlight where it stands now
+      for i, item in ipairs(ui.annotation.annotations) do
+        if item == annotation then
+          return hl._koassistant_original_showNote(hl, i)
+        end
+      end
+    end,
+  })
 end
 
 -- A list of highlight actions the reader ticks, as a set: the two such lists

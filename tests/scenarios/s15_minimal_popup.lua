@@ -18,7 +18,11 @@ What a reader must see:
 - a word held in the text is looked up and a passage gets the selection
   menu, as in the chat window; the popup stays;
 - the X-Ray card's popup style (plain text, no chat window behind it) still
-  shows and opens its entry.
+  shows and opens its entry;
+- a kept answer shown again when its passage is tapped (B722): the same
+  popup, drawn by a chat window of the note's kind that is built for it and
+  never shown, with no keep mark; a tap inside is its caller's (KOReader's
+  own note window).
 ]]
 local S = dofile(os.getenv("KOA_PLUGIN") .. "/tests/scenarios/boot.lua")
 local Device = require("device")
@@ -332,6 +336,65 @@ S.shot("popup_card")
 local cf = card.frame.dimen
 gesture("tap", cf.x + math.floor(cf.w / 2), cf.y + math.floor(cf.h / 2))
 S.check(S.top() ~= card and opened == 1, "and a tap opens its entry")
+
+-- 9. A kept answer shown again (showForNote): a chat window of the note's
+-- kind built for it and never shown, the same popup, no keep mark
+local function note(parts, features, opts)
+    opts = opts or {}
+    local n = { expanded = 0 }
+    local f = { minimal_popup_mode = "always" }
+    for k, v in pairs(features or {}) do f[k] = v end
+    last_html = ""
+    n.shown = MinimalPopup.showForNote({
+        parts = parts, features = f, boxes = opts.boxes, ui = opts.boxes and {} or nil,
+        on_expand = function() n.expanded = n.expanded + 1 end,
+    })
+    S.settle()
+    UIManager:forceRePaint()
+    local top = S.top()
+    n.popup = (n.shown and type(top) == "table" and top.scroll_w and top.hasOverflow) and top or nil
+    return n
+end
+local function away(n)
+    if n.popup and S.top() == n.popup then UIManager:close(n.popup) end
+    S.settle(1)
+end
+local function paragraphs()
+    local _html, count = last_html:gsub("<p[ >]", "")
+    return count
+end
+local active_before = rawget(_G, "ActiveChatViewer")
+local n = note({ { kind = "translate", text = "The first line of it.\nThe second line." } })
+if S.check(n.popup ~= nil and n.popup.scroll_w.htmlbox_widget ~= nil, "a kept translation is shown in the popup, in the Markdown view") then
+    S.check(paragraphs() == 2, "its two lines are two paragraphs, as the translate window shows them (" .. paragraphs() .. ")")
+    S.check(n.popup.keep == nil and n.popup.keep_mark == nil, "no keep mark: the answer is kept")
+    S.check(n.popup.scroll_w.width == chat_text_w, "in the same box as a new answer")
+    S.check(rawget(_G, "ActiveChatViewer") == active_before, "the window built for it is not made the chat on screen")
+    S.shot("popup_kept_note")
+    local nf = n.popup.frame.dimen
+    gesture("tap", nf.x + math.floor(nf.w / 2), nf.y + math.floor(nf.h / 2))
+    S.check(S.top() ~= n.popup and n.expanded == 1, "a tap inside hands over to its caller (KOReader's own note window)")
+end
+away(n)
+n = note({
+    { kind = "translate", text = "The first line of it.\nThe second line." },
+    { kind = "chat", text = "Quick Explain:\n\nIt is **early**." },
+})
+if S.check(n.popup ~= nil, "a translation and an explanation kept on one passage: the whole note") then
+    S.check(paragraphs() == 4, "the translation's lines apart, the action's line, the answer (" .. paragraphs() .. " paragraphs)")
+    S.check(last_html:find("<strong>early</strong>", 1, true) ~= nil or last_html:find("<b>early</b>", 1, true) ~= nil,
+        "the answer's bold word is drawn")
+end
+away(n)
+n = note({ { kind = "dictionary", text = "**lantern** (noun): a lamp with a case around its light." } })
+S.check(n.popup ~= nil and last_html:find("lantern", 1, true) ~= nil, "a kept definition, in a dictionary window's drawing")
+away(n)
+n = note({ { kind = "translate", text = "A line.\nAnother." } }, { render_markdown = false })
+S.check(n.popup ~= nil and n.popup.scroll_w.text_widget ~= nil, "the reader's view is Plain Text: the plain widget")
+away(n)
+n = note({ { kind = "translate", text = long() } }, { minimal_popup_mode = "short" })
+S.check(n.shown == false and n.popup == nil, "When it fits: a note taller than the popup is handed back (KOReader's window opens)")
+away(n)
 
 Box.setContent = setContent
 Device.hasKeys = has_keys

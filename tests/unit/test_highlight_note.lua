@@ -522,6 +522,134 @@ TestRunner:test("edit: KOReader's editor on the passage's own highlight, or a ne
     eq(res, nil); eq(why, "no_selection")
 end)
 
+-- ── what KOReader is told of the note, and which notes open in the popup ─────
+print("\n  the note's format for KOReader, and the popup on a kept passage")
+
+TestRunner:test("wantsMarkdown: a note that is ours alone and holds an answer written in Markdown", function()
+    local chat = { kind = "chat", text = "Explain:\n\n**Awake** here." }
+    local dict = { kind = "dictionary", text = "**lantern** (n.)" }
+    local line = { kind = "translate", text = "Le matin se leva gris." }
+    local lines = { kind = "translate", text = "Premier paragraphe.\nDeuxième paragraphe." }
+    local apart = { kind = "translate", text = "Premier paragraphe.\n\nDeuxième paragraphe." }
+    eq(HighlightNote.wantsMarkdown("ours", { chat }), true)
+    eq(HighlightNote.wantsMarkdown("ours", { dict }), true)
+    eq(HighlightNote.wantsMarkdown("ours", { line }), false, "a translation alone is plain text: KOReader's small window")
+    eq(HighlightNote.wantsMarkdown("ours", { line, chat }), true, "a translation and an explanation")
+    eq(HighlightNote.wantsMarkdown("ours", { lines, chat }), false, "Markdown would run the translation's lines together")
+    eq(HighlightNote.wantsMarkdown("ours", { apart, chat }), true, "paragraphs a blank line apart are safe")
+    eq(HighlightNote.wantsMarkdown("mixed", { chat }), false, "the reader's own words are not Markdown")
+    eq(HighlightNote.wantsMarkdown("changed", {}), false)
+    eq(HighlightNote.wantsMarkdown(nil, {}), false)
+    eq(HighlightNote.wantsMarkdown("ours", nil), false)
+end)
+
+TestRunner:test("a saved chat answer: the note's format is named for KOReader, and the record says who named it", function()
+    local r = newReader()
+    local sel = selection("/body/p[3].0", "/body/p[3].22")
+    local saved = HighlightNote.save(r.ui, sel, "Explain:\n\n**Awake** here.", { kind = "chat", store = r.store })
+    eq(saved.annotation.note_format, "md")
+    eq(r.store.data[HighlightNote.RECORD_KEY][saved.annotation.datetime].md, true)
+    -- a translation alone names none
+    local t = newReader()
+    local kept = HighlightNote.save(t.ui, sel, "Le matin se leva gris.", { kind = "translate", store = t.store })
+    eq(kept.annotation.note_format, nil)
+    eq(t.store.data[HighlightNote.RECORD_KEY][kept.annotation.datetime].md, nil)
+    -- an explanation kept on the same passage after it: named now, and kept through later saves
+    HighlightNote.save(t.ui, sel, "Explain:\n\nIt was early.", { kind = "chat", store = t.store })
+    eq(kept.annotation.note_format, "md")
+    HighlightNote.save(t.ui, sel, "Une autre.", { kind = "translate", store = t.store })
+    eq(kept.annotation.note_format, "md")
+    eq(t.store.data[HighlightNote.RECORD_KEY][kept.annotation.datetime].md, true, "the mark rides the record's line through a save")
+    -- a dictionary answer on a word
+    local d = newReader()
+    local word = HighlightNote.save(d.ui, selection("/body/p[1].4", "/body/p[1].11", "lantern"), "**lantern** (n.): a lamp.",
+        { kind = "dictionary", store = d.store })
+    eq(word.annotation.note_format, "md")
+end)
+
+TestRunner:test("the format follows the note: taken back when the answer leaves or the reader writes in it", function()
+    local r = newReader()
+    local sel = selection("/body/p[3].0", "/body/p[3].22")
+    local first = HighlightNote.save(r.ui, sel, "Le matin se leva gris.", { kind = "translate", store = r.store })
+    local second = HighlightNote.save(r.ui, sel, "Explain:\n\nIt was early.", { kind = "chat", store = r.store })
+    local item = first.annotation
+    eq(item.note_format, "md")
+    -- the explanation taken back out: a translation alone again
+    eq(HighlightNote.remove(r.ui, second, { store = r.store }), "note")
+    eq(item.note_format, nil)
+    eq(r.store.data[HighlightNote.RECORD_KEY][item.datetime].md, nil)
+    -- kept again, then the reader writes lines of their own under it (KOReader's editor: no word reaches the plugin)
+    HighlightNote.save(r.ui, sel, "Explain:\n\nIt was early.", { kind = "chat", store = r.store })
+    eq(item.note_format, "md")
+    local ours = item.note
+    item.note = ours .. "\n\nmy own line\nand another"
+    eq(HighlightNote.keepFormat(r.store, item), "cleared", "asked when the passage is tapped")
+    eq(item.note_format, nil, "their lines are not Markdown")
+    eq(HighlightNote.keepFormat(r.store, item), nil, "nothing more to do")
+    -- they take their words out again: the note is the plugin's alone once more
+    item.note = ours
+    eq(HighlightNote.keepFormat(r.store, item), "set")
+    eq(item.note_format, "md")
+    -- the reader deletes the note in KOReader's window: the mark goes with it
+    item.note = nil
+    eq(HighlightNote.keepFormat(r.store, item), "cleared")
+    eq(item.note_format, nil)
+end)
+
+TestRunner:test("the one answer of a note taken back out: the format's mark and the record's line leave with it", function()
+    local r = newReader()
+    local mine = highlightOf(r, "/body/p[3].0", "/body/p[3].22")
+    local saved = HighlightNote.save(r.ui, selection("/body/p[3].0", "/body/p[3].22"), "Explain:\n\nIt was early.",
+        { kind = "chat", store = r.store })
+    eq(mine.note_format, "md")
+    eq(HighlightNote.remove(r.ui, saved, { store = r.store }), "note")
+    eq(mine.note, nil)
+    eq(mine.note_format, nil, "a note the reader writes there later is shown as they wrote it")
+    eq(r.store.data[HighlightNote.RECORD_KEY][mine.datetime], nil)
+end)
+
+TestRunner:test("a format the plugin did not name is never touched; a note without a record is left alone", function()
+    local r = newReader()
+    local sel = selection("/body/p[3].0", "/body/p[3].22")
+    local mine = highlightOf(r, "/body/p[3].0", "/body/p[3].22")
+    mine.note_format = "html"   -- another tool's
+    HighlightNote.save(r.ui, sel, "Explain:\n\nIt was early.", { kind = "chat", store = r.store })
+    eq(mine.note_format, "html")
+    eq(r.store.data[HighlightNote.RECORD_KEY][mine.datetime].md, nil, "not ours to take back")
+    mine.note = "all my own words now"
+    eq(HighlightNote.keepFormat(r.store, mine), nil)
+    eq(mine.note_format, "html")
+    -- a highlight the plugin never wrote on
+    local other = highlightOf(r, "/body/p[9].0", "/body/p[9].5", "* a list of my own")
+    other.note_format = "md"
+    eq(HighlightNote.keepFormat(r.store, other), nil)
+    eq(other.note_format, "md")
+    eq(HighlightNote.keepFormat(nil, other), nil)
+    eq(HighlightNote.keepFormat(r.store, nil), nil)
+end)
+
+TestRunner:test("popupParts: a note of answers whose actions show in the minimal popup today", function()
+    local t = { kind = "translate", action = "translate", text = "Le matin." }
+    local q = { kind = "chat", action = "quick_explain", text = "Quick Explain:\n\nEarly." }
+    local e = { kind = "chat", action = "explain", text = "Explain:\n\nEarly." }
+    local old = { kind = "translate", text = "Saved before the action was recorded." }
+    local f = {}
+    ok(HighlightNote.popupParts("ours", { t }, f), "Translate is on the list by default")
+    eq(#HighlightNote.popupParts("ours", { t, q }, f), 2, "the whole note")
+    eq(HighlightNote.popupParts("ours", { t, e }, f), nil, "Explain opens in a chat window: KOReader's note window")
+    eq(HighlightNote.popupParts("ours", { old }, f), nil, "no action recorded")
+    eq(HighlightNote.popupParts("mixed", { t }, f), nil, "the reader also wrote in it: KOReader's window shows all of it")
+    eq(HighlightNote.popupParts("changed", {}, f), nil)
+    eq(HighlightNote.popupParts(nil, {}, f), nil)
+    -- today's settings, not the day it was saved
+    ok(HighlightNote.popupParts("ours", { e }, { minimal_popup_actions = { "explain" } }), "Explain put on the list since")
+    eq(HighlightNote.popupParts("ours", { t }, { minimal_popup_actions = { "explain" } }), nil, "Translate taken off it")
+    eq(HighlightNote.popupParts("ours", { t }, { minimal_popup_mode = "off" }), nil, "the popup is off")
+    ok(HighlightNote.popupParts("ours", { t }, { minimal_popup_mode = "always" }))
+    eq(HighlightNote.popupParts("ours", { t }, { kept_answer_popup = false }), nil, "the reader's switch")
+    ok(HighlightNote.popupParts("ours", { t }, nil), "no settings: the defaults")
+end)
+
 -- ── the windows' own saveToNote ─────────────────────────────────────────────
 print("\n  the windows (Save to Note, +Note)")
 
@@ -530,12 +658,17 @@ local ChatGPTViewer = require("koassistant.ui.chatgptviewer")
 local ReaderUIMock = {}
 package.loaded["apps/reader/readerui"] = ReaderUIMock
 local asked_content = {}
+local asked_opts = {}
 local single_answer = false
 package.loaded["koassistant.chat.export"] = {
     fromHistory = function() return {} end,
     isSingleAnswer = function() return single_answer end,
-    singleAnswerNote = function(_data, action_name) return tostring(action_name) .. ":\nNOTE", #tostring(action_name) + 2 end,
-    format = function(_data, content) asked_content[#asked_content + 1] = content; return "NOTE:" .. content end,
+    singleAnswerNote = function(_data, action_name) return tostring(action_name) .. ":\n\nNOTE", #tostring(action_name) + 3 end,
+    format = function(_data, content, _style, opts)
+        asked_content[#asked_content + 1] = content
+        asked_opts[#asked_opts + 1] = opts or false
+        return "NOTE:" .. content
+    end,
 }
 local resolved_store
 package.loaded["koassistant.storage.doc_settings"] = {
@@ -546,6 +679,7 @@ local function window(r, fields)
     ReaderUIMock.instance = r.ui
     resolved_store = r.store
     asked_content = {}
+    asked_opts = {}
     single_answer = false
     fields.selection_data = fields.selection_data or selection("/body/p[3].0", "/body/p[3].22")
     fields._message_history = fields._message_history or {}
@@ -654,11 +788,36 @@ TestRunner:test("a hold asks what the note holds, and saves the pick at once", f
     v:saveToNote(true)
     local rows = table.concat(rec:texts(), " | ")
     eq(#r.list, 0, "nothing is saved before the pick")
-    rec:tap("Question + Response")
+    rec:tap("Whole chat")
     rec:restore()
-    eq(rows, "Full (metadata + chat) | Question + Response | Translation only | Everything (debug) | Edit before saving… | Cancel")
+    -- the row a plain tap saves carries a tick (a translate window: the translation only)
+    eq(rows, "Whole chat + metadata | Whole chat | \u{2713} Translation only | Everything (debug) | Edit before saving… | Cancel")
     eq(r.list[1].note, "NOTE:qa")
     eq(#r.edits + #r.adds, 0)
+end)
+
+TestRunner:test("the long-press list ticks the row a tap saves, whatever the setting; Ask every time ticks none", function()
+    local rec = Recorder.install()
+    local r = newReader()
+    window(r, {}):saveToNote(true)
+    ok(rec:has("\u{2713} Whole chat"), "a chat window's default")
+    ok(rec:has("Last response only") and not rec:has("\u{2713} Last response only"), "one tick")
+    rec:restore()
+    rec = Recorder.install()
+    window(r, { configuration = { features = { note_content = "response" } } }):saveToNote(true)
+    ok(rec:has("\u{2713} Last response only"), "the reader's own setting")
+    ok(not rec:has("\u{2713} Whole chat"))
+    rec:restore()
+    rec = Recorder.install()
+    window(r, { translate_view = true,
+        configuration = { features = { translate_note_content = "global", note_content = "full" } } }):saveToNote(true)
+    ok(rec:has("\u{2713} Whole chat + metadata"), "Follow global setting, resolved")
+    rec:restore()
+    rec = Recorder.install()
+    window(r, { configuration = { features = { note_content = "ask" } } }):saveToNote()
+    local rows = table.concat(rec:texts(), " | ")
+    rec:restore()
+    ok(not rows:find("\u{2713}", 1, true), "Ask every time: the list is the tap, no row is the default")
 end)
 
 TestRunner:test("Edit before saving…: KOReader's note editor, the window's default content, nothing recorded", function()
@@ -707,15 +866,15 @@ TestRunner:test("no selection, no book, no chat: said, nothing written", functio
     eq(#r.list, 0)
 end)
 
-TestRunner:test("a chat that is one answer with nothing typed: Question + Response names the action above the answer", function()
+TestRunner:test("a chat that is one answer with nothing typed: Whole chat names the action above the answer", function()
     local rec = Recorder.install()
     local r = newReader()
     local v = window(r, { _message_history = { prompt_action = "Explain" } })
     single_answer = true
     v:saveToNote()
-    eq(r.list[1].note, "Explain:\nNOTE", "what was asked is the action")
+    eq(r.list[1].note, "Explain:\n\nNOTE", "what was asked is the action")
     local _state, parts = HighlightNote.recordOf(r.store, r.list[1])
-    eq(parts[1].lead, #"Explain:\n", "the record says where the answer starts under its line")
+    eq(parts[1].lead, #"Explain:\n\n", "the record says where the answer starts under its line")
     eq(parts[1].text:sub(parts[1].lead + 1), "NOTE")
     -- Last response only is the answer alone, whatever the chat
     r = newReader()
@@ -724,12 +883,39 @@ TestRunner:test("a chat that is one answer with nothing typed: Question + Respon
     single_answer = true
     v:saveToNote()
     eq(r.list[1].note, "NOTE:response")
-    -- a typed question or a second exchange: the questions and answers as before
+    -- a typed question or a second exchange: the questions and answers as before,
+    -- their first line without its brackets (KOReader's note window draws a
+    -- leading bracket as a link with no address)
     r = newReader()
     v = window(r, {})
     v:saveToNote()
     rec:restore()
     eq(r.list[1].note, "NOTE:qa")
+    ok(type(asked_opts[1]) == "table" and asked_opts[1].plain_line == true, "a note's export is asked for a plain first line")
+end)
+
+TestRunner:test("the record keeps the chat an answer came from: the id the chat is saved under", function()
+    local rec = Recorder.install()
+    local r = newReader()
+    -- a chat not saved yet: the id it was given at its first message
+    window(r, { _message_history = { prompt_action = "Explain", conversation_id = "1763900000_123456" } }):saveToNote()
+    local _state, parts = HighlightNote.recordOf(r.store, r.list[1])
+    eq(parts[1].chat, "1763900000_123456")
+    -- a saved chat continued: its own id
+    r = newReader()
+    window(r, { _message_history = { chat_id = "saved_7", conversation_id = "saved_7" } }):saveToNote()
+    _state, parts = HighlightNote.recordOf(r.store, r.list[1])
+    eq(parts[1].chat, "saved_7")
+    -- a later save on the same passage keeps the first piece's chat
+    window(r, { _message_history = { conversation_id = "another" }, configuration = { features = { note_content = "full" } } }):saveToNote()
+    _state, parts = HighlightNote.recordOf(r.store, r.list[1])
+    rec:restore()
+    eq(#parts, 2); eq(parts[1].chat, "saved_7"); eq(parts[2].chat, "another")
+    -- no id, no field
+    r = newReader()
+    HighlightNote.save(r.ui, selection("/body/p[3].0", "/body/p[3].22"), "x", { kind = "chat", chat = "", store = r.store })
+    _state, parts = HighlightNote.recordOf(r.store, r.list[1])
+    eq(parts[1].chat, nil)
 end)
 
 TestRunner:test("keepAsNote: the save with no notice and no window closed; Ask every time takes the kind's default", function()

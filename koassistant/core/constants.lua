@@ -327,6 +327,24 @@ Constants.KOA_SUFFIX_KEYS = {
     file_browser = "show_koa_suffix_in_file_browser",
 }
 
+--- The names of what a copy, a note or a saved file holds, one copy for every
+--- list that offers them (the settings' pickers, the long-press lists, the
+--- chat history's export). "qa" is the whole chat as it is shown: every
+--- message the reader typed and every answer, not one question and one
+--- answer (it read "Question + Response" until v0.26). The dictionary and
+--- translate windows name the last answer their own way (`kind`).
+function Constants.contentLabel(value, kind)
+    if value == "full" then return _("Whole chat + metadata") end
+    if value == "qa" then return _("Whole chat") end
+    if value == "response" then
+        if kind == "translate" then return _("Translation only") end
+        if kind == "dictionary" then return _("Definition only (Recommended)") end
+        return _("Last response only")
+    end
+    if value == "everything" then return _("Everything (debug)") end
+    return value
+end
+
 --- A KOAssistant button's label on a surface it shares with KOReader's own
 --- buttons: " (KOA)" appended unless the reader unticked it for that surface.
 --- @param text string the label

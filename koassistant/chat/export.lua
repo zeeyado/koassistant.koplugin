@@ -16,13 +16,17 @@ local DebugUtils = require("koassistant.core.debug_utils")
 local Export = {}
 
 --- Build minimal context line for Q+A mode
--- Format: [Action • model] - minimal since notes have implicit book context
+-- Format: [Action • model] - minimal since notes have implicit book context.
+-- `plain` = without the brackets, for a text KOReader may draw as Markdown (a
+-- highlight's note): its Markdown library reads "[words]" as a link with no
+-- address, and a note that STARTS with "[" is taken for Markdown whatever it
+-- holds (ReaderHighlight:showHighlightNoteOrDialog).
 -- @param data table export data
 -- @return string context line
-local function buildContextLine(data)
+local function buildContextLine(data, plain)
     local action = data.title or "Chat"
     local model = data.model or "Unknown"
-    return string.format("[%s • %s]", action, model)
+    return string.format(plain and "%s • %s" or "[%s • %s]", action, model)
 end
 
 --- Generate formatted text based on content and style settings
@@ -35,8 +39,9 @@ end
 --   - full: Book metadata + Highlighted text + Question + Response (no context messages)
 --   - everything: Book metadata + All context messages + All messages
 -- @param style string: "markdown" | "text"
+-- @param opts table|nil { plain_line = the first line of "qa" / "full_qa" without its brackets (a note) }
 -- @return string formatted export text
-function Export.format(data, content, style)
+function Export.format(data, content, style, opts)
     -- Response only - no styling needed, just raw text
     if content == "response" then
         return data.last_response or ""
@@ -47,7 +52,7 @@ function Export.format(data, content, style)
 
     -- Q+A and Full Q+A modes: Add minimal context line before messages
     if content == "qa" or content == "full_qa" then
-        local context_line = buildContextLine(data)
+        local context_line = buildContextLine(data, opts and opts.plain_line)
         if context_line then
             table.insert(result, context_line)
             table.insert(result, "")
@@ -212,18 +217,20 @@ function Export.isSingleAnswer(data)
     return shown == 1 and last.role == "assistant"
 end
 
---- A note's Question + Response for a chat that is one answer with nothing
---- the reader typed (isSingleAnswer): one line that names the action, the
---- answer under it ("Explain:", a line break, the answer). No model name and
---- no heading (a note is read beside its passage, and is the reader's to keep
---- short). The answer alone for a chat that has no action. Pure.
+--- A note's Whole chat for a chat that is one answer with nothing the reader
+--- typed (isSingleAnswer): one line that names the action, a blank line, the
+--- answer ("Explain:", then the answer as its own paragraph). No model name
+--- and no heading (a note is read beside its passage, and is the reader's to
+--- keep short). The answer alone for a chat that has no action. Pure.
 ---
 --- The line is plain words and a colon, NEVER the export's "[Action]" form:
 --- KOReader's own note window takes a note whose first character is "[", "#"
 --- or "*" for Markdown (ReaderHighlight:showHighlightNoteOrDialog), and its
 --- Markdown library draws "[Explain]" as a link with no address, the brackets
---- gone and the word run into the answer's first line. A colon also reads
---- right where a list or an export puts the note on one line.
+--- gone and the word run into the answer's first line. The blank line is for
+--- the same window: where the note is drawn as Markdown (the plugin names the
+--- format of a note that is its own, HighlightNote.wantsMarkdown), one line
+--- break is a space, and the line ran into the answer's first paragraph.
 -- @param data what fromHistory / fromSavedChat returned
 -- @param action_name the action's name as the reader sees it (nil = none)
 -- @return string the note's text
@@ -236,7 +243,7 @@ function Export.singleAnswerNote(data, action_name)
     local line = action_name:gsub("^%s+", ""):gsub("%s+$", "")
     -- a name that ends a sentence itself ("Why?") takes no colon
     if not line:find("[%?!:%.]$") then line = line .. ":" end
-    line = line .. "\n"
+    line = line .. "\n\n"
     return line .. answer, #line
 end
 
