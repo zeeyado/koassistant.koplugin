@@ -30,10 +30,15 @@ Two things read the record when a kept passage is tapped. KOReader shows a
 note in its small plain-text window or in its large one that draws Markdown,
 by the annotation's `note_format` or, without one, by the note's first
 character: the plugin names the format of a note that is its own and holds
-answers written in Markdown (wantsMarkdown, keepFormat), and takes its mark
-back when the note is no longer its own. And a note of answers whose actions
-show in the minimal popup opens in that popup again (popupParts), KOReader's
-own window one tap further.
+answers written in Markdown (wantsMarkdown, keepFormat), and the mark then
+stays through what the reader changes in the note, until the note is gone.
+And a note of answers whose actions show in the minimal popup opens in that
+popup again (popupParts), KOReader's own window one tap further.
+
+"Edit before saving…" (edit) is KOReader's note editor with the answer filled
+in. What its Save writes is recorded and formatted as a save at once would
+be: the answer counts as the plugin's while it stands as proposed, and what
+the reader changed there is theirs.
 ]]
 
 local Constants = require("koassistant.core.constants")
@@ -233,7 +238,13 @@ function HighlightNote.recordOf(ds, annotation)
     if not (ds and annotation and annotation.datetime) then return nil, {} end
     local line = readRecord(ds)[annotation.datetime]
     if type(line) ~= "table" then return nil, {} end
-    local note = annotation.note
+    return HighlightNote.stateOf(line, annotation.note)
+end
+
+--- What a record's line says of a note's text, pure: recordOf's two results
+--- for a line that exists ("ours" | "mixed" | "changed", and the pieces that
+--- stand as written).
+function HighlightNote.stateOf(line, note)
     local parts = intact(line, note)
     if #parts == 0 then return "changed", parts end
     -- what stands between and around the pieces: white space, or someone's words
@@ -273,19 +284,39 @@ function HighlightNote.wantsMarkdown(state, parts)
 end
 
 --- Name the note's format for KOReader, or take the plugin's own mark back,
---- as the note is NOW (after a save, after a removal, and when the passage is
---- tapped: the reader may have written in the note since, and their words are
---- not Markdown). KOReader reads `annotation.note_format` when it shows a note
+--- as the note is NOW (after a save, after a removal, after KOReader's editor
+--- saved an answer the reader looked over first, and when the passage is
+--- tapped). KOReader reads `annotation.note_format` when it shows a note
 --- ("md" = its large window with the Markdown drawn; nil = its guess from the
---- note's first character) and keeps the field through its own Edit note. A
---- format the plugin did not set is never touched.
+--- note's first character) and keeps the field through its own Edit note.
+---
+--- The mark is set for a note the plugin's own write leaves wanting it
+--- (wantsMarkdown). From then on what the reader changes in the note does not
+--- take it back: they change it in KOReader's editor, on the answer's
+--- Markdown source, and an answer that shows its asterisks again because a
+--- line was added under it is the worse fault. The mark goes when the note is
+--- gone, and when the note is the plugin's alone again with nothing written
+--- in Markdown left in it (the explanation taken back out of a note that
+--- also holds a translation). A format the plugin did not set is never touched.
+-- @param written the note as the plugin's write left it, where the reader could
+--   change it before it was saved (KOReader's editor): the format is decided
+--   as for a save at once. nil = the note as it is
 -- @return string|nil "set" | "cleared" (nil = nothing changed)
-function HighlightNote.keepFormat(ds, annotation)
+function HighlightNote.keepFormat(ds, annotation, written)
     if not (ds and annotation and annotation.datetime) then return nil end
     local all = readRecord(ds)
     local line = all[annotation.datetime]
     if type(line) ~= "table" then return nil end
-    if HighlightNote.wantsMarkdown(HighlightNote.recordOf(ds, annotation)) then
+    local note = annotation.note
+    local wanted = false
+    if type(note) == "string" and note:find("%S") then
+        local state, parts = HighlightNote.stateOf(line, note)
+        wanted = HighlightNote.wantsMarkdown(state, parts)
+            or (written ~= nil and HighlightNote.wantsMarkdown(HighlightNote.stateOf(line, written)))
+            -- the plugin's own mark, through the reader's changes
+            or (line.md == true and state ~= "ours")
+    end
+    if wanted then
         if annotation.note_format ~= nil then return nil end
         annotation.note_format = "md"
         line.md = true
@@ -436,30 +467,66 @@ function HighlightNote.remove(ui, saved, opts)
     return removed
 end
 
---- KOReader's note editor with `text` filled in, on the same highlight rule:
---- the passage's own highlight when there is one, else a new one as before
---- (KOReader's Add note for a passage, the word alone for a looked-up word).
---- A note saved from the editor is not recorded: the reader may change it there.
--- @return boolean|nil, string|nil why not (as save)
+--- KOReader's note editor with `text` filled in ("Edit before saving…"), on
+--- the same highlight rule: the passage's own highlight when there is one,
+--- else a new one as KOReader's Add note makes it (the reader's question
+--- about the highlight's style where they have one set, the punctuation around
+--- a sentence taken in; the word alone for a looked-up word). Nothing is
+--- saved before the editor's Save, and its Cancel leaves no highlight behind.
+---
+--- What the Save writes is recorded as a save at once records it, at the
+--- place the editor put the answer: the piece counts as the plugin's while it
+--- stands there as proposed, and whatever the reader changed or added is
+--- theirs (recordOf). The note's format is decided as for a save at once
+--- (keepFormat), whatever the reader changed.
+-- @param opts as save's (extend, kind, action, action_name, chat, lead, store)
+-- @return boolean|nil the editor is opening (after KOReader's own question, where the reader has one)
+-- @return string|nil why not (as save)
 function HighlightNote.edit(ui, selection, text, opts)
     opts = opts or {}
     local why = unusable(ui, selection, text)
     if why then return nil, why end
+    text = text:gsub("%s+$", "")
     local hl = ui.highlight
+    -- The editor as ReaderHighlight:editNote opens it, through the function it
+    -- calls, which runs a caller's function once Save has written the note
+    local function open(index, is_new)
+        local annotation = ui.annotation.annotations[index]
+        local old = annotation.note
+        ui.bookmark:setBookmarkNote(index, is_new, text, function()
+            redraw(ui)
+            local ok, err = pcall(function()
+                local ds = bookStore(ui, opts)
+                -- a blank editor saved leaves no note: nothing to record
+                if type(annotation.note) == "string" and annotation.note ~= "" then
+                    remember(ds, ui.annotation.annotations, annotation, opts, old, text)
+                end
+                HighlightNote.keepFormat(ds, annotation, old and (old .. "\n\n" .. text) or text)
+            end)
+            if not ok then logger.warn("KOAssistant: the note was saved, its record was not:", err) end
+        end)
+    end
     local index = existing(ui, selection, opts.extend and extended(ui, selection) or nil)
     if index then
-        hl:editNote(index, false, text)
+        open(index, false)
         return true
     end
-    hl.selected_text = copy(selection)
-    if opts.extend then
-        hl:addNote(text)
+    local passage = copy(selection)
+    hl.selected_text = passage
+    local function made(new_index)
+        hl:clear()
+        if hl.selected_text == passage then hl.selected_text = nil end
+        if new_index then open(new_index, true) end
+    end
+    if opts.extend and hl.showHighlightPrompt then
+        -- KOReader's own Add note, step for step, with the editor opened here
+        hl:showHighlightPrompt(made)
         return true
     end
-    index = hl:saveHighlight(false)
+    -- a looked-up word, or a KOReader from before that question: its Add note of then
+    index = hl:saveHighlight(opts.extend == true)
+    made(index)
     if not index then return nil, "no_highlight" end
-    hl:clear()
-    hl:editNote(index, true, text)
     return true
 end
 

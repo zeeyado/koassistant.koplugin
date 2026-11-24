@@ -6373,12 +6373,13 @@ function AskGPT:syncKeptNotePopup()
 end
 
 -- The kept passage's note, before KOReader shows it. First the note's format
--- as KOReader is told it (HighlightNote.keepFormat: Markdown for a note that
--- is the plugin's own answers, taken back once the reader has written in it).
--- Then the popup: a note of answers whose actions show in the minimal popup
--- opens in that popup again (HighlightNote.popupParts; Highlight Settings,
--- Open Kept Answers in the Popup), where a tap inside opens KOReader's own
--- note window for the same highlight.
+-- as KOReader is told it (HighlightNote.keepFormat: Markdown for a note of
+-- the plugin's own answers, kept through what the reader changes in it and
+-- taken back when the note is gone). Then the popup: a note of answers whose
+-- actions show in the minimal popup opens in that popup again
+-- (HighlightNote.popupParts; Highlight Settings, Show Saved Answers in the
+-- Minimal Popup), where a tap inside opens KOReader's own note window for
+-- the same highlight.
 -- @return boolean the popup is shown (false = KOReader's window is to open)
 function AskGPT:_showKeptNote(hl, index)
   local list = self.ui and self.ui.annotation and self.ui.annotation.annotations

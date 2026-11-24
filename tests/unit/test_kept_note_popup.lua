@@ -234,10 +234,18 @@ TestRunner:test("the note's format is settled before KOReader shows the note", f
     r.hl:showHighlightNoteOrDialog(1)
     TestRunner:assertEqual(seen, "md", "KOReader draws it as Markdown")
     TestRunner:assertEqual(r.store.data[HighlightNote.RECORD_KEY][item.datetime].md, true)
-    -- the reader writes in it: their words are not Markdown
+    -- the reader writes in it: KOReader's window, the answer still drawn
     item.note = item.note .. "\n\nmy own line\nand another"
+    seen = nil
     r.hl:showHighlightNoteOrDialog(1)
-    TestRunner:assertEqual(seen, nil, "taken back before the window opens")
+    TestRunner:assertEqual(seen, "md", "an added line does not take the formatting away")
+    TestRunner:assertEqual(#popup.calls, 0, "and a note with the reader's words in it is KOReader's window's")
+    -- the note deleted in KOReader's window: the mark is taken back before anything else is shown
+    item.note = nil
+    seen = "not asked"
+    r.hl:showHighlightNoteOrDialog(1)
+    TestRunner:assertEqual(seen, nil, "taken back with the note")
+    TestRunner:assertEqual(item.note_format, nil)
     -- a translation alone is never named
     reset()
     local t = newReader({ kept_answer_popup = false })

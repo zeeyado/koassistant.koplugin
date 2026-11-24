@@ -5162,6 +5162,18 @@ function ChatGPTViewer:_noteText(history, selected_content)
     selected_content == "response" and 0 or nil
 end
 
+-- What the record keeps of a note this window writes, and how its highlight
+-- is made: the kind of answer, the action the chat was started with (its id
+-- where the request named one, a highlight action; its name as the reader saw
+-- it), where the answer starts in the saved text (after the action's line),
+-- and the chat itself: the id it is saved under, when it is saved (the way back)
+function ChatGPTViewer:_noteOrigin(history, spec, lead)
+  local features = self.configuration and self.configuration.features or {}
+  return { extend = spec.extend, kind = self:noteKind(), action = features._note_action,
+    action_name = history.prompt_action, lead = lead,
+    chat = history.chat_id or history.conversation_id }
+end
+
 --- Keep this window's answer as the note of the selection's highlight, with
 --- no window and no notice of its own (the minimal popup's mark, the
 --- automatic save). Ask every time has no one to ask here: the kind's own
@@ -5178,15 +5190,8 @@ function ChatGPTViewer:keepAsNote(selected_content)
   end
   local note_text, lead = self:_noteText(history, selected_content)
   if note_text == "" then return nil, _("No response to save") end
-  -- The action the chat was started with rides the record: its id where the
-  -- request named one (a highlight action), its name as the reader saw it,
-  -- where the answer starts in the saved text (after the action's line), and
-  -- the chat itself: the id it is saved under, when it is saved (the way back)
-  local features = self.configuration and self.configuration.features or {}
   local saved = require("koassistant.chat.highlight_note").save(reader_ui, self.selection_data, note_text,
-    { extend = spec.extend, kind = self:noteKind(), action = features._note_action,
-      action_name = history.prompt_action, lead = lead,
-      chat = history.chat_id or history.conversation_id })
+    self:_noteOrigin(history, spec, lead))
   if not saved then return nil, _("Failed to create highlight") end
   return saved
 end
@@ -5248,10 +5253,11 @@ function ChatGPTViewer:saveToNote(pick, opts)
     if opts.on_saved then opts.on_saved(saved) end
   end
 
-  -- KOReader's note editor first (the note is the reader's to change there).
+  -- KOReader's note editor first (the note is the reader's to change there;
+  -- what its Save writes is recorded as a save at once is, by the writer).
   -- It opens over the page, so what shows the answer closes before it.
   local function editFirst()
-    local note_text = self:_noteText(history, content == "ask" and spec.default or content)
+    local note_text, lead = self:_noteText(history, content == "ask" and spec.default or content)
     if note_text == "" then
       notify(_("No response to save"))
       return
@@ -5261,7 +5267,7 @@ function ChatGPTViewer:saveToNote(pick, opts)
       UIManager:close(self)
     end
     if not require("koassistant.chat.highlight_note").edit(reader_ui, self.selection_data, note_text,
-        { extend = spec.extend }) then
+        self:_noteOrigin(history, spec, lead)) then
       notify(_("Failed to create highlight"))
     end
   end

@@ -71,7 +71,8 @@ end
 
 local function newReader(opts)
     opts = opts or {}
-    local r = { events = {}, pdf = {}, edits = {}, adds = {}, cleared = 0, stamps = 0, clock = 0, extension_asked = 0 }
+    local r = { events = {}, pdf = {}, edits = {}, adds = {}, cleared = 0, stamps = 0, clock = 0, extension_asked = 0,
+        prompts = 0 }
     local ui = { document = { file = "/books/a.epub" } }
     r.ui = ui
     if opts.paging then ui.paging = {} else ui.rolling = {} end
@@ -102,6 +103,7 @@ local function newReader(opts)
         saveHighlight = function(self, extend_to_sentence)
             r.save_flag = extend_to_sentence
             local st = self.selected_text
+            r.selected_at_save = st
             if opts.no_highlight or not (st and st.pos0 and st.pos1) then return nil end
             r.clock = r.clock + 1
             local item = {
@@ -131,6 +133,53 @@ local function newReader(opts)
         end,
         addNote = function(self, text)
             r.adds[#r.adds + 1] = { text = text, selected = self.selected_text }
+        end,
+    }
+    if not opts.old_koreader then
+        -- ReaderHighlight:showHighlightPrompt, in short: the reader's question
+        -- about the highlight's style where they have one set (hold_prompt:
+        -- it stays open until answered), then the highlight as Add note makes
+        -- it and the caller's function
+        ui.highlight.showHighlightPrompt = function(self, caller_callback)
+            r.prompts = r.prompts + 1
+            local function answered()
+                local index = self:saveHighlight(true)
+                self:clear()
+                if caller_callback then caller_callback(index) end
+            end
+            if opts.hold_prompt then r.answer_prompt = answered else answered() end
+        end
+    end
+    -- ReaderBookmark:setBookmarkNote, in short: KOReader's note editor is open
+    -- on the highlight, the new text under the note it has. `save(value)` is
+    -- its Save (nil = as filled in; a blank input deletes the note): the
+    -- note, the PDF's copy, the event that counts or the change time, then the
+    -- caller's function. `cancel()` is its Cancel: a highlight made for the
+    -- note goes, and nothing is called.
+    ui.bookmark = {
+        setBookmarkNote = function(_self, index, is_new, text, caller_callback)
+            local item = ui.annotation.annotations[index]
+            local input = item.note
+            if text then input = input and (input .. "\n\n" .. text) or text end
+            r.edits[#r.edits + 1] = {
+                index = index, is_new = is_new, text = text, input = input,
+                save = function(value)
+                    if value == nil then value = input end
+                    local was_note = item.note ~= nil
+                    item.note = value ~= "" and value or nil
+                    ui.highlight:writePdfAnnotation("content", item, item.note or "")
+                    if was_note ~= (item.note ~= nil) then
+                        ui:handleEvent(require("ui/event"):new("AnnotationsModified", { item,
+                            nb_highlights_added = was_note and 1 or -1, nb_notes_added = was_note and -1 or 1 }))
+                    else
+                        ui.annotation:onAnnotationsModified({ item })
+                    end
+                    if caller_callback then caller_callback() end
+                end,
+                cancel = function()
+                    if is_new then table.remove(ui.annotation.annotations, index) end
+                end,
+            }
         end,
     }
     r.store = newStore()
@@ -496,30 +545,140 @@ TestRunner:test("a record that cannot be written does not lose the note", functi
     eq(r.list[1].note, "Kept.")
 end)
 
-TestRunner:test("edit: KOReader's editor on the passage's own highlight, or a new one as before", function()
+TestRunner:test("edit: KOReader's editor on the passage's own highlight, or a new one as its Add note makes it", function()
     local r = newReader()
     highlightOf(r, "/body/p[3].0", "/body/p[3].22", "why grey?")
-    ok(HighlightNote.edit(r.ui, selection("/body/p[3].0", "/body/p[3].22"), "The morning.", { extend = true }))
+    ok(HighlightNote.edit(r.ui, selection("/body/p[3].0", "/body/p[3].22"), "The morning.\n", { extend = true, store = r.store }))
     eq(#r.edits, 1)
-    eq(r.edits[1].index, 1); eq(r.edits[1].is_new, false); eq(r.edits[1].text, "The morning.")
+    eq(r.edits[1].index, 1); eq(r.edits[1].is_new, false)
+    eq(r.edits[1].text, "The morning.", "as a save at once trims it")
+    eq(r.edits[1].input, "why grey?\n\nThe morning.", "under the note the highlight has")
     eq(#r.list, 1, "no second highlight")
-    eq(#r.adds, 0)
-    -- a new passage: KOReader's own Add note (its extension, its colour question)
+    eq(r.prompts, 0, "no highlight to make, no question")
+    -- a new passage: KOReader's own Add note step for step (its question, its extension), then the editor
     local sel = selection("/body/p[7].0", "/body/p[7].9")
-    ok(HighlightNote.edit(r.ui, sel, "New.", { extend = true }))
-    eq(#r.adds, 1); eq(r.adds[1].text, "New.")
-    ok(r.adds[1].selected ~= sel, "a copy of the selection, never the caller's table")
-    eq(r.adds[1].selected.pos0, "/body/p[7].0")
-    -- a looked-up word: the word alone, then the editor; Cancel there removes the highlight
+    ok(HighlightNote.edit(r.ui, sel, "New.", { extend = true, store = r.store }))
+    eq(r.prompts, 1, "KOReader's question about the highlight's style comes first, where the reader has one")
+    eq(r.save_flag, true, "the passage as Add note saves it")
+    ok(r.selected_at_save ~= sel, "a copy of the selection, never the caller's table")
+    eq(r.selected_at_save.pos0, "/body/p[7].0")
+    eq(#r.list, 2)
+    eq(r.edits[2].is_new, true); eq(r.edits[2].index, 2); eq(r.edits[2].text, "New.")
+    eq(r.ui.highlight.selected_text, nil, "the copy of the selection is taken back out")
+    eq(#r.adds, 0, "not through KOReader's addNote, whose Save cannot be heard")
+    -- Cancel in the editor: the highlight made for the note goes, and nothing was recorded
+    r.edits[2].cancel()
+    eq(#r.list, 1)
+    eq(r.store.saves, 0, "nothing is recorded before the editor's Save")
+    -- while KOReader's own question is open, nothing is made
+    local asked = newReader({ hold_prompt = true })
+    ok(HighlightNote.edit(asked.ui, selection("/body/p[7].0", "/body/p[7].9"), "New.", { extend = true, store = asked.store }))
+    eq(#asked.list, 0); eq(#asked.edits, 0)
+    asked.answer_prompt()
+    eq(#asked.list, 1); eq(#asked.edits, 1)
+    -- a looked-up word: the word alone, no question, then the editor
     local word = newReader()
-    ok(HighlightNote.edit(word.ui, selection("/body/p[1].4", "/body/p[1].11", "lantern"), "A lamp.", { extend = false }))
+    ok(HighlightNote.edit(word.ui, selection("/body/p[1].4", "/body/p[1].11", "lantern"), "A lamp.", { extend = false, store = word.store }))
     eq(word.save_flag, false)
+    eq(word.prompts, 0)
     eq(#word.list, 1)
     eq(word.edits[1].is_new, true); eq(word.edits[1].index, 1)
-    eq(#word.adds, 0)
-    eq(word.store.saves, 0, "nothing is recorded for a note that goes through the editor")
+    -- a KOReader from before the question: its Add note of then
+    local older = newReader({ old_koreader = true })
+    ok(HighlightNote.edit(older.ui, selection("/body/p[7].0", "/body/p[7].9"), "New.", { extend = true, store = older.store }))
+    eq(older.save_flag, true); eq(#older.list, 1); eq(older.edits[1].is_new, true)
+    -- nothing to make a highlight from
     local res, why = HighlightNote.edit(word.ui, { text = "no ends" }, "x", {})
     eq(res, nil); eq(why, "no_selection")
+    local none = newReader({ no_highlight = true, old_koreader = true })
+    res, why = HighlightNote.edit(none.ui, selection("/body/p[7].0", "/body/p[7].9"), "x", { extend = true, store = none.store })
+    eq(res, nil); eq(why, "no_highlight")
+    eq(#none.edits, 0)
+    local quiet = newReader({ no_highlight = true })
+    ok(HighlightNote.edit(quiet.ui, selection("/body/p[7].0", "/body/p[7].9"), "x", { extend = true, store = quiet.store }))
+    eq(#quiet.edits, 0, "KOReader's question made no highlight: no editor, no error")
+end)
+
+TestRunner:test("Edit before saving, saved as proposed: recorded and formatted as a save at once", function()
+    local r = newReader()
+    ok(HighlightNote.edit(r.ui, selection("/body/p[3].0", "/body/p[3].22"), "Explain:\n\n**Awake** here.",
+        { extend = true, kind = "chat", action = "explain", action_name = "Explain", chat = "c1", lead = 10, store = r.store }))
+    eq(r.store.saves, 0, "nothing before the Save")
+    dirty = {}
+    r.edits[1].save()
+    local item = r.list[1]
+    eq(item.note, "Explain:\n\n**Awake** here.")
+    local state, parts = HighlightNote.recordOf(r.store, item)
+    eq(state, "ours"); eq(#parts, 1)
+    eq(parts[1].kind, "chat"); eq(parts[1].action, "explain"); eq(parts[1].action_name, "Explain")
+    eq(parts[1].chat, "c1"); eq(parts[1].lead, 10)
+    eq(item.note_format, "md", "the format is named, as for a save at once")
+    eq(countEvents(r, 1), 1, "the editor's own event, and no second one from the plugin")
+    eq(#dirty, 1, "the page is drawn again for the note's mark")
+    -- a translation through the editor: recorded, and plain text as a saved translation is
+    local t = newReader()
+    ok(HighlightNote.edit(t.ui, selection("/body/p[3].0", "/body/p[3].22"), "Le matin se leva gris.",
+        { extend = true, kind = "translate", action = "translate", store = t.store }))
+    t.edits[1].save()
+    state, parts = HighlightNote.recordOf(t.store, t.list[1])
+    eq(state, "ours"); eq(parts[1].action, "translate")
+    eq(t.list[1].note_format, nil)
+end)
+
+TestRunner:test("Edit before saving, changed in the editor: what stands is the plugin's, the rest the reader's, the note formatted", function()
+    local r = newReader()
+    ok(HighlightNote.edit(r.ui, selection("/body/p[3].0", "/body/p[3].22"), "Explain:\n\n**Awake** here.",
+        { extend = true, kind = "chat", store = r.store }))
+    r.edits[1].save(r.edits[1].input .. "\n\nmy own line\nand another")
+    local item = r.list[1]
+    local state, parts = HighlightNote.recordOf(r.store, item)
+    eq(state, "mixed"); eq(#parts, 1); eq(parts[1].text, "Explain:\n\n**Awake** here.")
+    eq(item.note_format, "md", "decided as for a save at once, whatever the reader added")
+    -- the answer itself rewritten in the editor: the note is the reader's, and still drawn
+    local w = newReader()
+    ok(HighlightNote.edit(w.ui, selection("/body/p[3].0", "/body/p[3].22"), "Explain:\n\n**Awake** here.",
+        { extend = true, kind = "chat", store = w.store }))
+    w.edits[1].save("Explain:\n\n**Awake** here, I think.")
+    state, parts = HighlightNote.recordOf(w.store, w.list[1])
+    eq(state, "changed"); eq(#parts, 0)
+    eq(w.list[1].note_format, "md")
+    -- a blank editor saved: no note, nothing recorded, no mark
+    local b = newReader()
+    ok(HighlightNote.edit(b.ui, selection("/body/p[3].0", "/body/p[3].22"), "Explain:\n\nIt was early.",
+        { extend = true, kind = "chat", store = b.store }))
+    b.edits[1].save("")
+    eq(b.list[1].note, nil)
+    eq(b.list[1].note_format, nil)
+    eq(b.store.data[HighlightNote.RECORD_KEY], nil)
+    -- a record that cannot be written does not lose the note
+    local full = newReader()
+    full.store.saveSetting = function() error("disk full") end
+    ok(HighlightNote.edit(full.ui, selection("/body/p[3].0", "/body/p[3].22"), "Kept.", { extend = true, kind = "chat", store = full.store }))
+    full.edits[1].save()
+    eq(full.list[1].note, "Kept.")
+end)
+
+TestRunner:test("Edit before saving on a highlight that has a note: recorded where the editor put it; the reader's own note keeps its look", function()
+    local r = newReader()
+    local mine = highlightOf(r, "/body/p[3].0", "/body/p[3].22", "why grey?")
+    ok(HighlightNote.edit(r.ui, selection("/body/p[3].0", "/body/p[3].22"), "Explain:\n\nIt was early.",
+        { extend = true, kind = "chat", store = r.store }))
+    r.edits[1].save()
+    eq(mine.note, "why grey?\n\nExplain:\n\nIt was early.")
+    local state, parts = HighlightNote.recordOf(r.store, mine)
+    eq(state, "mixed"); eq(parts[1].from, #"why grey?" + 3)
+    eq(mine.note_format, nil, "a note the reader had first is not restyled, as with a save at once")
+    -- on the plugin's own translation: the explanation names the format as a save at once does,
+    -- a line of the reader's typed in the editor or not
+    local t = newReader()
+    local sel = selection("/body/p[3].0", "/body/p[3].22")
+    local kept = HighlightNote.save(t.ui, sel, "Le matin se leva gris.", { kind = "translate", store = t.store })
+    eq(kept.annotation.note_format, nil)
+    ok(HighlightNote.edit(t.ui, sel, "Explain:\n\nIt was early.", { extend = true, kind = "chat", store = t.store }))
+    t.edits[1].save(t.edits[1].input .. "\n\nmine")
+    eq(kept.annotation.note_format, "md")
+    state, parts = HighlightNote.recordOf(t.store, kept.annotation)
+    eq(state, "mixed"); eq(#parts, 2, "the translation and the explanation both stand")
 end)
 
 -- ── what KOReader is told of the note, and which notes open in the popup ─────
@@ -537,7 +696,8 @@ TestRunner:test("wantsMarkdown: a note that is ours alone and holds an answer wr
     eq(HighlightNote.wantsMarkdown("ours", { line, chat }), true, "a translation and an explanation")
     eq(HighlightNote.wantsMarkdown("ours", { lines, chat }), false, "Markdown would run the translation's lines together")
     eq(HighlightNote.wantsMarkdown("ours", { apart, chat }), true, "paragraphs a blank line apart are safe")
-    eq(HighlightNote.wantsMarkdown("mixed", { chat }), false, "the reader's own words are not Markdown")
+    eq(HighlightNote.wantsMarkdown("mixed", { chat }), false,
+        "not named for a note that has the reader's words in it (a mark set before stays: keepFormat)")
     eq(HighlightNote.wantsMarkdown("changed", {}), false)
     eq(HighlightNote.wantsMarkdown(nil, {}), false)
     eq(HighlightNote.wantsMarkdown("ours", nil), false)
@@ -567,14 +727,14 @@ TestRunner:test("a saved chat answer: the note's format is named for KOReader, a
     eq(word.annotation.note_format, "md")
 end)
 
-TestRunner:test("the format follows the note: taken back when the answer leaves or the reader writes in it", function()
+TestRunner:test("the format stays through what the reader changes; it goes when the answer or the note does", function()
     local r = newReader()
     local sel = selection("/body/p[3].0", "/body/p[3].22")
     local first = HighlightNote.save(r.ui, sel, "Le matin se leva gris.", { kind = "translate", store = r.store })
     local second = HighlightNote.save(r.ui, sel, "Explain:\n\nIt was early.", { kind = "chat", store = r.store })
     local item = first.annotation
     eq(item.note_format, "md")
-    -- the explanation taken back out: a translation alone again
+    -- the explanation taken back out by the plugin: a translation alone again
     eq(HighlightNote.remove(r.ui, second, { store = r.store }), "note")
     eq(item.note_format, nil)
     eq(r.store.data[HighlightNote.RECORD_KEY][item.datetime].md, nil)
@@ -583,16 +743,26 @@ TestRunner:test("the format follows the note: taken back when the answer leaves 
     eq(item.note_format, "md")
     local ours = item.note
     item.note = ours .. "\n\nmy own line\nand another"
-    eq(HighlightNote.keepFormat(r.store, item), "cleared", "asked when the passage is tapped")
-    eq(item.note_format, nil, "their lines are not Markdown")
-    eq(HighlightNote.keepFormat(r.store, item), nil, "nothing more to do")
-    -- they take their words out again: the note is the plugin's alone once more
-    item.note = ours
+    eq((HighlightNote.recordOf(r.store, item)), "mixed")
+    eq(HighlightNote.keepFormat(r.store, item), nil, "asked when the passage is tapped: nothing to change")
+    eq(item.note_format, "md", "an answer does not lose its formatting to a line added under it")
+    eq(r.store.data[HighlightNote.RECORD_KEY][item.datetime].md, true)
+    -- the answer itself rewritten: the note is the reader's now, and still Markdown
+    item.note = "Explain:\n\nIt was early, I think."
+    eq((HighlightNote.recordOf(r.store, item)), "changed")
+    eq(HighlightNote.keepFormat(r.store, item), nil)
+    eq(item.note_format, "md")
+    -- the field lost on the way (KOReader built the item again): the record still says it, and it is named again
+    item.note_format = nil
     eq(HighlightNote.keepFormat(r.store, item), "set")
     eq(item.note_format, "md")
     -- the reader deletes the note in KOReader's window: the mark goes with it
     item.note = nil
     eq(HighlightNote.keepFormat(r.store, item), "cleared")
+    eq(item.note_format, nil)
+    -- and a note they write there later is shown as they write it
+    item.note = "a note of my own, later\nin two lines"
+    eq(HighlightNote.keepFormat(r.store, item), nil)
     eq(item.note_format, nil)
 end)
 
@@ -820,19 +990,25 @@ TestRunner:test("the long-press list ticks the row a tap saves, whatever the set
     ok(not rows:find("\u{2713}", 1, true), "Ask every time: the list is the tap, no row is the default")
 end)
 
-TestRunner:test("Edit before saving…: KOReader's note editor, the window's default content, nothing recorded", function()
+TestRunner:test("Edit before saving…: KOReader's note editor with the window's default content; its Save is recorded as a tap's", function()
     local rec = Recorder.install()
     local r = newReader()
-    local v = window(r, { translate_view = true })
+    local v = window(r, { translate_view = true, configuration = { features = { _note_action = "translate" } },
+        _message_history = { prompt_action = "Translate", conversation_id = "c9" } })
     UIManager:show(v)
     v:saveToNote(true)
     rec:tap("Edit before saving…")
     local closed = not UIManager:isWidgetShown(v)
     rec:restore()
-    eq(#r.adds, 1, "KOReader's Add note")
-    eq(r.adds[1].text, "NOTE:response")
+    eq(#r.edits, 1, "KOReader's editor, on a highlight made as its Add note makes one")
+    eq(r.edits[1].text, "NOTE:response"); eq(r.edits[1].is_new, true)
     ok(closed, "the translate window closes: the editor opens over the page")
-    eq(r.store.saves, 0)
+    eq(r.store.saves, 0, "nothing is recorded before the editor's Save")
+    r.edits[1].save()
+    local state, parts = HighlightNote.recordOf(r.store, r.list[1])
+    eq(state, "ours", "left as proposed, it is a saved answer like any other")
+    eq(parts[1].kind, "translate"); eq(parts[1].action, "translate"); eq(parts[1].action_name, "Translate")
+    eq(parts[1].chat, "c9"); eq(parts[1].lead, 0)
 end)
 
 TestRunner:test("Ask every time: a tap asks, and the editor row takes the kind's own default", function()
@@ -844,7 +1020,7 @@ TestRunner:test("Ask every time: a tap asks, and the editor row takes the kind's
     eq(#r.list, 0)
     rec:tap("Edit before saving…")
     rec:restore()
-    eq(r.adds[1].text, "NOTE:qa")
+    eq(r.edits[1].text, "NOTE:qa")
 end)
 
 TestRunner:test("no selection, no book, no chat: said, nothing written", function()
@@ -1031,6 +1207,7 @@ TestRunner:test("one writer: no other file makes a highlight or opens KOReader's
                 n = n + 1
                 local code = line:gsub("%-%-.*$", "")
                 if code:find(":saveHighlight%(") or code:find(":addNote%(") or code:find(":editNote%(")
+                        or code:find(":setBookmarkNote%(") or code:find(":showHighlightPrompt%(")
                         or code:find("annotation%.note%s*=[^=]") then
                     offenders[#offenders + 1] = path:sub(#PLUGIN_DIR + 2) .. ":" .. n
                 end
