@@ -798,26 +798,64 @@ TestRunner:test("a format the plugin did not name is never touched; a note witho
     eq(HighlightNote.keepFormat(r.store, nil), nil)
 end)
 
-TestRunner:test("popupParts: a note of answers whose actions show in the minimal popup today", function()
+TestRunner:test("popupParts: a note whose saved answers came from actions that show in the minimal popup today", function()
     local t = { kind = "translate", action = "translate", text = "Le matin." }
     local q = { kind = "chat", action = "quick_explain", text = "Quick Explain:\n\nEarly." }
     local e = { kind = "chat", action = "explain", text = "Explain:\n\nEarly." }
     local old = { kind = "translate", text = "Saved before the action was recorded." }
+    local corrected = { kind = "translate", action = "translate" }   -- on record, no longer standing as it was saved
     local f = {}
-    ok(HighlightNote.popupParts("ours", { t }, f), "Translate is on the list by default")
-    eq(#HighlightNote.popupParts("ours", { t, q }, f), 2, "the whole note")
-    eq(HighlightNote.popupParts("ours", { t, e }, f), nil, "Explain opens in a chat window: KOReader's note window")
-    eq(HighlightNote.popupParts("ours", { old }, f), nil, "no action recorded")
-    eq(HighlightNote.popupParts("mixed", { t }, f), nil, "the reader also wrote in it: KOReader's window shows all of it")
-    eq(HighlightNote.popupParts("changed", {}, f), nil)
-    eq(HighlightNote.popupParts(nil, {}, f), nil)
+    ok(HighlightNote.popupParts({ t }, f), "Translate is on the list by default")
+    eq(#HighlightNote.popupParts({ t, q }, f), 2, "the whole note")
+    eq(HighlightNote.popupParts({ t, e }, f), nil, "Explain opens in a chat window: KOReader's note window")
+    eq(HighlightNote.popupParts({ old }, f), nil, "no action recorded")
+    ok(HighlightNote.popupParts({ corrected }, f), "an answer the reader corrected is still what Translate made")
+    eq(HighlightNote.popupParts({}, f), nil, "the plugin saved nothing in this note")
+    eq(HighlightNote.popupParts(nil, f), nil)
     -- today's settings, not the day it was saved
-    ok(HighlightNote.popupParts("ours", { e }, { minimal_popup_actions = { "explain" } }), "Explain put on the list since")
-    eq(HighlightNote.popupParts("ours", { t }, { minimal_popup_actions = { "explain" } }), nil, "Translate taken off it")
-    eq(HighlightNote.popupParts("ours", { t }, { minimal_popup_mode = "off" }), nil, "the popup is off")
-    ok(HighlightNote.popupParts("ours", { t }, { minimal_popup_mode = "always" }))
-    eq(HighlightNote.popupParts("ours", { t }, { kept_answer_popup = false }), nil, "the reader's switch")
-    ok(HighlightNote.popupParts("ours", { t }, nil), "no settings: the defaults")
+    ok(HighlightNote.popupParts({ e }, { minimal_popup_actions = { "explain" } }), "Explain put on the list since")
+    eq(HighlightNote.popupParts({ t }, { minimal_popup_actions = { "explain" } }), nil, "Translate taken off it")
+    eq(HighlightNote.popupParts({ t }, { minimal_popup_mode = "off" }), nil, "the popup is off")
+    ok(HighlightNote.popupParts({ t }, { minimal_popup_mode = "always" }))
+    eq(HighlightNote.popupParts({ t }, { kept_answer_popup = false }), nil, "the reader's switch")
+    ok(HighlightNote.popupParts({ t }, nil), "no settings: the defaults")
+end)
+
+TestRunner:test("piecesOf: what the note was made of, standing or not; the reader's edits do not change where it opens", function()
+    local r = newReader()
+    local sel = selection("/body/p[3].0", "/body/p[3].22")
+    local first = HighlightNote.save(r.ui, sel, "Le matin se leva gris.", { kind = "translate", action = "translate", store = r.store })
+    HighlightNote.save(r.ui, sel, "Quick Explain:\n\nEarly.", { kind = "chat", action = "quick_explain", store = r.store })
+    local item = first.annotation
+    local pieces = HighlightNote.piecesOf(r.store, item)
+    eq(#pieces, 2)
+    eq(pieces[1].action, "translate"); eq(pieces[1].text, "Le matin se leva gris.")
+    eq(pieces[2].kind, "chat"); eq(pieces[2].from, #"Le matin se leva gris." + 3); eq(pieces[2].text, "Quick Explain:\n\nEarly.")
+    ok(HighlightNote.popupParts(pieces, {}), "both from popup actions")
+    -- a line of the reader's under the answers: both still stand, and the popup still takes the note
+    local saved_note = item.note
+    item.note = saved_note .. "\n\nmine"
+    eq((HighlightNote.recordOf(r.store, item)), "mixed")
+    pieces = HighlightNote.piecesOf(r.store, item)
+    eq(pieces[2].text, "Quick Explain:\n\nEarly.")
+    ok(HighlightNote.popupParts(pieces, {}), "a line added does not send the note to KOReader's window")
+    -- the translation corrected: the piece after it moved, neither stands; the note is still what the two actions made
+    item.note = (saved_note:gsub("gris", "tout gris"))
+    eq((HighlightNote.recordOf(r.store, item)), "changed")
+    pieces = HighlightNote.piecesOf(r.store, item)
+    eq(#pieces, 2, "still on record")
+    eq(pieces[1].text, nil); eq(pieces[2].text, nil)
+    ok(HighlightNote.popupParts(pieces, {}))
+    -- the note deleted: at the next tap its line goes, and a note the reader writes there is theirs alone
+    item.note = nil
+    HighlightNote.keepFormat(r.store, item)
+    eq(HighlightNote.piecesOf(r.store, item), nil)
+    eq(r.store.data[HighlightNote.RECORD_KEY][item.datetime], nil)
+    item.note = "a note of my own"
+    eq(HighlightNote.popupParts(HighlightNote.piecesOf(r.store, item), {}), nil)
+    -- a highlight the plugin never wrote on; no store
+    eq(HighlightNote.piecesOf(r.store, highlightOf(r, "/a", "/b", "mine alone")), nil)
+    eq(HighlightNote.piecesOf(nil, item), nil)
 end)
 
 -- ── the windows' own saveToNote ─────────────────────────────────────────────

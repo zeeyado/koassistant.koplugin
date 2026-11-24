@@ -166,11 +166,41 @@ TestRunner:test("a note the popup does not take: KOReader's window, as for any n
     kept(r, { TRANSLATION, EXPLANATION })                      -- one of its answers does
     r.list[#r.list + 1] = { datetime = "2026-11-23 11:00:00", note = "my own note" }   -- no record
     r.list[#r.list + 1] = { datetime = "2026-11-23 11:00:01", drawer = "lighten" }     -- no note: the highlight's menu
-    local mixed = kept(r, { TRANSLATION })
-    mixed.note = mixed.note .. "\n\nand my own words"
-    for index = 1, 5 do r.hl:showHighlightNoteOrDialog(index) end
+    for index = 1, 4 do r.hl:showHighlightNoteOrDialog(index) end
     TestRunner:assertEqual(#popup.calls, 0)
-    TestRunner:assertEqual(table.concat(r.opened, ","), "1,2,3,4,5")
+    TestRunner:assertEqual(table.concat(r.opened, ","), "1,2,3,4")
+end)
+
+TestRunner:test("a note the reader has written in since still opens in the popup, as it is now", function()
+    reset()
+    local r = newReader()
+    r.plugin:syncKeptNotePopup()
+    -- a line added under the translation (KOReader's Edit note, or the editor of Edit before saving)
+    local added = kept(r, { TRANSLATION })
+    added.note = added.note .. "\n\nand my own words"
+    r.hl:showHighlightNoteOrDialog(1)
+    TestRunner:assertEqual(#popup.calls, 1, "an added line does not send the note to KOReader's window")
+    TestRunner:assertEqual(#r.opened, 0)
+    TestRunner:assertEqual(popup.calls[1].note, added.note, "the popup is handed the note as it is now")
+    TestRunner:assertEqual(popup.calls[1].parts[1].text, TRANSLATION.text, "and the answer that still stands, to draw by its kind")
+    -- the translation itself corrected: no piece stands as saved; the note is still what Translate made
+    local fixed = kept(r, { TRANSLATION })
+    fixed.note = "Le matin se leva, gris."
+    r.hl:showHighlightNoteOrDialog(2)
+    TestRunner:assertEqual(#popup.calls, 2)
+    TestRunner:assertEqual(popup.calls[2].note, "Le matin se leva, gris.")
+    TestRunner:assertEqual(popup.calls[2].parts[1].kind, "translate")
+    TestRunner:assertEqual(popup.calls[2].parts[1].text, nil, "the piece no longer stands as it was saved")
+    -- the note deleted in KOReader's window, then a note of the reader's own on the same highlight:
+    -- the record's line went with the deleted note, so the new note is theirs alone
+    local gone = kept(r, { TRANSLATION })
+    gone.note = nil
+    r.hl:showHighlightNoteOrDialog(3)                 -- the tap that opens the highlight's menu
+    TestRunner:assertEqual(r.store.data[HighlightNote.RECORD_KEY][gone.datetime], nil)
+    gone.note = "a note of my own"
+    r.hl:showHighlightNoteOrDialog(3)
+    TestRunner:assertEqual(#popup.calls, 2, "no popup for it")
+    TestRunner:assertEqual(table.concat(r.opened, ","), "3,3")
 end)
 
 TestRunner:test("the reader's switches: the setting off, the popup off, Translate taken off the popup's list", function()

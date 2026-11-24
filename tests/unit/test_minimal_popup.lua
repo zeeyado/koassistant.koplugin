@@ -866,6 +866,37 @@ TestRunner:test("a kept definition is a dictionary window's; answers of several 
     end)
 end)
 
+TestRunner:test("a note the reader has written in: shown as it is now, each answer that still stands drawn by its kind", function()
+    withNoteWindow(100, function(made)
+        -- a translation, the reader's line under it, then an explanation kept later
+        local translation = "Premier paragraphe.\nDeuxième."
+        local mine = "my own line\nand another"
+        local answer = "Quick Explain:\n\nIt is **early**."
+        local note = translation .. "\n\n" .. mine .. "\n\n" .. answer
+        local parts = {
+            { kind = "translate", from = 1, text = translation },
+            { kind = "chat", from = #translation + #mine + 5, text = answer },
+        }
+        MinimalPopup.showForNote({ parts = parts, note = note, features = {} })
+        TestRunner:assertEqual(made[1].text,
+            "Premier paragraphe.\n\nDeuxième.\n\nmy own line\nand another\n\nQuick Explain:\n\nIt is **early**.",
+            "the translation's lines told apart, the reader's words between as they wrote them")
+        -- a translation alone with a line added: the translate window's, the note whole
+        MinimalPopup.showForNote({ parts = { { kind = "translate", from = 1, text = "Une ligne." } },
+            note = "Une ligne.\nxx", features = {} })
+        TestRunner:assertEqual(made[2].translate_view, true)
+        TestRunner:assertEqual(made[2].text, "Une ligne.\nxx")
+        -- the answer itself corrected: no piece stands as saved, the note is shown as it is
+        MinimalPopup.showForNote({ parts = { { kind = "translate", from = 1 } }, note = "Une ligne, corrigée.", features = {} })
+        TestRunner:assertEqual(made[3].translate_view, true, "still a translation's window: the note was made by Translate")
+        TestRunner:assertEqual(made[3].text, "Une ligne, corrigée.")
+        -- a piece whose place the record has wrong (it overlaps the one before): shown as written, never twice
+        MinimalPopup.showForNote({ parts = { { kind = "translate", from = 1, text = "Une ligne." },
+            { kind = "translate", from = 5, text = "ligne." } }, note = "Une ligne.", features = {} })
+        TestRunner:assertEqual(made[4].text, "Une ligne.")
+    end)
+end)
+
 TestRunner:test("When it fits: a note taller than the popup is handed back; Always shows it", function()
     withNoteWindow(CAP * 3, function(made)
         local parts = { { kind = "translate", text = "long" } }

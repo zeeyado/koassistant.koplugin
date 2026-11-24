@@ -32,8 +32,11 @@ by the annotation's `note_format` or, without one, by the note's first
 character: the plugin names the format of a note that is its own and holds
 answers written in Markdown (wantsMarkdown, keepFormat), and the mark then
 stays through what the reader changes in the note, until the note is gone.
-And a note of answers whose actions show in the minimal popup opens in that
-popup again (popupParts), KOReader's own window one tap further.
+And a note whose saved answers came from actions that show in the minimal
+popup opens in that popup again (piecesOf, popupParts), KOReader's own window
+one tap further. Both follow what the note was MADE of, not whether the
+reader has edited it since: an answer does not lose its formatting or its
+popup to a word added under it.
 
 "Edit before saving…" (edit) is KOReader's note editor with the answer filled
 in. What its Save writes is recorded and formatted as a save at once would
@@ -144,25 +147,31 @@ end
 -- The pieces of a record's line that stand in `note` as they were written, in
 -- the note's order, each with its text. A piece the reader has changed, or
 -- that an edit before it has moved, is not among them: it is the reader's now.
-local function intact(line, note)
-    local out = {}
-    if type(line) ~= "table" or type(line.parts) ~= "table" or type(note) ~= "string" then return out end
-    for _idx, part in ipairs(line.parts) do
-        if type(part) == "table" and type(part.from) == "number" and type(part.len) == "number" then
-            local text = note:sub(part.from, part.from + part.len - 1)
-            if #text == part.len and HighlightNote.fingerprint(text) == part.sum then
-                out[#out + 1] = { kind = part.kind, action = part.action, action_name = part.action_name,
-                    chat = part.chat, lead = part.lead, at = part.at, from = part.from, len = part.len,
-                    sum = part.sum, text = text }
-            end
-        end
-    end
-    return out
-end
-
 local function stored(part)
     return { kind = part.kind, action = part.action, action_name = part.action_name, chat = part.chat,
         lead = part.lead, at = part.at, from = part.from, len = part.len, sum = part.sum }
+end
+
+-- The text of a recorded piece where it still stands in `note` as written, else nil
+local function standing(part, note)
+    if type(note) ~= "string" or type(part.from) ~= "number" or type(part.len) ~= "number" then return nil end
+    local text = note:sub(part.from, part.from + part.len - 1)
+    if #text == part.len and HighlightNote.fingerprint(text) == part.sum then return text end
+    return nil
+end
+
+local function intact(line, note)
+    local out = {}
+    if type(line) ~= "table" or type(line.parts) ~= "table" then return out end
+    for _idx, part in ipairs(line.parts) do
+        local text = type(part) == "table" and standing(part, note) or nil
+        if text then
+            local piece = stored(part)
+            piece.text = text
+            out[#out + 1] = piece
+        end
+    end
+    return out
 end
 
 local function name(value)
@@ -258,6 +267,28 @@ function HighlightNote.stateOf(line, note)
     return "ours", parts
 end
 
+--- Every answer on record for an annotation's note, in the note's order,
+--- whether or not it still stands as it was saved: what the note was MADE of,
+--- whatever the reader has done to it since. A piece that stands carries its
+--- `text` (recordOf reports those alone); one the reader rewrote, or that
+--- their words before it moved, has none.
+-- @return table|nil { kind, action, action_name, chat, lead, at, from, len, text }, ...;
+--   nil = the plugin has saved nothing in this note
+function HighlightNote.piecesOf(ds, annotation)
+    if not (ds and annotation and annotation.datetime) then return nil end
+    local line = readRecord(ds)[annotation.datetime]
+    if type(line) ~= "table" or type(line.parts) ~= "table" then return nil end
+    local out = {}
+    for _idx, part in ipairs(line.parts) do
+        if type(part) == "table" then
+            local piece = stored(part)
+            piece.text = standing(part, annotation.note)
+            out[#out + 1] = piece
+        end
+    end
+    return out
+end
+
 --- The kinds of answer that are written in Markdown (a chat window's answers
 --- and a dictionary window's). A translation is the passage in another
 --- language: lines, not Markdown.
@@ -308,14 +339,21 @@ function HighlightNote.keepFormat(ds, annotation, written)
     local line = all[annotation.datetime]
     if type(line) ~= "table" then return nil end
     local note = annotation.note
-    local wanted = false
-    if type(note) == "string" and note:find("%S") then
-        local state, parts = HighlightNote.stateOf(line, note)
-        wanted = HighlightNote.wantsMarkdown(state, parts)
-            or (written ~= nil and HighlightNote.wantsMarkdown(HighlightNote.stateOf(line, written)))
-            -- the plugin's own mark, through the reader's changes
-            or (line.md == true and state ~= "ours")
+    if not (type(note) == "string" and note:find("%S")) then
+        -- The note is gone (deleted in KOReader's window, or saved blank):
+        -- nothing of the plugin's is left on this highlight, so its mark and
+        -- its line go. A note the reader writes there later is theirs alone.
+        local marked = line.md == true
+        if marked and annotation.note_format == "md" then annotation.note_format = nil end
+        all[annotation.datetime] = nil
+        ds:saveSetting(HighlightNote.RECORD_KEY, all)
+        return marked and "cleared" or nil
     end
+    local state, parts = HighlightNote.stateOf(line, note)
+    local wanted = HighlightNote.wantsMarkdown(state, parts)
+        or (written ~= nil and HighlightNote.wantsMarkdown(HighlightNote.stateOf(line, written)))
+        -- the plugin's own mark, through the reader's changes
+        or (line.md == true and state ~= "ours")
     if wanted then
         if annotation.note_format ~= nil then return nil end
         annotation.note_format = "md"
@@ -331,25 +369,28 @@ function HighlightNote.keepFormat(ds, annotation, written)
     return "cleared"
 end
 
---- The pieces a tap on a kept passage shows in the minimal popup again, pure;
---- nil = KOReader's own note window opens, as for any note. The popup takes a
---- note that is the plugin's alone and whose every answer came from an action
---- that shows in the popup TODAY (the reader's Minimal Popup list, the popup
---- not off), whatever window the answer was saved from: what shows in the
---- popup when asked shows in the popup when kept. `kept_answer_popup` is the
---- reader's switch (Highlight Settings), on unless turned off.
--- @param state, parts what recordOf returned
+--- Whether a tap on a kept passage shows its note in the minimal popup again,
+--- pure: the pieces to hand the popup, or nil = KOReader's own note window
+--- opens, as for any note. The popup takes a note whose every saved answer
+--- came from an action that shows in the popup TODAY (the reader's Minimal
+--- Popup list, the popup not off), whatever window the answer was saved from:
+--- what shows in the popup when asked shows in the popup when kept. It goes
+--- by what the note was made of (piecesOf), so a note the reader has written
+--- in since, or whose answer they corrected, still opens there, shown as it
+--- is now. `kept_answer_popup` is the reader's switch (Highlight Settings),
+--- on unless turned off.
+-- @param pieces what piecesOf returned
 -- @param features the reader's settings
-function HighlightNote.popupParts(state, parts, features)
+function HighlightNote.popupParts(pieces, features)
     features = features or {}
     if features.kept_answer_popup == false then return nil end
     if (features.minimal_popup_mode or "short") == "off" then return nil end
-    if state ~= "ours" or type(parts) ~= "table" or #parts == 0 then return nil end
+    if type(pieces) ~= "table" or #pieces == 0 then return nil end
     local shown = Constants.resolveMinimalPopupActions(features.minimal_popup_actions)
-    for _idx, part in ipairs(parts) do
+    for _idx, part in ipairs(pieces) do
         if not (part.action and shown[part.action]) then return nil end
     end
-    return parts
+    return pieces
 end
 
 local function redraw(ui)

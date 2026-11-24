@@ -692,17 +692,20 @@ function MinimalPopup.noteKind(parts)
     return kind
 end
 
---- A kept answer shown again: the note of a highlighted passage, when it is
---- the plugin's own answers of actions that show in this popup
+--- A kept answer shown again: the note of a highlighted passage, when its
+--- saved answers came from actions that show in this popup
 --- (HighlightNote.popupParts decides; its caller is the tap on the passage).
 --- The popup the answer came in when it was new: the drawing of a chat
 --- window of the note's kind (a translate window keeps a translation's lines
 --- apart, a dictionary window follows Text Mode for Dictionary and the
 --- dictionary language), built for this and never shown, so a word or a
---- passage held in the text is that window's too. No keep mark: the answer
---- is kept, and its note is the reader's to change in KOReader's own window,
---- which a tap inside opens (on_expand).
--- @param opts { parts = the note's pieces, each with kind and text; features = the reader's settings;
+--- passage held in the text is that window's too. The note is shown as it
+--- is now, what the reader has written in it since included. No keep mark:
+--- the answer is kept, and its note is the reader's to change in KOReader's
+--- own window, which a tap inside opens (on_expand).
+-- @param opts { parts = the note's saved answers on record (HighlightNote.piecesOf: each with its kind,
+--               and with from and text where it still stands as saved); note = the note's text as it is now
+--               (without it the pieces' texts are shown one under the other); features = the reader's settings;
 --               plugin, ui = the reader; boxes = the highlight's rectangles on screen; on_expand }
 -- @return boolean shown (false = it does not fit under "When it fits": KOReader's window is the caller's to open)
 function MinimalPopup.showForNote(opts)
@@ -715,15 +718,33 @@ function MinimalPopup.showForNote(opts)
     -- translation is a guest in a Markdown view, which reads one line break
     -- as a space: its lines are told apart first, as its own window does
     local markdown = features.render_markdown ~= false
-    local pieces = {}
-    for i, part in ipairs(parts) do
-        local piece = part.text or ""
+    local function drawn(part)
         if kind == "chat" and part.kind == "translate" and markdown and Viewer._lineParagraphs then
-            piece = Viewer._lineParagraphs(piece)
+            return Viewer._lineParagraphs(part.text)
         end
-        pieces[i] = piece
+        return part.text
     end
-    local text = table.concat(pieces, "\n\n")
+    local text
+    if type(opts.note) == "string" then
+        -- The note as it is NOW: each answer that still stands as it was
+        -- saved, drawn by its kind, and around them whatever the reader has
+        -- written since (or in place of an answer), as they wrote it
+        local out, at = {}, 1
+        for _idx, part in ipairs(parts) do
+            if part.text and type(part.from) == "number" and part.from >= at then
+                out[#out + 1] = opts.note:sub(at, part.from - 1)
+                out[#out + 1] = drawn(part)
+                at = part.from + #part.text
+            end
+        end
+        out[#out + 1] = opts.note:sub(at)
+        text = table.concat(out)
+    else
+        -- a caller with the pieces alone: one under the other
+        local pieces = {}
+        for i, part in ipairs(parts) do pieces[i] = part.text and drawn(part) or "" end
+        text = table.concat(pieces, "\n\n")
+    end
     -- A copy of the settings for that window: it reads its view from them,
     -- and the marks of the last request have no business on a note
     local f = {}

@@ -6375,11 +6375,12 @@ end
 -- The kept passage's note, before KOReader shows it. First the note's format
 -- as KOReader is told it (HighlightNote.keepFormat: Markdown for a note of
 -- the plugin's own answers, kept through what the reader changes in it and
--- taken back when the note is gone). Then the popup: a note of answers whose
--- actions show in the minimal popup opens in that popup again
--- (HighlightNote.popupParts; Highlight Settings, Show Saved Answers in the
--- Minimal Popup), where a tap inside opens KOReader's own note window for
--- the same highlight.
+-- taken back when the note is gone). Then the popup: a note whose saved
+-- answers came from actions that show in the minimal popup opens in that
+-- popup again, as it is now, the reader's own changes included
+-- (HighlightNote.piecesOf, popupParts; Highlight Settings, Show Saved
+-- Answers in the Minimal Popup), where a tap inside opens KOReader's own
+-- note window for the same highlight.
 -- @return boolean the popup is shown (false = KOReader's window is to open)
 function AskGPT:_showKeptNote(hl, index)
   local list = self.ui and self.ui.annotation and self.ui.annotation.annotations
@@ -6390,8 +6391,7 @@ function AskGPT:_showKeptNote(hl, index)
   HighlightNote.keepFormat(ds, annotation)
   if type(annotation.note) ~= "string" or annotation.note == "" then return false end
   local features = self.settings:readSetting("features") or {}
-  local state, parts = HighlightNote.recordOf(ds, annotation)
-  local show = HighlightNote.popupParts(state, parts, features)
+  local show = HighlightNote.popupParts(HighlightNote.piecesOf(ds, annotation), features)
   if not show then return false end
   -- The highlight's rectangles on this page, as plain copies. A reflowable
   -- book's are screen coordinates; a PDF's popup stands in the middle of the
@@ -6407,6 +6407,7 @@ function AskGPT:_showKeptNote(hl, index)
   local ui = self.ui
   return require("koassistant.ui.minimal_popup").showForNote({
     parts = show,
+    note = annotation.note,
     features = features,
     plugin = self,
     ui = ui,
