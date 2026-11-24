@@ -436,61 +436,44 @@ end
 
 --- Title-bar hamburger (A4): book-level operations — the X-Ray browser's
 --- title_bar_left_icon idiom; the page was the only full-screen KOA surface
---- without one
+--- without one. The rows hang from the icon, as every page's do (IconMenu).
 local function showHamburger(ctx)
-    local ButtonDialog = require("ui/widget/buttondialog")
     local InfoMessage = require("ui/widget/infomessage")
-    local dialog
-    dialog = ButtonDialog:new{
-        title = ctx.title,
-        buttons = {
-            {{
-                text = _("Refresh index"),
-                callback = function()
-                    UIManager:close(dialog)
-                    -- The heal-on-open trio (main.lua) — artifacts, notebook,
-                    -- pinned — then rebuild rows on the reveal repaint
-                    require("koassistant.artifacts.action_cache").refreshIndex(ctx.file)
-                    require("koassistant.chat.notebook").refreshIndexEntry(ctx.file)
-                    require("koassistant.artifacts.pinned_manager").refreshIndex(ctx.file)
-                    BookPage._stale = true
-                    UIManager:show(InfoMessage:new{ text = _("Index refreshed."), timeout = 2 })
-                end,
-            }},
-            {{
-                text = _("Export all artifacts…"),
-                callback = function()
-                    UIManager:close(dialog)
-                    exportAllArtifacts(ctx)
-                end,
-            }},
-            {{
-                text = _("Export saved answers for Anki"),
-                callback = function()
-                    UIManager:close(dialog)
-                    BookPage.exportForAnki(ctx)
-                end,
-            }},
-            {{
-                text = _("Browse all books…"),
-                callback = function()
-                    UIManager:close(dialog)
-                    -- Overlay, not replacement: closing the browser reveals
-                    -- the page again (stale rebuild keeps counts honest)
-                    BookPage._stale = true
-                    ctx.plugin:showArtifactBrowser()
-                end,
-            }},
-            {{
-                text = _("Delete all artifacts…"),
-                callback = function()
-                    UIManager:close(dialog)
-                    confirmDeleteAll(ctx)
-                end,
-            }},
+    require("koassistant.ui.icon_menu").show(BookPage._menu, {
+        {
+            text = _("Refresh index"),
+            callback = function()
+                -- The heal-on-open trio (main.lua) — artifacts, notebook,
+                -- pinned — then rebuild rows on the reveal repaint
+                require("koassistant.artifacts.action_cache").refreshIndex(ctx.file)
+                require("koassistant.chat.notebook").refreshIndexEntry(ctx.file)
+                require("koassistant.artifacts.pinned_manager").refreshIndex(ctx.file)
+                BookPage._stale = true
+                UIManager:show(InfoMessage:new{ text = _("Index refreshed."), timeout = 2 })
+            end,
         },
-    }
-    UIManager:show(dialog)
+        {
+            text = _("Export all artifacts…"),
+            callback = function() exportAllArtifacts(ctx) end,
+        },
+        {
+            text = _("Export saved answers for Anki"),
+            callback = function() BookPage.exportForAnki(ctx) end,
+        },
+        {
+            text = _("Browse all books…"),
+            callback = function()
+                -- Overlay, not replacement: closing the browser reveals
+                -- the page again (stale rebuild keeps counts honest)
+                BookPage._stale = true
+                ctx.plugin:showArtifactBrowser()
+            end,
+        },
+        {
+            text = _("Delete all artifacts…"),
+            callback = function() confirmDeleteAll(ctx) end,
+        },
+    })
 end
 
 --- Show the book page.

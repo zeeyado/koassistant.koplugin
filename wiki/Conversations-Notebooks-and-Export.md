@@ -30,7 +30,7 @@ The answers you saved as notes in a book ([Save to Note](Contexts-and-Chat#save-
 
 **To export:** open the book's [Book Hub](Book-Settings-and-Book-Hub#the-book-hub), tap the ☰ menu, then **Export saved answers for Anki**. A notice says how many answers were exported and where the file is. It lands in an `anki/` folder of your export folder (the Save Location above; with **Ask every time** you pick the folder), named after the book.
 
-**In Anki:** **File → Import**, pick the file, choose your note type and deck. The file says by itself that it is tab-separated and holds HTML, and which column is the tags.
+**In Anki:** **File → Import**, pick the file, choose your note type and deck. The file is a `.txt` file, which Anki reads exactly as it reads a `.csv`; it says by itself that it is tab-separated and holds HTML, and which column is the tags.
 
 **What a row holds:**
 
@@ -46,6 +46,7 @@ The answers you saved as notes in a book ([Save to Note](Contexts-and-Chat#save-
 - **Which answers:** those saved by Translate, Quick Define and Dictionary, unless you change the list under **Settings → Highlight Settings → Answers Exported for Anki**. A long explanation kept as a note is left out until you tick its action; ticked, it is exported the next time. Notes you wrote yourself on a highlight with no saved answer are not exported (KOReader's own **Export highlights** has them).
 - **Exporting again:** every export writes the whole file again, so export whenever you like and import the same file. Anki recognises the notes it already has: in its import window, **Existing notes** set to **Preserve** adds only the new ones and leaves what you changed in Anki alone, **Update** also brings in notes you corrected in KOReader.
 - **Your own note type:** Anki fills a note type's fields from the columns of the same name, so **Front** and **Back** fill Anki's stock note types with no mapping, and the other columns are simply left out there. If your note type has other field names, type them under **Settings → Highlight Settings → Anki Column Names** (three names: the id, the passage, the note) and they fill by themselves too. A note type whose first field is an id (a number or a time of its own) gets the **ID** column there, and the same words highlighted in two places stay two notes.
+- **Right-to-left books (Arabic, Hebrew, …):** Anki lays a whole card out in one direction, so on a card with an Arabic passage and an English answer the full stop of one side lands at the wrong end. The file leaves your text as it is; a side's direction is said in the note type, once. In Anki, **Tools → Manage Note Types → Cards**: write `<div dir="rtl">{{Front}}</div>` where the front template has `{{Front}}`, and `<div dir="ltr">{{Back}}</div>` where the back template has `{{Back}}` (your own field names if you changed them; the two values swapped if the answers are the right-to-left side). `dir="auto"` lets each card decide by its first letter, which goes wrong for a definition that starts with the looked-up word.
 
 ## Notebooks
 

@@ -68,33 +68,11 @@ local function kindEmoji(kind)
     return "\u{1F5C2}\u{FE0F}"
 end
 
--- The title-bar hamburger's dropdown (round 7, both pages): anchored under
--- the icon, sized to its rows — the action managers' recipe. rows = { {
--- text, callback, enabled } }
+-- The title-bar hamburger's dropdown (round 7, both pages): under the icon,
+-- sized to its rows, the one copy the Book Hub's menu uses too.
+-- rows = { { text, callback, enabled } }
 local function anchoredMenu(menu, rows)
-    local ButtonDialog = require("ui/widget/buttondialog")
-    local dialog
-    local buttons = {}
-    for _idx, r in ipairs(rows) do
-        local fn = r.callback
-        buttons[#buttons + 1] = {{
-            text = r.text,
-            enabled = r.enabled,
-            align = "left",
-            callback = function()
-                UIManager:close(dialog)
-                fn()
-            end,
-        }}
-    end
-    dialog = ButtonDialog:new{
-        buttons = buttons,
-        shrink_unneeded_width = true,
-        anchor = function()
-            return menu.title_bar.left_button.image.dimen, true
-        end,
-    }
-    UIManager:show(dialog)
+    return require("koassistant.ui.icon_menu").show(menu, rows)
 end
 
 -- "Series · 3 books": the hub's subtitle tail and the list rows' right column
