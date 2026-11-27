@@ -208,6 +208,39 @@ TestRunner:test("the note's menu: KOReader's buttons and its window, each on the
     TestRunner:assertEqual(#r.edited, 1)
 end)
 
+TestRunner:test("a highlighted word's menu also opens KOReader's dictionary, with the popup left standing", function()
+    reset()
+    local r = newReader()
+    local looked = {}
+    r.plugin.ui.dictionary = { onLookupWord = function(self, word)
+        looked[#looked + 1] = { word = word, explicit = self._koassistant_explicit_dictionary,
+            passage = self._koassistant_keep_selection }
+    end }
+    r.plugin:syncKeptNotePopup()
+    local item = kept(r, { { kind = "dictionary", action = "quick_define", text = "**lantern**, a lamp in a case." } })
+    item.text = "lantern"
+    r.hl:showHighlightNoteOrDialog(1)
+    local opts = popup.calls[1]
+    local words = {}
+    for i, entry in ipairs(opts.rows) do words[i] = entry.separator and "--" or entry.text end
+    TestRunner:assertEqual(table.concat(words, " | "),
+        "Edit note | Open in KOReader's note window | Highlight menu | Open KOReader's dictionary | -- | Delete note | Delete highlight")
+    local door = row(opts, "Open KOReader's dictionary")
+    TestRunner:assertEqual(door.keep, true, "the popup stays under KOReader's window")
+    door.callback()
+    TestRunner:assertEqual(looked[1].word, "lantern")
+    TestRunner:assertEqual(looked[1].explicit, true, "KOReader's own dictionary, whatever the bypass is set to")
+    TestRunner:assertTrue(looked[1].passage ~= nil and looked[1].passage.pos0 == item.pos0 and looked[1].passage.pos1 == item.pos1
+        and looked[1].passage.text == "lantern", "the highlight's own place goes along: +Note on that window adds to this note")
+    -- a highlighted passage has no such row
+    local passage = kept(r, { TRANSLATION })
+    passage.text = "Morning came grey over the town, and the lamps were still lit."
+    r.hl:showHighlightNoteOrDialog(2)
+    for _i, entry in ipairs(popup.calls[2].rows) do
+        TestRunner:assertTrue(entry.text ~= "Open KOReader's dictionary", "a passage is not looked up")
+    end
+end)
+
 TestRunner:test("the menu's title says where the answers came from", function()
     reset()
     local r = newReader()

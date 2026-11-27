@@ -96,6 +96,69 @@ function DictButtons.consumeNonReader(popup, dict)
     return popup._koassistant_non_reader
 end
 
+--- The passage a dictionary window's definition would be kept on: the
+--- selection KOReader handed the window (a lookup made in the book), else the
+--- one the plugin sent along when it opened the window itself from one of its
+--- answers (ChatGPTViewer.lookupNative; taken over by takeKeepSelection). Pure.
+-- @return table|nil { pos0, pos1, text, ... }
+function DictButtons.selectionOf(popup)
+    if not popup then return nil end
+    local hl = popup.highlight
+    local live = hl and hl.selected_text
+    if type(live) == "table" and live.pos0 ~= nil and live.pos1 ~= nil then return live end
+    local sent = popup._koassistant_keep_selection
+    if type(sent) == "table" and sent.pos0 ~= nil and sent.pos1 ~= nil then return sent end
+    return nil
+end
+
+--- Move the selection the plugin sent along with a lookup from the dictionary
+--- module onto the window that shows it, once (as consumeNonReader does for
+--- its flags; a rebuild of the window's buttons keeps what was taken).
+function DictButtons.takeKeepSelection(popup, dict)
+    if popup._koassistant_keep_selection == nil then
+        popup._koassistant_keep_selection = (dict and dict._koassistant_keep_selection) or false
+        if dict then dict._koassistant_keep_selection = nil end
+    end
+    return popup._koassistant_keep_selection or nil
+end
+
+--- Whether a definition on KOReader's dictionary window can be kept as the
+--- looked-up word's note (the "+Note" button, a selected part of a definition):
+--- there is a passage to keep it on (selectionOf); a real result is shown;
+--- never on a Wikipedia window. Pure.
+function DictButtons.canKeepDefinition(popup)
+    if not popup or popup.is_wiki then return false end
+    if not popup.word or popup.word == "" then return false end
+    local result = type(popup.results) == "table" and popup.results[popup.dict_index or 1]
+    if not result or result.no_result then return false end
+    return DictButtons.selectionOf(popup) ~= nil
+end
+
+--- Whether the "+Note" button shows: the reader's switch for the button
+--- (Menus & Buttons, Show +Note; on unless turned off) and something to keep.
+--- The switch is the button's alone: a selected part of a definition is saved
+--- by its own switch or its own row, whatever this one says. Pure.
+function DictButtons.showNoteButton(popup, features)
+    if features and features.show_note_in_dictionary == false then return false end
+    return DictButtons.canKeepDefinition(popup)
+end
+
+--- The result a dictionary window shows, as a note's text, and where it came
+--- from. Pure: `to_plain` turns an HTML definition into text (KOReader's own
+--- helper). The window's own `definition` field is not read: KOReader adds a
+--- "(query : word)" line to it under a fuzzy match.
+-- @return string|nil the definition
+-- @return table|nil { dictionary = its name, headword }
+function DictButtons.shownDefinition(popup, to_plain)
+    local result = popup and type(popup.results) == "table" and popup.results[popup.dict_index or 1]
+    if not result or result.no_result or type(result.definition) ~= "string" then return nil end
+    local text = result.definition
+    if result.is_html and to_plain then text = to_plain(text) end
+    text = text:gsub("^%s+", ""):gsub("%s+$", "")
+    if text == "" then return nil end
+    return text, { dictionary = result.dict, headword = result.word }
+end
+
 --- Split a flat list of buttons into rows of `per_row` (default PER_ROW),
 --- last row partial. Used by the legacy path's row insertion.
 function DictButtons.splitRows(buttons, per_row)

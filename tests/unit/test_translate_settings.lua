@@ -113,7 +113,7 @@ TestRunner:test("Settings has the list alone: no switch beside it, the row never
     TestRunner:assertEqual(list.depends_on, nil, "nothing greys it")
     TestRunner:assertEqual(list.callback, "buildTranslationLanguageMenu")
     -- the key the list writes still has no default of its own: unset reads as follow
-    TestRunner:assertEqual(Schema.getDefaults().translation_use_primary, nil)
+    TestRunner:assertEqual(Schema.getDefaults()["features.translation_use_primary"], nil)
 end)
 
 TestRunner:test("the row names the language a translation uses, under one name", function()
@@ -137,6 +137,66 @@ TestRunner:test("the dictionary's row has the same name everywhere and says what
     local schema_src = source("koassistant/ui/settings_schema.lua")
     TestRunner:assertEqual(schema_src:find('_("Response Language', 1, true), nil, "the old name")
     TestRunner:assertEqual(schema_src:find('_("Translation Target', 1, true), nil, "the old name")
+end)
+
+-- The two screens' layout (B785): the same headings in the same order, each
+-- row under the one it belongs to. A key keeps its row whatever screen
+-- or group shows it.
+TestRunner:test("Dictionary Settings and Translate Settings are grouped under the same headings; no row lost, one changed screens", function()
+    local function layout(id)
+        local out, groups = {}, {}
+        for _idx, item in ipairs(row(id).items) do
+            if item.type == "header" then
+                groups[#groups + 1] = item.text
+                out[#out + 1] = "[" .. item.text .. "]"
+            else
+                out[#out + 1] = item.id
+            end
+        end
+        return table.concat(out, " "), groups
+    end
+    local dict, dict_groups = layout("dictionary_settings")
+    TestRunner:assertEqual(table.concat(dict_groups, " | "), "Starting a lookup | What is sent | The answer | Keeping")
+    TestRunner:assertEqual(dict, table.concat({
+        "dictionary_language",
+        "[Starting a lookup]", "dictionary_bypass_enabled", "dictionary_bypass_action", "dictionary_bypass_vocab_add",
+        "[What is sent]", "dictionary_context_mode", "dictionary_context_chars",
+        "[The answer]", "dictionary_show_excerpt", "dictionary_enable_streaming", "dictionary_text_mode",
+        "[Keeping]", "dictionary_auto_note", "dictionary_note_content", "dictionary_copy_content", "dictionary_disable_auto_save",
+    }, " "))
+    local translate, translate_groups = layout("translate_settings")
+    TestRunner:assertEqual(table.concat(translate_groups, " | "), "What is sent | The answer | Keeping")
+    TestRunner:assertEqual(translate, table.concat({
+        "translation_language",
+        "[What is sent]", "translate_use_context",
+        "[The answer]", "translate_enable_streaming", "translate_hide_highlight_mode", "translate_long_highlight_threshold", "translate_hide_full_page",
+        "[Keeping]", "translate_auto_note", "translate_note_content", "translate_copy_content", "translate_disable_auto_save",
+    }, " "))
+    -- a group ends with a line under its last row; the last group needs none.
+    -- And no header is the last row of a page of ten (KOReader's menu on an
+    -- e-reader's screen): a heading alone at a page's foot names nothing.
+    for _i, id in ipairs({ "dictionary_settings", "translate_settings" }) do
+        local items = row(id).items
+        for i = 10, #items, 10 do
+            TestRunner:assertTrue(items[i].type ~= "header", id .. ": row " .. i .. " closes a page and is a header")
+        end
+        for i, item in ipairs(items) do
+            local next_item = items[i + 1]
+            if next_item and next_item.type == "header" then
+                TestRunner:assertEqual(item.separator, true, id .. ": a line closes the group that ends with " .. tostring(item.id))
+            elseif item.type ~= "header" then
+                TestRunner:assertEqual(item.separator, nil, id .. ": no line inside a group, after " .. tostring(item.id))
+            end
+        end
+    end
+    -- Text Mode for Dictionary: one row, in Dictionary Settings now, its key and default as they were
+    local text_mode = row("dictionary_text_mode")
+    TestRunner:assertEqual(text_mode.path, "features.dictionary_text_mode")
+    TestRunner:assertEqual(text_mode.default, false)
+    TestRunner:assertEqual(row("dictionary_text_mode", row("display_settings").items), nil, "no longer under Display Settings")
+    -- the door to the list of answers saved automatically: the list's own builder
+    TestRunner:assertEqual(row("dictionary_auto_note").callback, row("auto_note_actions").callback)
+    TestRunner:assertEqual(row("dictionary_auto_note").path, nil, "a second door, not a second value")
 end)
 
 -- main.lua's list, cut and run

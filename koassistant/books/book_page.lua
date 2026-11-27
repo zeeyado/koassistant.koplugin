@@ -366,21 +366,64 @@ end
 --- written whole at every export into the export folder's "anki" folder (the
 --- folder asked for when the export setting says Ask every time), then a
 --- notice with the file's place, or with why there is none.
--- @param ctx table { plugin, ui, file, title } (the page's own context)
+--- With `ctx.all_books` (Settings → Highlight Settings → Export All Books'
+--- Saved Answers for Anki; B788) it is ONE file for every book KOReader's
+--- history knows and that is still on this device, the same way.
+-- @param ctx table { plugin, ui, file, title } (the page's own context), or { plugin, ui, all_books = true }
 function BookPage.exportForAnki(ctx)
     local AnkiExport = require("koassistant.chat.anki_export")
     local Export = require("koassistant.chat.export")
     local InfoMessage = require("ui/widget/infomessage")
     local features = ctx.plugin.settings and ctx.plugin.settings.data
         and ctx.plugin.settings.data.features or {}
+    -- every book of KOReader's history that is still here, the last read first
+    local function historyBooks()
+        local ReadHistory = require("readhistory")
+        ReadHistory:reload()
+        local books = {}
+        for _idx, entry in ipairs(ReadHistory.hist) do
+            if entry.file and not entry.dim then books[#books + 1] = { file = entry.file } end
+        end
+        return books
+    end
+    -- a book's title as its Book Hub shows it
+    local function titleOf(file)
+        local ui = ctx.ui
+        if ui and ui.document and ui.document.file == file and ui.doc_props then
+            local shown = ui.doc_props.display_title or ui.doc_props.title
+            if shown and shown ~= "" then return shown end
+        end
+        local SafeDocSettings = require("koassistant.storage.doc_settings")
+        local ok, ds = pcall(SafeDocSettings.resolve, file, ui)
+        local props = ok and ds and SafeDocSettings.effectiveProps(ds:readSetting("doc_props"), file, ui, { no_open = true }) or {}
+        local title = props.display_title or props.title
+        if not title or title == "" then title = file:match("([^/]+)$") or file end
+        return title
+    end
     local function write(dir)
-        local done, why = AnkiExport.forBook({
-            file = ctx.file, ui = ctx.ui, features = features, title = ctx.title, dir = dir,
-        })
-        if done then
+        local done, why
+        if ctx.all_books then
+            done, why = AnkiExport.forAllBooks({
+                books = historyBooks(), title_of = titleOf, ui = ctx.ui, features = features, dir = dir,
+            })
+        else
+            done, why = AnkiExport.forBook({
+                file = ctx.file, ui = ctx.ui, features = features, title = ctx.title, dir = dir,
+            })
+        end
+        if done and ctx.all_books then
+            UIManager:show(InfoMessage:new{
+                text = T(_("Saved answers exported for Anki: %1 (books: %2)\n\n%3\n\nIn Anki, use File > Import. Each card carries its book as a tag."),
+                    done.count, done.books, done.path),
+            })
+        elseif done then
             UIManager:show(InfoMessage:new{
                 text = T(_("Saved answers exported for Anki: %1\n\n%2\n\nIn Anki, use File > Import."),
                     done.count, done.path),
+            })
+        elseif why == "none" and ctx.all_books then
+            UIManager:show(InfoMessage:new{
+                text = _("No book has saved answers to export.\n\nAn answer is exported when it was saved as a highlight's note by an action ticked under Settings → Highlight Settings → Answers Exported for Anki."),
             })
         elseif why == "none" then
             UIManager:show(InfoMessage:new{

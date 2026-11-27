@@ -556,6 +556,7 @@ function AskGPT:init()
   
   -- Patch TextViewer and DictQuickLookup for dictionary + selection popup
   self:patchTextSelectionHandlers()
+  self:patchDictionarySelectionSave()
 
   -- Patch FileManager for multi-select support
   self:patchFileManagerForMultiSelect()
@@ -6328,6 +6329,13 @@ function AskGPT:_toggleMinimalPopupAction(action_id)
 end
 
 -- The actions whose answers are saved as a note automatically (Highlight
+-- Settings: Highlight Settings, Export All Books' Saved Answers for Anki
+-- (B788): one file for every book of KOReader's history, through the Book
+-- Hub's own export (the same folder, the same notices)
+function AskGPT:exportAllForAnki()
+  require("koassistant.books.book_page").exportForAnki({ plugin = self, ui = self.ui, all_books = true })
+end
+
 -- Settings: Auto-save Answers as Notes; features.auto_note_actions, none
 -- unless ticked). The seam is the dialogs module's showResponseDialog.
 function AskGPT:buildAutoNoteActionsMenu()
@@ -6475,6 +6483,30 @@ function AskGPT:_showKeptNote(hl, index)
       if item == annotation then return i end
     end
   end
+  local rows = {
+    { text = _("Edit note"), callback = function() HighlightNote.editExisting(ui, annotation) end },
+    { text = _("Open in KOReader's note window"), callback = function()
+      local i = place()
+      if i then hl._koassistant_original_showNote(hl, i) end
+    end },
+    { text = _("Highlight menu"), callback = function()
+      local i = place()
+      if i then hl:showHighlightDialog(i) end
+    end },
+  }
+  -- KOReader's own dictionary for a highlighted word (or a selection short
+  -- enough to count as one): the popup stays under KOReader's window
+  local native = require("koassistant.ui.chatgptviewer").nativeDictionaryRow(annotation.text, features, ui,
+    { pos0 = annotation.pos0, pos1 = annotation.pos1, text = annotation.text })
+  if native then
+    native.keep = true
+    rows[#rows + 1] = native
+  end
+  rows[#rows + 1] = { separator = true }
+  rows[#rows + 1] = { text = _("Delete note"), callback = function() HighlightNote.deleteNote(ui, annotation, { store = ds }) end }
+  rows[#rows + 1] = { text = _("Delete highlight"), callback = function()
+    HighlightNote.deleteHighlight(ui, annotation, { store = ds })
+  end }
   return require("koassistant.ui.minimal_popup").showForNote({
     parts = show,
     note = annotation.note,
@@ -6483,22 +6515,7 @@ function AskGPT:_showKeptNote(hl, index)
     ui = ui,
     boxes = boxes,
     info = HighlightNote.sourceText(show),
-    rows = {
-      { text = _("Edit note"), callback = function() HighlightNote.editExisting(ui, annotation) end },
-      { text = _("Open in KOReader's note window"), callback = function()
-        local i = place()
-        if i then hl._koassistant_original_showNote(hl, i) end
-      end },
-      { text = _("Highlight menu"), callback = function()
-        local i = place()
-        if i then hl:showHighlightDialog(i) end
-      end },
-      { separator = true },
-      { text = _("Delete note"), callback = function() HighlightNote.deleteNote(ui, annotation, { store = ds }) end },
-      { text = _("Delete highlight"), callback = function()
-        HighlightNote.deleteHighlight(ui, annotation, { store = ds })
-      end },
-    },
+    rows = rows,
   })
 end
 
@@ -7089,6 +7106,75 @@ function AskGPT:syncDictButtons()
     end
     dictionary:addToDictButtons(spec)
   end
+
+  -- "+Note" (B790): the definition on screen kept as the note of the looked-up
+  -- word's highlight, through the one note writer. It follows the actions, in
+  -- their rows; shown for a lookup made in the book alone.
+  local note_index = #popup_actions + 1
+  dictionary:addToDictButtons({
+    id = DictButtons.specId(note_index, "keep_note"),
+    text = DictButtons.label(_("+Note"), features),
+    font_bold = true,
+    conditional = true,
+    row_group = DictButtons.rowGroup(note_index),
+    show_func = function(popup)
+      -- a passage the plugin sent along with the lookup (KOReader's dictionary
+      -- opened from one of its answers) is taken over by the window here
+      DictButtons.takeKeepSelection(popup, self_ref.ui and self_ref.ui.dictionary)
+      return DictButtons.showNoteButton(popup, self_ref.settings:readSetting("features") or {})
+    end,
+    callback = function(popup) self_ref:keepDictionaryDefinition(popup) end,
+  })
+end
+
+--- KOReader's dictionary window: the definition on screen, or the part of it
+--- the reader selected, kept as the note of the looked-up word's highlight
+--- (B790). The one note writer does it, so a word keeps one highlight, a
+--- second definition joins the first, and the note is on record as a saved
+--- answer (the popup on a later tap, the file for Anki): a dictionary answer
+--- whose "model" is the dictionary's name.
+-- @param popup KOReader's DictQuickLookup
+-- @param part string|nil a selection inside the definition (nil = all of it)
+-- @return boolean
+function AskGPT:keepDictionaryDefinition(popup, part)
+  local DictButtons = require("koassistant.ui.dict_buttons")
+  local function notify(text)
+    UIManager:show(Notification:new{ text = text, timeout = 2 })
+  end
+  local HighlightNote = require("koassistant.chat.highlight_note")
+  local text, from = DictButtons.shownDefinition(popup, require("util").htmlToPlainTextIfHtml)
+  if type(part) == "string" and part:find("%S") then text = part end
+  -- a definition's lines are lines: each a paragraph of the note (a saved
+  -- dictionary answer is drawn as Markdown, where one line break is a space)
+  text = text and HighlightNote.linesAsParagraphs(text) or nil
+  local selection = DictButtons.selectionOf(popup)
+  if not (text and text ~= "" and selection) then
+    notify(_("No definition to save"))
+    return false
+  end
+  local saved = HighlightNote.save(self.ui, selection, text, {
+    kind = "dictionary",
+    action_name = _("KOReader dictionary"),
+    model = from and from.dictionary or nil,
+    provider = "koreader_dictionary",
+  })
+  if not saved then
+    notify(_("Failed to create highlight"))
+    return false
+  end
+  -- The window is done once its definition is kept: the page shows again with
+  -- the word highlighted. KOReader's own Highlight button on that window would
+  -- make a second highlight at the close: its mark is taken back.
+  popup.save_highlight = nil
+  if popup.onHoldClose then popup:onHoldClose() else UIManager:close(popup) end
+  if saved.already then
+    notify(_("Already in this highlight's note"))
+  elseif saved.created then
+    notify(_("Saved as a note"))
+  else
+    notify(_("Added to the highlight's note"))
+  end
+  return true
 end
 
 -- Install new-API (KOReader PR #15184+) dictionary button registration.
@@ -7113,6 +7199,7 @@ function AskGPT:installDictButtonRegistration()
       -- our buttons are hidden) so it cannot leak to a later popup.
       dict_self._koassistant_non_reader_lookup = nil
       dict_self._koassistant_lookup_book = nil
+      dict_self._koassistant_keep_selection = nil
       return result
     end
   end
@@ -7196,6 +7283,15 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
   local buttons = {}
   for _i, action in ipairs(popup_actions) do
     table.insert(buttons, createActionButton(action))
+  end
+  -- "+Note", as on the new API (B790)
+  require("koassistant.ui.dict_buttons").takeKeepSelection(dict_popup, self.ui and self.ui.dictionary)
+  if require("koassistant.ui.dict_buttons").showNoteButton(dict_popup, features) then
+    table.insert(buttons, {
+      text = Constants.koaLabel(_("+Note"), "dictionary", features),
+      font_bold = true,
+      callback = function() self_ref:keepDictionaryDefinition(dict_popup) end,
+    })
   end
   local plugin_rows = require("koassistant.ui.dict_buttons").splitRows(buttons)
 
@@ -20962,6 +21058,7 @@ function AskGPT:syncHighlightBypass()
       if clear then return end
       local features = self_ref.settings:readSetting("features") or {}
       if not (features.highlight_bypass_enabled
+          or (tonumber(features.short_selection_words) or 1) > 1
           or self_ref:_xrayInterceptEnabled(self_ref.ui
             and self_ref.ui.document and self_ref.ui.document.file)) then
         return
@@ -21033,6 +21130,20 @@ function AskGPT:syncHighlightBypass()
           return true
         end
       end
+    end
+
+    -- Short selections as a word (B791): a selection of up to the reader's
+    -- number of words goes where a held word goes, KOReader's lookup (its
+    -- dictionary, or the dictionary bypass's action when that is on), in
+    -- place of the menu and of the highlight bypass. KOReader's own function
+    -- for "Dictionary" on a selection does it; the wrapper beside it takes a
+    -- lookup as the reader's pick of KOReader's dictionary only while the
+    -- highlight menu is open, which it is not here.
+    if (tonumber(features.short_selection_words) or 1) > 1
+        and hl_self.selected_text and hl_self.selected_text.text and hl_self.lookupDict
+        and require("koassistant.ui.chatgptviewer").countsAsWord(hl_self.selected_text.text, features) then
+      hl_self:lookupDict()
+      return true
     end
 
     -- Check if bypass is enabled
@@ -24715,6 +24826,32 @@ function AskGPT:showWizardLanguagePicker(next_step)
   UIManager:show(picker_dialog)
 end
 
+-- KOReader's dictionary window: a selected part of a definition saved at once
+-- as the looked-up word's note (B790), for the reader who turned the switch on
+-- (Menus & Buttons; off by default). It takes the place of KOReader's own
+-- answer to a selection there, a lookup of the selected text, which is the one
+-- function every such selection ends in; with the switch off, or for a lookup
+-- that was not made in the book, that function runs as before. Installed once,
+-- the switch read at each selection.
+function AskGPT:patchDictionarySelectionSave()
+  local DictQuickLookup = require("ui/widget/dictquicklookup")
+  if DictQuickLookup._koassistant_keep_patched then return end
+  DictQuickLookup._koassistant_keep_patched = true
+  local original = DictQuickLookup.lookupDictionaryOrWikipedia
+  function DictQuickLookup:lookupDictionaryOrWikipedia(selected_text, switch_domain)
+    local reader_ui = require("apps/reader/readerui").instance
+    local plugin = reader_ui and reader_ui.koassistant
+    local features = plugin and plugin.settings and plugin.settings:readSetting("features") or nil
+    if features and features.dict_selection_saves_note == true
+        and type(selected_text) == "string" and selected_text:find("%S")
+        and require("koassistant.ui.dict_buttons").canKeepDefinition(self) then
+      plugin:keepDictionaryDefinition(self, selected_text)
+      return true
+    end
+    return original(self, selected_text, switch_domain)
+  end
+end
+
 -- Patch TextViewer and DictQuickLookup for unified text selection behavior:
 -- Single word + short hold → dictionary lookup
 -- Single word + long hold → selection popup (Copy, Dictionary, Translate, Notebook)
@@ -24766,8 +24903,10 @@ function AskGPT:patchTextSelectionHandlers()
       return orig_tv_handleTextSelection(self, text, hold_duration, start_idx, end_idx, to_source_index_func)
     end
 
-    -- One word (the viewer's rule: one token, no CJK run longer than a word)
-    if ChatGPTViewer.isSingleWord(text) and not ChatGPTViewer.isLongHold(hold_duration) then
+    -- A word (the viewer's rule: one, or up to the reader's number of words)
+    local plugin_now = getPlugin()
+    local features_now = plugin_now and plugin_now.settings and plugin_now.settings:readSetting("features") or nil
+    if ChatGPTViewer.countsAsWord(text, features_now) and not ChatGPTViewer.isLongHold(hold_duration) then
       -- Single word + short hold: dictionary lookup
       reader_ui.dictionary._koassistant_non_reader_lookup = true
       reader_ui.dictionary:onLookupWord(text)
@@ -24811,19 +24950,24 @@ function AskGPT:patchTextSelectionHandlers()
       local orig_args = self.ges_events.HoldReleaseText.args
       local dql_self = self
       self.ges_events.HoldReleaseText.args = function(text, hold_duration)
-        local word_count = 0
-        if text then
-          for _w in text:gmatch("%S+") do
-            word_count = word_count + 1
-            if word_count > 1 then break end
-          end
+        -- the one word rule (one word, or up to the reader's number)
+        local plugin_now = getPlugin()
+        local features_now = plugin_now and plugin_now.settings and plugin_now.settings:readSetting("features") or nil
+        -- the reader's switch: a selected part of a definition is saved at
+        -- once as the word's note, whatever its length (B790)
+        if features_now and features_now.dict_selection_saves_note == true
+            and type(text) == "string" and text:find("%S")
+            and require("koassistant.ui.dict_buttons").canKeepDefinition(dql_self) then
+          plugin_now:keepDictionaryDefinition(dql_self, text)
+          return
         end
+        local as_word = ChatGPTViewer.countsAsWord(text, features_now)
 
-        -- Single word + short hold: original dictionary/Wikipedia behavior.
+        -- A word + short hold: original dictionary/Wikipedia behavior.
         -- The word came from inside a dictionary popup, not the book — mark it so that
         -- if the resulting lookup's KOAssistant action runs, it won't pull the open
         -- book's surrounding context/identity into the request (B3).
-        if word_count == 1 and not ChatGPTViewer.isLongHold(hold_duration) then
+        if as_word and not ChatGPTViewer.isLongHold(hold_duration) then
           local reader_ui = ReaderUI.instance
           if reader_ui and reader_ui.dictionary then
             reader_ui.dictionary._koassistant_non_reader_lookup = true
@@ -24846,12 +24990,19 @@ function AskGPT:patchTextSelectionHandlers()
             })
           end
         end
+        -- the selected part as the looked-up word's note (B790), where the
+        -- lookup was made in the book
+        local save_selection
+        if plugin and require("koassistant.ui.dict_buttons").canKeepDefinition(dql_self) then
+          save_selection = function(sel_text) plugin:keepDictionaryDefinition(dql_self, sel_text) end
+        end
         ChatGPTViewer.buildTextSelectionPopup(text, {
           ui = reader_ui,
           plugin = plugin,
           configuration = plugin and plugin.configuration,
           document_path = doc_path,
           append_to_notebook = append_to_notebook,
+          save_selection = save_selection,
           clear_highlight = function()
             if dql_self.text_widget then
               local inner = dql_self.text_widget.htmlbox_widget or dql_self.text_widget.text_widget

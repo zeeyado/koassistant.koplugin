@@ -308,14 +308,6 @@ local SettingsSchema = {
                                 },
                             },
                         },
-                        {
-                            id = "dictionary_text_mode",
-                            type = "toggle",
-                            text = _("Text Mode for Dictionary"),
-                            path = "features.dictionary_text_mode",
-                            default = false,
-                            help_text = _("Use Plain Text in dictionary windows whatever the View Mode."),
-                        },
                     },
                 },
                 {
@@ -1510,6 +1502,9 @@ local SettingsSchema = {
             text = _("Dictionary Settings"),
             emoji = "📖",
             items = {
+                -- Grouped under headers (B785): the language row leads without
+                -- one (it names itself; with a "Language" header a later header
+                -- fell alone at the foot of the first page, ten rows a page).
                 -- (Popup visibility toggle + popup-actions manager live in
                 -- Menus & Buttons; behavior settings stay here)
                 {
@@ -1533,95 +1528,12 @@ local SettingsSchema = {
                     end,
                     callback = "buildDictionaryLanguageMenu",
                     help_text = _("The language dictionary answers are written in. It follows the Translation Language unless you pick another one here."),
+                    separator = true,
                 },
                 {
-                    id = "dictionary_context_mode",
-                    type = "submenu",
-                    text_func = function(plugin)
-                        local f = plugin.settings:readSetting("features") or {}
-                        -- Must match BookSettings.resolveDictionaryContext (D1: "sentence")
-                        local mode = f.dictionary_context_mode or "sentence"
-                        local labels = {
-                            sentence = _("Sentence"),
-                            paragraph = _("Paragraph"),
-                            characters = _("Characters"),
-                            none = _("None"),
-                        }
-                        return T(_("Context Mode: %1"), labels[mode] or mode)
-                    end,
-                    callback = "buildDictionaryContextModeMenu",
-                    help_text = _("How much text around the looked-up word is sent with dictionary actions. The Ctx button on the dictionary popup toggles it per lookup; Book Settings can override it per book."),
-                },
-                {
-                    id = "dictionary_context_chars",
-                    type = "spinner",
-                    text = _("Context Characters"),
-                    path = "features.dictionary_context_chars",
-                    default = 100,
-                    min = 20,
-                    max = 500,
-                    step = 10,
-                    help_text = _("Number of characters to include before/after the word when Context Mode is 'Characters'"),
-                    enabled_func = function(plugin)
-                        local f = plugin.settings:readSetting("features") or {}
-                        return f.dictionary_context_mode == "characters"
-                    end,
-                },
-                {
-                    id = "dictionary_show_excerpt",
-                    type = "toggle",
-                    text = _("Show Excerpt"),
-                    path = "features.dictionary_show_excerpt",
-                    default = false,
-                    help_text = _("Show a short excerpt of the text around the looked-up word above the answer, with the word in bold. Only for lookups that send context (Context Mode is not None). Nothing extra is sent. Also on the gear menu of dictionary windows."),
-                },
-                {
-                    id = "dictionary_disable_auto_save",
-                    type = "toggle",
-                    text = _("Disable Auto-save for Dictionary"),
-                    path = "features.dictionary_disable_auto_save",
-                    default = true,
-                    help_text = _("When enabled, dictionary lookups are not auto-saved. When disabled, dictionary chats follow your general chat saving settings. You can always save manually from an expanded view."),
-                },
-                {
-                    id = "dictionary_copy_content",
-                    type = "dropdown",
-                    text = _("Copy Content"),
-                    path = "features.dictionary_copy_content",
-                    default = "response",
-                    options = {
-                        { value = "global", label = _("Follow global setting") },
-                        { value = "ask", label = _("Ask every time") },
-                        { value = "full", label = Constants.contentLabel("full") },
-                        { value = "qa", label = Constants.contentLabel("qa") },
-                        { value = "response", label = _("Definition only (Recommended)") },
-                        { value = "everything", label = _("Everything (debug)") },
-                    },
-                    help_text = _("What to include when copying in dictionary view."),
-                },
-                {
-                    id = "dictionary_note_content",
-                    type = "dropdown",
-                    text = _("Note Content"),
-                    path = "features.dictionary_note_content",
-                    default = "response",
-                    options = {
-                        { value = "global", label = _("Follow global setting") },
-                        { value = "ask", label = _("Ask every time") },
-                        { value = "full", label = Constants.contentLabel("full") },
-                        { value = "qa", label = Constants.contentLabel("qa") },
-                        { value = "response", label = _("Definition only (Recommended)") },
-                        { value = "everything", label = _("Everything (debug)") },
-                    },
-                    help_text = _("What to include when saving dictionary results to a note."),
-                },
-                {
-                    id = "dictionary_enable_streaming",
-                    type = "toggle",
-                    text = _("Enable Streaming"),
-                    path = "features.dictionary_enable_streaming",
-                    default = true,
-                    help_text = _("Show a dictionary answer while it arrives. Turn off to wait for the whole answer. An action that is one of the Minimal Popup's gives its answer whole while the popup is on, whatever this says."),
+                    id = "dictionary_start_header",
+                    type = "header",
+                    text = _("Starting a lookup"),
                 },
                 {
                     id = "dictionary_bypass_enabled",
@@ -1660,6 +1572,135 @@ local SettingsSchema = {
                     path = "features.dictionary_bypass_vocab_add",
                     default = true,
                     help_text = _("When enabled, dictionary bypass follows KOReader's Vocabulary Builder auto-add setting. Disable if you use bypass for analysis of words you already know and don't want them added."),
+                    separator = true,
+                },
+                {
+                    id = "dictionary_sent_header",
+                    type = "header",
+                    text = _("What is sent"),
+                },
+                {
+                    id = "dictionary_context_mode",
+                    type = "submenu",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        -- Must match BookSettings.resolveDictionaryContext (D1: "sentence")
+                        local mode = f.dictionary_context_mode or "sentence"
+                        local labels = {
+                            sentence = _("Sentence"),
+                            paragraph = _("Paragraph"),
+                            characters = _("Characters"),
+                            none = _("None"),
+                        }
+                        return T(_("Context Mode: %1"), labels[mode] or mode)
+                    end,
+                    callback = "buildDictionaryContextModeMenu",
+                    help_text = _("How much text around the looked-up word is sent with dictionary actions. The Ctx button on the dictionary popup toggles it per lookup; Book Settings can override it per book."),
+                },
+                {
+                    id = "dictionary_context_chars",
+                    type = "spinner",
+                    text = _("Context Characters"),
+                    path = "features.dictionary_context_chars",
+                    default = 100,
+                    min = 20,
+                    max = 500,
+                    step = 10,
+                    help_text = _("Number of characters to include before/after the word when Context Mode is 'Characters'"),
+                    enabled_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        return f.dictionary_context_mode == "characters"
+                    end,
+                    separator = true,
+                },
+                {
+                    id = "dictionary_answer_header",
+                    type = "header",
+                    text = _("The answer"),
+                },
+                {
+                    id = "dictionary_show_excerpt",
+                    type = "toggle",
+                    text = _("Show Excerpt"),
+                    path = "features.dictionary_show_excerpt",
+                    default = false,
+                    help_text = _("Show a short excerpt of the text around the looked-up word above the answer, with the word in bold. Only for lookups that send context (Context Mode is not None). Nothing extra is sent. Also on the gear menu of dictionary windows."),
+                },
+                {
+                    id = "dictionary_enable_streaming",
+                    type = "toggle",
+                    text = _("Enable Streaming"),
+                    path = "features.dictionary_enable_streaming",
+                    default = true,
+                    help_text = _("Show a dictionary answer while it arrives. Turn off to wait for the whole answer. An action that is one of the Minimal Popup's gives its answer whole while the popup is on, whatever this says."),
+                },
+                {
+                    id = "dictionary_text_mode",
+                    type = "toggle",
+                    text = _("Text Mode for Dictionary"),
+                    path = "features.dictionary_text_mode",
+                    default = false,
+                    help_text = _("Use Plain Text in dictionary windows whatever the View Mode."),
+                    separator = true,
+                },
+                {
+                    id = "dictionary_keep_header",
+                    type = "header",
+                    text = _("Keeping"),
+                },
+                {
+                    -- One list, two doors: the same list as under Highlight Settings
+                    id = "dictionary_auto_note",
+                    type = "submenu",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        local n = 0
+                        for _k in pairs(Constants.resolveAutoNoteActions(f.auto_note_actions)) do n = n + 1 end
+                        if n == 0 then return _("Auto-save Answers as Notes: Off") end
+                        return T(_("Auto-save Answers as Notes: %1"), n)
+                    end,
+                    callback = "buildAutoNoteActionsMenu",
+                    help_text = _("Tick Quick Define or Dictionary here and every such answer for a word you long-press is saved automatically as a note on that word, with no tap. The same list as under Highlight Settings, Auto-save Answers as Notes."),
+                },
+                {
+                    id = "dictionary_note_content",
+                    type = "dropdown",
+                    text = _("Note Content"),
+                    path = "features.dictionary_note_content",
+                    default = "response",
+                    options = {
+                        { value = "global", label = _("Follow global setting") },
+                        { value = "ask", label = _("Ask every time") },
+                        { value = "full", label = Constants.contentLabel("full") },
+                        { value = "qa", label = Constants.contentLabel("qa") },
+                        { value = "response", label = _("Definition only (Recommended)") },
+                        { value = "everything", label = _("Everything (debug)") },
+                    },
+                    help_text = _("What to include when saving dictionary results to a note."),
+                },
+                {
+                    id = "dictionary_copy_content",
+                    type = "dropdown",
+                    text = _("Copy Content"),
+                    path = "features.dictionary_copy_content",
+                    default = "response",
+                    options = {
+                        { value = "global", label = _("Follow global setting") },
+                        { value = "ask", label = _("Ask every time") },
+                        { value = "full", label = Constants.contentLabel("full") },
+                        { value = "qa", label = Constants.contentLabel("qa") },
+                        { value = "response", label = _("Definition only (Recommended)") },
+                        { value = "everything", label = _("Everything (debug)") },
+                    },
+                    help_text = _("What to include when copying in dictionary view."),
+                },
+                {
+                    id = "dictionary_disable_auto_save",
+                    type = "toggle",
+                    text = _("Disable Auto-save for Dictionary"),
+                    path = "features.dictionary_disable_auto_save",
+                    default = true,
+                    help_text = _("When enabled, dictionary lookups are not auto-saved. When disabled, dictionary chats follow your general chat saving settings. You can always save manually from an expanded view."),
                 },
             },
         },
@@ -1691,22 +1732,10 @@ local SettingsSchema = {
                     help_text = _("The language Translate translates into. It follows your primary language unless you pick another one here."),
                     separator = true,
                 },
-                -- Translate view settings
                 {
-                    id = "translate_disable_auto_save",
-                    type = "toggle",
-                    text = _("Disable Auto-Save for Translate"),
-                    path = "features.translate_disable_auto_save",
-                    default = true,
-                    help_text = _("Translations are not auto-saved. Save manually via → Chat button."),
-                },
-                {
-                    id = "translate_enable_streaming",
-                    type = "toggle",
-                    text = _("Enable Streaming"),
-                    path = "features.translate_enable_streaming",
-                    default = true,
-                    help_text = _("Show a translation while it arrives. While Translate is one of the Minimal Popup's actions and the popup is on, a translation of selected text arrives whole, whatever this says."),
+                    id = "translate_sent_header",
+                    type = "header",
+                    text = _("What is sent"),
                 },
                 {
                     id = "translate_use_context",
@@ -1715,55 +1744,20 @@ local SettingsSchema = {
                     path = "features.translate_use_context",
                     default = false,
                     help_text = _("Send the text around the highlight along with translations, so the AI can resolve pronouns, tone, and ambiguous words. Uses the Surrounding Context mode from Highlight Settings (sentence when that is off). Never applies to full-page translation."),
-                },
-                {
-                    id = "translate_copy_content",
-                    type = "dropdown",
-                    text = _("Copy Content"),
-                    path = "features.translate_copy_content",
-                    default = "response",
-                    options = {
-                        { value = "global", label = _("Follow global setting") },
-                        { value = "ask", label = _("Ask every time") },
-                        { value = "full", label = Constants.contentLabel("full") },
-                        { value = "qa", label = Constants.contentLabel("qa") },
-                        { value = "response", label = _("Translation only") },
-                        { value = "everything", label = _("Everything (debug)") },
-                    },
-                    help_text = _("What to include when copying in translate view."),
-                },
-                {
-                    id = "translate_note_content",
-                    type = "dropdown",
-                    text = _("Note Content"),
-                    path = "features.translate_note_content",
-                    default = "response",
-                    options = {
-                        { value = "global", label = _("Follow global setting") },
-                        { value = "ask", label = _("Ask every time") },
-                        { value = "full", label = Constants.contentLabel("full") },
-                        { value = "qa", label = Constants.contentLabel("qa") },
-                        { value = "response", label = _("Translation only") },
-                        { value = "everything", label = _("Everything (debug)") },
-                    },
-                    help_text = _("What to include when saving to note in translate view."),
-                },
-                {
-                    -- One value, two doors: Translate's place on the list under
-                    -- Highlight Settings (Auto-save Answers as Notes)
-                    id = "translate_auto_note",
-                    type = "action",
-                    text_func = function(plugin)
-                        local f = plugin.settings:readSetting("features") or {}
-                        if Constants.resolveAutoNoteActions(f.auto_note_actions).translate then
-                            return _("Auto-save Translations as Notes: On")
-                        end
-                        return _("Auto-save Translations as Notes: Off")
-                    end,
-                    callback = "toggleAutoNoteTranslate",
-                    keep_menu_open = true,
-                    help_text = _("Every translation of text you select is saved automatically as a note on that text, with no tap. The same switch as Translate under Highlight Settings, Auto-save Answers as Notes."),
                     separator = true,
+                },
+                {
+                    id = "translate_answer_header",
+                    type = "header",
+                    text = _("The answer"),
+                },
+                {
+                    id = "translate_enable_streaming",
+                    type = "toggle",
+                    text = _("Enable Streaming"),
+                    path = "features.translate_enable_streaming",
+                    default = true,
+                    help_text = _("Show a translation while it arrives. While Translate is one of the Minimal Popup's actions and the popup is on, a translation of selected text arrives whole, whatever this says."),
                 },
                 -- Original text visibility
                 {
@@ -1812,6 +1806,69 @@ local SettingsSchema = {
                     path = "features.translate_hide_full_page",
                     default = true,
                     help_text = _("Always hide original text for full page translations. Overrides all other visibility settings when enabled. Disable to use your normal Original Text setting above."),
+                    separator = true,
+                },
+                {
+                    id = "translate_keep_header",
+                    type = "header",
+                    text = _("Keeping"),
+                },
+                {
+                    -- One value, two doors: Translate's place on the list under
+                    -- Highlight Settings (Auto-save Answers as Notes)
+                    id = "translate_auto_note",
+                    type = "action",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        if Constants.resolveAutoNoteActions(f.auto_note_actions).translate then
+                            return _("Auto-save Translations as Notes: On")
+                        end
+                        return _("Auto-save Translations as Notes: Off")
+                    end,
+                    callback = "toggleAutoNoteTranslate",
+                    keep_menu_open = true,
+                    help_text = _("Every translation of text you select is saved automatically as a note on that text, with no tap. The same switch as Translate under Highlight Settings, Auto-save Answers as Notes."),
+                },
+                {
+                    id = "translate_note_content",
+                    type = "dropdown",
+                    text = _("Note Content"),
+                    path = "features.translate_note_content",
+                    default = "response",
+                    options = {
+                        { value = "global", label = _("Follow global setting") },
+                        { value = "ask", label = _("Ask every time") },
+                        { value = "full", label = Constants.contentLabel("full") },
+                        { value = "qa", label = Constants.contentLabel("qa") },
+                        { value = "response", label = _("Translation only") },
+                        { value = "everything", label = _("Everything (debug)") },
+                    },
+                    help_text = _("What to include when saving to note in translate view."),
+                },
+                {
+                    id = "translate_copy_content",
+                    type = "dropdown",
+                    text = _("Copy Content"),
+                    path = "features.translate_copy_content",
+                    default = "response",
+                    options = {
+                        { value = "global", label = _("Follow global setting") },
+                        { value = "ask", label = _("Ask every time") },
+                        { value = "full", label = Constants.contentLabel("full") },
+                        { value = "qa", label = Constants.contentLabel("qa") },
+                        { value = "response", label = _("Translation only") },
+                        { value = "everything", label = _("Everything (debug)") },
+                    },
+                    help_text = _("What to include when copying in translate view."),
+                },
+                -- Translate view settings
+                {
+                    id = "translate_disable_auto_save",
+                    type = "toggle",
+                    text = _("Disable Auto-Save for Translate"),
+                    path = "features.translate_disable_auto_save",
+                    default = true,
+                    help_text = _("Translations are not auto-saved. Save manually via → Chat button."),
                 },
             },
         },
@@ -1964,6 +2021,24 @@ local SettingsSchema = {
                     end,
                     callback = "buildHighlightBypassActionMenu",
                     help_text = _("The action selected text runs while the highlight bypass is on."),
+                },
+                {
+                    -- What counts as a word (B791). KOReader has no count: a
+                    -- word held in place is looked up, anything dragged is a
+                    -- selection. Read through ChatGPTViewer.countsAsWord.
+                    id = "short_selection_words",
+                    type = "dropdown",
+                    text = _("Short Selections as a Word"),
+                    path = "features.short_selection_words",
+                    default = 1,
+                    options = {
+                        { value = 1, label = _("Off") },
+                        { value = 2, label = _("Up to 2 words") },
+                        { value = 3, label = _("Up to 3 words") },
+                        { value = 4, label = _("Up to 4 words") },
+                        { value = 5, label = _("Up to 5 words") },
+                    },
+                    help_text = _("A selection of up to this many words is looked up like a single long-pressed word: in KOReader's dictionary, or by the dictionary bypass's action when that is on. Longer selections open the highlight menu, or run the highlight bypass, as before. It also counts for text you select inside KOAssistant's windows. Off by default. In the book it needs KOReader's own setting Taps and gestures → Long-press on text set to Ask with popup dialog; a very long press still opens the menu."),
                     separator = true,
                 },
                 {
@@ -2015,6 +2090,16 @@ local SettingsSchema = {
                     callback = "showAnkiColumnNames",
                     keep_menu_open = true,
                     help_text = _("The names of the file's first three columns: the highlight's id, the passage, the note. Anki fills a note type's fields from the columns of the same name, so Front and Back fill Anki's own note types with no mapping. With a note type of your own, type its field names here."),
+                },
+                {
+                    -- One file for every book (B788); the per-book file stays in
+                    -- each Book Hub's menu
+                    id = "anki_export_all",
+                    type = "action",
+                    text = _("Export All Books' Saved Answers for Anki"),
+                    callback = "exportAllForAnki",
+                    keep_menu_open = true,
+                    help_text = _("Writes one file with the saved answers of every book in KOReader's history, for Anki's File > Import. Each row names its book and carries it as a tag, so you can filter or move the cards by book inside Anki. The rows and their ids are the same as in a book's own file (the Book Hub's menu), so importing both adds nothing twice."),
                 },
                 -- (Highlight-menu visibility toggles + actions manager live in
                 -- Menus & Buttons; behavior settings stay here)
@@ -2522,6 +2607,23 @@ local SettingsSchema = {
                     default = true,
                     depends_on = { id = "enable_dictionary_hook", value = true },
                     help_text = _("Mark KOAssistant's buttons in the dictionary popup with '(KOA)', to tell them apart from KOReader's own. Takes effect on the next lookup."),
+                },
+                {
+                    id = "show_note_in_dictionary",
+                    type = "toggle",
+                    text = _("Show +Note"),
+                    path = "features.show_note_in_dictionary",
+                    default = true,
+                    depends_on = { id = "enable_dictionary_hook", value = true },
+                    help_text = _("Add a +Note button to KOReader's dictionary popup, for a word you looked up in a book: it saves the definition on screen as a note on that word, the way Save to Note saves an AI answer. The word keeps one highlight, the note shows again when you tap the word, and it can be exported for Anki. No AI is used."),
+                },
+                {
+                    id = "dict_selection_saves_note",
+                    type = "toggle",
+                    text = _("Selecting Part of a Definition Saves It"),
+                    path = "features.dict_selection_saves_note",
+                    default = false,
+                    help_text = _("In KOReader's dictionary popup, for a word you looked up in a book: selecting part of the definition saves that part at once as the note on the word and closes the popup. It takes the place of KOReader's lookup of the selected text there. Off by default."),
                 },
                 {
                     id = "dictionary_popup_actions",

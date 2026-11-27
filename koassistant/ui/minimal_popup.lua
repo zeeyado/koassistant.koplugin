@@ -538,7 +538,9 @@ function MinimalPopup:openMore()
                 align = "left",
                 callback = function()
                     UIManager:close(dialog)
-                    self:onClose()
+                    -- `keep`: the row opens something to look at beside the
+                    -- note (KOReader's dictionary), so the popup stays under it
+                    if not row.keep then self:onClose() end
                     row.callback()
                 end,
             }}
@@ -855,18 +857,26 @@ function MinimalPopup.showForResponse(opts)
                     set(kept ~= nil)
                 end,
                 menu = function(set, close, anchor)
-                    local extra
+                    local extra = {}
+                    -- a one-off, above the double line: KOReader's own
+                    -- dictionary for the word this answer is about (the popup
+                    -- stays under KOReader's window)
+                    local native = viewer.nativeDictionaryRow and viewer.nativeDictionaryRow(
+                        viewer.original_highlighted_text,
+                        viewer.configuration and viewer.configuration.features, opts.ui, opts.selection_data)
+                    if native then extra[#extra + 1] = native end
                     if opts.auto then
                         -- a setting, under the double line: this action's
                         -- answers saved automatically from now on, this one too
-                        extra = { { separator = true }, {
+                        extra[#extra + 1] = { separator = true }
+                        extra[#extra + 1] = {
                             text = opts.auto.text(),
                             callback = function()
                                 if opts.auto.flip() and not kept then save(set, false) end
                             end,
-                        } }
+                        }
                     end
-                    save(set, true, extra, close, anchor)
+                    save(set, true, #extra > 0 and extra or nil, close, anchor)
                 end,
             }
         end

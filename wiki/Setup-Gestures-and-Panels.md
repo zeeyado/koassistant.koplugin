@@ -201,9 +201,12 @@ Skip the highlight menu when you select text. Useful when you always want the sa
 
 Turn it on in **Settings → Highlight Settings → Enable Highlight Bypass**.
 
-The bypass steps aside in three cases:
+It replaces KOReader's highlight menu, so it runs when KOReader would open that menu: with KOReader's own long-press action on **Ask with popup dialog**, the default (KOReader's gear menu → Taps and gestures → Long-press on text). With any other choice there, KOReader does that instead and the bypass does not run.
+
+The bypass steps aside in four cases:
 
 - the book has an X-Ray and your selection exactly matches an entry's name or alias: that entry opens instead (**Settings → Reading & Library → X-Ray → X-Ray Entry for Matching Selections**; see [Using X-Ray](Using-X-Ray));
+- the selection is short and **Settings → Highlight Settings → Short Selections as a Word** counts it as a word (off by default): it is looked up like a held word, in KOReader's dictionary or by the dictionary bypass's action ([Dictionary and Translation](Dictionary-and-Translation#dictionary-bypass));
 - a very long press at the end of the selection: KOReader's normal highlight menu opens;
 - the bypass action is Look up in X-Ray and the book has no X-Ray: the normal highlight menu opens.
 

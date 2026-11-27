@@ -419,6 +419,19 @@ local function redraw(ui)
     require("ui/uimanager"):setDirty(ui.highlight.dialog, "ui")
 end
 
+--- A text whose lines are lines (a dictionary's definition, a part selected
+--- out of a drawn answer) as a note that is drawn as Markdown: every line a
+--- paragraph of its own, since one line break is a space there. Pure.
+function HighlightNote.linesAsParagraphs(text)
+    if type(text) ~= "string" then return "" end
+    local lines = {}
+    for raw in (text .. "\n"):gmatch("(.-)\n") do
+        local line = raw:gsub("^%s+", ""):gsub("%s+$", "")
+        if line ~= "" then lines[#lines + 1] = line end
+    end
+    return table.concat(lines, "\n\n")
+end
+
 --- Save `text` as the note of the selection's highlight, at once.
 -- @param ui the reader (ReaderUI)
 -- @param selection { pos0, pos1, text, sboxes, pboxes, ext, drawer, color } as captured at the selection; never written to

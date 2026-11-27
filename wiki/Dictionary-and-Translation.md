@@ -37,6 +37,7 @@ With **Show AI buttons** on (the default), KOAssistant adds its dictionary actio
 - Dictionary, Quick Define and Deep Analysis answer in your dictionary language ([Dictionary settings](#dictionary-settings)). Dictionary and Quick Define are in the highlight menu by default too.
 - AI Wiki keeps its entry with the book: looking the same text up again reopens the saved entry, whose window has **Regenerate** and **Delete** ([Artifacts and Caching](Artifacts-and-Caching)).
 - You can also add **Switch model**, the model button: it goes first among the AI buttons, shows your model, and switches it without closing the popup. To run one lookup on another model, long-press the action instead.
+- After the actions comes **+Note (KOA)**, which is no AI action: it keeps the dictionary's own definition as a note on the word ([keeping a definition](#keeping-a-definition-from-koreaders-dictionary)).
 
 ### Choosing the popup's buttons
 
@@ -49,11 +50,13 @@ With **Show AI buttons** on (the default), KOAssistant adds its dictionary actio
 
 ## Dictionary settings
 
-**Settings → Dictionary Settings** controls how lookups behave; which buttons the popup shows is set under **Settings → Menus & Buttons** (above). Every row with its default is on [Settings Reference](Settings-Reference#dictionary-settings).
+**Settings → Dictionary Settings** controls how lookups behave: the language first, then four groups, Starting a lookup, What is sent, The answer, Keeping. Which buttons the popup shows is set under **Settings → Menus & Buttons** (above). Every row with its default is on [Settings Reference](Settings-Reference#dictionary-settings).
 
 - **Dictionary Language** (**Settings → Dictionary Settings → Dictionary Language**): the language definitions are written in. By default it follows your translation language (the row reads "Dictionary Language: Follow Translation (English)", with the language in use); it can follow your primary language instead, be one of your languages, or a language you type (**Custom...**). A book can have its own: Book Settings → Languages → Dictionary language. See [Languages](Languages#translation-and-dictionary-languages).
 - **Context Mode** and **Context Characters:** how much text around the word goes with a lookup ([Context mode](#context-mode)).
 - **Show Excerpt:** opens the answer with the passage around the word ([Show Excerpt](#show-excerpt)).
+- **Text Mode for Dictionary** (off): dictionary windows always use Plain Text, whatever your view mode ([Chat Windows](Chat-Windows#markdown-and-plain-text)).
+- **Auto-save Answers as Notes:** tick Quick Define or Dictionary and every such answer for a word you long-press is saved as a note on that word, with no tap. It is the same list as under **Settings → Highlight Settings** ([saving answers automatically](Contexts-and-Chat#saving-answers-automatically)).
 - **Disable Auto-save for Dictionary** (on): lookups stay out of your chat history unless you save them ([Saving lookups and translations](#saving-lookups-and-translations)).
 - **Copy Content** and **Note Content:** what the window's **Copy** and **+Note** take. **Definition only** by default; the other choices are Follow global setting, Ask every time, Whole chat + metadata, Whole chat and Everything (debug). A definition saved as a note is shown with its formatting when you tap the highlighted word later ([Save to Note](Contexts-and-Chat#tapping-a-highlight-that-has-a-saved-answer)).
 - **Enable Streaming** (on): shows the answer as it is written. A lookup whose action is one of the [Minimal Popup](Chat-Windows#minimal-popup)'s (Quick Define is, by default) arrives whole while the popup is on, whatever this row says.
@@ -98,7 +101,7 @@ With the bypass on, selecting a word skips KOReader's dictionary popup and runs 
 1. **Settings → Dictionary Settings → Bypass KOReader Dictionary**: on.
 2. **Settings → Dictionary Settings → Bypass Action**: choose the action (Quick Define by default).
 
-**KOReader's dictionary stays one step away.** Keep your finger on the word a few seconds longer (KOReader's very long press): KOReader's highlight menu opens, and its own **Dictionary** row opens KOReader's dictionary for that word, with the bypass still on. **Dictionary (KOA)** in the same menu is KOAssistant's action. A word you tap in the Vocabulary builder's review list also opens in KOReader's dictionary, where the builder's **Forgot** and **Got it** buttons are.
+**KOReader's dictionary stays one step away.** From an AI answer, **Open KOReader's dictionary** opens KOReader's own dictionary window for the same word, with the bypass still on and nothing sent to the AI. The row is in three places: the long-press of the [Minimal Popup](Chat-Windows#minimal-popup)'s **+** (or tick), the menu of a saved answer you tapped on the page ([the note's menu](Contexts-and-Chat#tapping-a-highlight-that-has-a-saved-answer)), and the list behind the action's name in a dictionary window. The answer you came from stays open underneath. Or go there straight from the page: keep your finger on the word a few seconds longer (KOReader's very long press), KOReader's highlight menu opens, and its own **Dictionary** row opens KOReader's dictionary for that word. **Dictionary (KOA)** in the same menu is KOAssistant's action. A word you tap in the Vocabulary builder's review list also opens in KOReader's dictionary, where the builder's **Forgot** and **Got it** buttons are.
 
 Any highlight action, built-in or custom, can be the bypass action. Quick Define is the default because it is fast; switch to the full **Dictionary** action when you want etymology and synonyms, or point the bypass at a lightweight action of your own.
 
@@ -108,6 +111,7 @@ Any highlight action, built-in or custom, can be the bypass action. Quick Define
 - **Where the answer appears:** short bypass answers land in the [Minimal Popup](Chat-Windows#minimal-popup), next to the word or in a panel at the foot of the screen by its Popup Style (Quick Define is one of its actions by default: **Settings → Minimal Popup → Actions Using Minimal Popup**). Longer answers, and lookups started from KOReader's own dictionary window, open the compact dictionary window. Deep Analysis uses the full-size dictionary window ([Dictionary windows](#dictionary-windows)).
 - **Words inside windows:** a single word you select inside a KOAssistant window (chat, artifact, X-Ray browser, quiz), or inside KOReader's own viewers with Enhance text selection on, goes through the bypass too. Such lookups carry no context from the book, so **Ctx** is grayed out.
 - **Single words run the highlight bypass instead?** KOReader's **Dictionary on single word selection** must be on: see [Troubleshooting](Troubleshooting#bypass-or-highlight-menu-actions-do-not-appear).
+- **Two or three words as one lookup:** KOReader looks up a word you hold in place; anything you drag over is a selection, even one word. **Settings → Highlight Settings → Short Selections as a Word** (Off by default; up to 2, 3, 4 or 5 words) sends a selection of up to that many words where a held word goes: to KOReader's dictionary, or to the bypass action when the bypass is on. Useful for phrases such as "give up" or "se rendre compte". Longer selections open the highlight menu, or run the [highlight bypass](Setup-Gestures-and-Panels#highlight-bypass), as before. The same number counts for text you select inside KOAssistant's windows. In the book it needs KOReader's long-press action on **Ask with popup dialog** (the default); a very long press still opens the menu.
 
 The highlight bypass does the same for text selections, running an action (Translate by default) instead of opening the highlight menu: see [Setup, Gestures and Panels](Setup-Gestures-and-Panels#highlight-bypass).
 
@@ -139,7 +143,7 @@ Both dictionary windows share two rows of buttons:
 | **→ Chat** | Opens the answer in the full chat window, with every option (continue the conversation, save, export and the rest) |
 | **Language** | Runs the lookup again in another language, picked from your languages. The window closes and a new one opens with the result; your setting stays as it is |
 | **Ctx: ON** / **Ctx: OFF** | Runs the lookup again with or without the surrounding text. A lookup done without context (mode None) can turn it on for a context-aware definition (Sentence); one done with context can drop it for a plain definition. Not sticky: the next lookup follows your setting again. Grayed out for words looked up inside a window rather than the book |
-| **The action's name** | Shows the current action; tap to switch to another action of the dictionary popup (directly when there is only one other, otherwise from a list). AI Wiki, Look up in X-Ray and Switch model are not offered here |
+| **The action's name** | Shows the current action; tap for a list under the button: the other actions of the dictionary popup, to run the lookup again with one of them, and **Open KOReader's dictionary**, which opens KOReader's own dictionary for the word over this window. AI Wiki, Look up in X-Ray and Switch model are not offered here |
 | **Close** | Closes the window. Long-press to close everything down to the page at once (dictionary windows and the highlight menu too) |
 
 The gear menu of both windows has **Show Excerpt** ([Show Excerpt](#show-excerpt)); the full-size window also has **Window Size** ([Chat Windows](Chat-Windows#window-size-and-rotation)). For right-to-left dictionary languages both windows lay mixed entries out correctly ([Right-to-left languages](#right-to-left-languages)).
@@ -169,7 +173,7 @@ Translations are not auto-saved by default: like dictionary lookups, they are me
 
 ### Translate settings
 
-**Settings → Translate Settings** sets the target language and shapes the translate window. Every row with its default is on [Settings Reference](Settings-Reference#translate-settings).
+**Settings → Translate Settings** sets the language and shapes the translate window: the language first, then three groups, What is sent, The answer, Keeping. Every row with its default is on [Settings Reference](Settings-Reference#translate-settings).
 
 - **Translation Language:** translations go into your primary language until you pick another one under **Settings → Translate Settings → Translation Language**: one of your languages, or one you type (**Custom...**); **Follow Primary**, the list's first row, goes back. A book can have its own target: Book Settings → Languages → Translation language ([Languages](Languages#per-book)).
 - **Disable Auto-Save for Translate** (on): translations are not saved unless you save them through **→ Chat**.
@@ -247,6 +251,14 @@ The dictionary windows (compact and full-size, from the bypass and from the popu
 - **Auto add off:** the window shows **+Vocab** to add the looked-up word by hand. The word is stored as KOReader's own lookups store it, the punctuation around the selection removed; both need the Vocabulary builder plugin enabled.
 
 **Settings → Dictionary Settings → Bypass: Follow Vocab Builder Auto-add** (on by default) decides whether the bypass follows KOReader's auto-add. Turn it off if you use the bypass to analyze words you already know and do not want them added; **+Vocab** still adds a word by hand.
+
+## Keeping a definition from KOReader's dictionary
+
+A definition from the dictionaries you installed in KOReader can be kept as a note on the word, the way an AI answer is kept ([Save to Note](Contexts-and-Chat#save-to-note)). No AI is used.
+
+- **+Note (KOA)** on KOReader's dictionary popup saves the definition on screen as the note of the word you looked up, and closes the popup. The word gets one highlight; look the same word up again and the next definition joins the same note. The button shows for a word looked up in a book, when the dictionary found something, also when you came from an AI answer through **Open KOReader's dictionary**: the definition is then kept on that same word, under the AI answer if you saved one. **Settings → Menus & Buttons → Show +Note** turns it off.
+- **A part of a definition:** select the words you want inside the definition. With **Settings → Menus & Buttons → Selecting Part of a Definition Saves It** on (off by default), that part is saved at once as the word's note and the popup closes; this takes the place of KOReader's own lookup of the selected text there. With **Enhance text selection** on instead, the selection popup has **Save Selection to Note**. The same row is in the selection popup of KOAssistant's own dictionary and translate windows, and of the Minimal Popup, so you can keep three words of an AI answer too.
+- **Later:** tap the highlighted word and the note shows in the Minimal Popup, with the dictionary's name in its menu ([tapping a highlight](Contexts-and-Chat#tapping-a-highlight-that-has-a-saved-answer)). Such notes are KOReader's own highlight notes, and they go into the [file for Anki](Conversations-Notebooks-and-Export#export-saved-answers-for-anki) with your other dictionary answers.
 
 ## Saving lookups and translations
 

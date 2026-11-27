@@ -385,6 +385,12 @@ function Export.getAnkiFilename(book_title)
     return safe .. "_Anki.txt"
 end
 
+--- The one file that holds every book's saved answers for Anki (B788). Its
+--- name cannot be a book's own file's (those end in the book's title).
+function Export.getAnkiAllFilename()
+    return "KOAssistant_All_Books_Anki.txt"
+end
+
 --- Get the export directory based on settings
 -- @param settings table Features settings table
 -- @param book_path string|nil Path to the current book (for "book_folder" option)

@@ -318,6 +318,58 @@ local function writeWhole(path, text)
     return true
 end
 
+-- A book's rows: the open book's live highlights, a closed book's from its own file
+local function bookRows(file, title, ui, ticked)
+    local annotations
+    if ui and ui.document and ui.document.file == file and ui.annotation then
+        annotations = ui.annotation.annotations
+    else
+        annotations = require("koassistant.request.context_extractor").readSidecarAnnotations(file)
+    end
+    local HighlightNote = require("koassistant.chat.highlight_note")
+    local ds = require("koassistant.storage.doc_settings").resolve(file, ui)
+    return AnkiExport.rows(annotations, function(annotation)
+        return HighlightNote.piecesOf(ds, annotation)
+    end, { wanted = AnkiExport.wanted(ticked), markdown = AnkiExport.markdown, title = title })
+end
+
+--- Write ONE file with the saved answers of every book handed over (B788; the
+--- reader of discussion 127: one file, the books told apart in Anki by their
+--- tag). The books' rows one after the other in the order given, each row
+--- with its book in the Book column and as a tag; the ids are the per-book
+--- file's (a highlight's creation time), so importing both adds nothing twice.
+--- A book with no saved answer on record is not read any further than its
+--- own small settings file.
+-- @param opts table { books = { { file, title }, ... }, title_of = function(file) for a book
+--   handed over without a title (asked only for a book that has rows), ui, features, dir }
+-- @return table|nil { path, count, books = how many books have rows }; nil and "none" when no
+--   book has a saved answer to export, nil and the error's text when the file could not be written
+function AnkiExport.forAllBooks(opts)
+    local features = opts.features or {}
+    local HighlightNote = require("koassistant.chat.highlight_note")
+    local SafeDocSettings = require("koassistant.storage.doc_settings")
+    local ticked = require("koassistant.core.constants").resolveAnkiExportActions(features.anki_export_actions)
+    local rows, books = {}, 0
+    for _idx, book in ipairs(opts.books or {}) do
+        local ok, ds = pcall(SafeDocSettings.resolve, book.file, opts.ui)
+        local record = ok and ds and ds:readSetting(HighlightNote.RECORD_KEY)
+        if type(record) == "table" and next(record) ~= nil then
+            local title = book.title
+            if (not title or title == "") and opts.title_of then title = opts.title_of(book.file) end
+            local own = bookRows(book.file, title or "", opts.ui, ticked)
+            if #own > 0 then
+                books = books + 1
+                for _i, row in ipairs(own) do rows[#rows + 1] = row end
+            end
+        end
+    end
+    if #rows == 0 then return nil, "none" end
+    local path = opts.dir .. "/" .. require("koassistant.chat.export").getAnkiAllFilename()
+    local ok, err = writeWhole(path, AnkiExport.fileText(rows, AnkiExport.columnNames(features.anki_column_names)))
+    if not ok then return nil, tostring(err) end
+    return { path = path, count = #rows, books = books }
+end
+
 --- Write a book's file.
 -- @param opts table { file = the book's path, ui = the reader or file browser,
 --   features, title = the book's title, dir = the folder to write into }
@@ -325,19 +377,8 @@ end
 --   saved answer to export, nil and the error's text when the file could not be written
 function AnkiExport.forBook(opts)
     local features = opts.features or {}
-    local ui = opts.ui
-    local annotations
-    if ui and ui.document and ui.document.file == opts.file and ui.annotation then
-        annotations = ui.annotation.annotations
-    else
-        annotations = require("koassistant.request.context_extractor").readSidecarAnnotations(opts.file)
-    end
-    local HighlightNote = require("koassistant.chat.highlight_note")
-    local ds = require("koassistant.storage.doc_settings").resolve(opts.file, ui)
     local ticked = require("koassistant.core.constants").resolveAnkiExportActions(features.anki_export_actions)
-    local rows = AnkiExport.rows(annotations, function(annotation)
-        return HighlightNote.piecesOf(ds, annotation)
-    end, { wanted = AnkiExport.wanted(ticked), markdown = AnkiExport.markdown, title = opts.title })
+    local rows = bookRows(opts.file, opts.title, opts.ui, ticked)
     if #rows == 0 then return nil, "none" end
     local path = opts.dir .. "/" .. require("koassistant.chat.export").getAnkiFilename(opts.title)
     local ok, err = writeWhole(path, AnkiExport.fileText(rows, AnkiExport.columnNames(features.anki_column_names)))

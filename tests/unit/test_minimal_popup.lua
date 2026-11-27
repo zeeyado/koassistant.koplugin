@@ -732,6 +732,56 @@ TestRunner:test("a hold on the mark opens the chat window's choices at once, wit
     end)
 end)
 
+TestRunner:test("the mark's choices for a word: KOReader's dictionary first of the added rows, above the double line", function()
+    withWidgets(function()
+        local calls, looked = {}, {}
+        local viewer = keepingViewer(calls)
+        viewer.original_highlighted_text = "lantern"
+        viewer.configuration = { features = { short_selection_words = 1 } }
+        -- the chat window's own builder: a row for a word, nothing for a passage
+        viewer.nativeDictionaryRow = function(word, features, ui, selection)
+            looked.asked = { word = word, features = features, ui = ui, selection = selection }
+            if word:find(" ") then return nil end
+            return { text = "Open KOReader's dictionary", callback = function() looked[#looked + 1] = word end }
+        end
+        local the_ui, the_selection = {}, { pos0 = "a", pos1 = "b", text = "lantern" }
+        MinimalPopup.showForResponse({ history = history("An answer."), viewer = viewer, ui = the_ui,
+            selection_data = the_selection,
+            auto = { text = function() return "○ Auto-save Quick Define answers" end, flip = function() return false end } })
+        local p = shown
+        painted(p)
+        p:onPopupHold(nil, { pos = at(ON_SIGN[1], ON_SIGN[2]) })
+        local extra = calls[1].opts.extra
+        TestRunner:assertEqual(looked.asked.word, "lantern", "asked for the word the answer is about")
+        TestRunner:assertEqual(looked.asked.features, viewer.configuration.features)
+        TestRunner:assertEqual(looked.asked.ui, the_ui)
+        TestRunner:assertEqual(looked.asked.selection, the_selection, "the answer's passage goes along, for +Note on KOReader's window")
+        TestRunner:assertEqual(extra[1].text, "Open KOReader's dictionary", "a one-off: above the double line")
+        TestRunner:assertEqual(extra[2].separator, true)
+        TestRunner:assertEqual(extra[3].text, "○ Auto-save Quick Define answers", "the setting under it")
+        extra[1].callback()
+        TestRunner:assertEqual(looked[1], "lantern")
+        -- a passage: the added rows are the setting's alone, as before
+        calls, viewer.original_highlighted_text = {}, "Morning came grey over the town."
+        local second = keepingViewer(calls)
+        second.original_highlighted_text, second.nativeDictionaryRow = viewer.original_highlighted_text, viewer.nativeDictionaryRow
+        MinimalPopup.showForResponse({ history = history("Une ligne."), viewer = second,
+            auto = { text = function() return "○ Auto-save Translate answers" end, flip = function() return false end } })
+        painted(shown)
+        shown:onPopupHold(nil, { pos = at(ON_SIGN[1], ON_SIGN[2]) })
+        extra = calls[1].opts.extra
+        TestRunner:assertEqual(#extra, 2)
+        TestRunner:assertEqual(extra[1].separator, true)
+        -- no setting and no word: no added rows at all
+        calls = {}
+        local third = keepingViewer(calls)
+        MinimalPopup.showForResponse({ history = history("Une ligne."), viewer = third })
+        painted(shown)
+        shown:onPopupHold(nil, { pos = at(ON_SIGN[1], ON_SIGN[2]) })
+        TestRunner:assertEqual(calls[1].opts.extra, nil)
+    end)
+end)
+
 TestRunner:test("a hold anywhere else is the text's, then the box's, as before; a hold whose release never comes leaves nothing behind", function()
     withWidgets(function()
         local calls = {}
@@ -1163,6 +1213,40 @@ TestRunner:test("a kept note's menu: its sign in the corner; a tap on the sign o
         MinimalPopup.showForResponse({ history = history("An answer."), viewer = keepingViewer({}) })
         TestRunner:assertEqual(shown.more, nil)
         TestRunner:assertEqual(shown.keep_mark[1].text, "+")
+    end)
+end)
+
+TestRunner:test("a row of a note's menu that opens something beside the note leaves the popup standing", function()
+    withNoteWindow(100, function()
+        local ran = {}
+        MinimalPopup.showForNote({ parts = { { kind = "dictionary", text = "**lantern**, a lamp." } }, features = {},
+            rows = {
+                { text = "Open KOReader's dictionary", keep = true, callback = function() ran[#ran + 1] = "dictionary" end },
+                { text = "Delete note", callback = function() ran[#ran + 1] = "delete" end },
+            } })
+        local p = shown
+        painted(p)
+        local closes = {}
+        local real_close = UIManager.close
+        UIManager.close = function(_um, w) closes[#closes + 1] = w end
+        local ok, err = pcall(function()
+            p:onTap(nil, { pos = at(300, 150) })
+            local menu = shown
+            menu.buttons[1][1].callback()
+            TestRunner:assertEqual(ran[1], "dictionary")
+            TestRunner:assertEqual(#closes, 1, "the menu closes")
+            TestRunner:assertEqual(closes[1], menu, "the popup stays under what opened")
+            -- every other row still closes both
+            closes = {}
+            p:onTap(nil, { pos = at(300, 150) })
+            menu = shown
+            menu.buttons[2][1].callback()
+            TestRunner:assertEqual(closes[1], menu)
+            TestRunner:assertEqual(closes[2], p)
+            TestRunner:assertEqual(ran[2], "delete")
+        end)
+        UIManager.close = real_close
+        if not ok then error(err, 0) end
     end)
 end)
 

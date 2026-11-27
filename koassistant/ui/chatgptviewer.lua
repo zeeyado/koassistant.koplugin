@@ -2547,14 +2547,21 @@ function ChatGPTViewer:init()
     end
   end
 
+  -- KOReader's own dictionary for the same word, one row under the actions
+  -- (the reader's installed dictionaries, whatever the bypass is set to)
+  local native_row = ChatGPTViewer.nativeDictionaryRow(self.original_highlighted_text,
+    self.configuration and self.configuration.features,
+    self._ui or (self.configuration and self.configuration._rerun_ui), self.selection_data)
+
   table.insert(minimal_button_row2, {
     text = current_action_text,
     id = "switch_action",
-    -- ~= nil: a nil has_rerun would leak enabled = nil = Button's default TRUE
-    -- (dead-looking-but-tappable; the callback just returned)
-    enabled = has_rerun ~= nil and #other_actions > 0,
+    -- an explicit boolean: a nil would leak enabled = nil = Button's default
+    -- TRUE (dead-looking-but-tappable; the callback just returned)
+    enabled = (has_rerun and #other_actions > 0 or native_row ~= nil) and true or false,
     callback = function()
-      if not has_rerun or #other_actions == 0 then return end
+      local can_switch = has_rerun and #other_actions > 0
+      if not can_switch and not native_row then return end
 
       -- Helper to switch to a different action
       local function switchToAction(action)
@@ -2578,39 +2585,53 @@ function ChatGPTViewer:init()
         )
       end
 
-      -- If only one other action, switch directly
-      if #other_actions == 1 then
+      -- If only one other action and no other row, switch directly
+      if can_switch and #other_actions == 1 and not native_row then
         switchToAction(other_actions[1])
         return
       end
 
-      -- Show popup with other actions
+      -- The other actions, then KOReader's dictionary under a double line;
+      -- the list hangs from this button
       local action_dialog
       local action_buttons = {}
-      for _i, action in ipairs(other_actions) do
+      if can_switch then
+        for _i, action in ipairs(other_actions) do
+          table.insert(action_buttons, {{
+            text = action.text,
+            align = "left",
+            callback = function()
+              UIManager:close(action_dialog)
+              switchToAction(action)
+            end,
+          }})
+        end
+      end
+      if native_row then
+        if #action_buttons > 0 then table.insert(action_buttons, {}) end
         table.insert(action_buttons, {{
-          text = action.text,
+          text = native_row.text,
+          align = "left",
           callback = function()
+            -- this window stays: KOReader's opens over it
             UIManager:close(action_dialog)
-            switchToAction(action)
+            native_row.callback()
           end,
         }})
       end
-      table.insert(action_buttons, {{
-        text = _("Cancel"),
-        callback = function() UIManager:close(action_dialog) end,
-      }})
       action_dialog = ButtonDialog:new{
-        title = _("Dictionary Action"),
         buttons = action_buttons,
+        shrink_unneeded_width = true,
+        anchor = self:_anchorToButton("switch_action"),
       }
       UIManager:show(action_dialog)
     end,
     hold_callback = function()
       UIManager:show(Notification:new{
-        text = #other_actions > 0
+        text = (has_rerun and #other_actions > 0)
           and _("Switch to a different dictionary action")
-          or _("No other dictionary actions available"),
+          or (native_row and _("Open KOReader's dictionary for this word")
+            or _("No other dictionary actions available")),
         timeout = 2,
       })
     end,
@@ -4577,18 +4598,75 @@ end
 --- a quick drag over the clause looked the whole clause up: a run of more
 --- than four CJK characters is a selection, not a word.
 function ChatGPTViewer.isSingleWord(text)
-  if not text or text == "" then return false end
-  local tokens = 0
-  for _w in text:gmatch("%S+") do
-    tokens = tokens + 1
-    if tokens > 1 then return false end
+  return ChatGPTViewer.wordUnits(text) == 1
+end
+
+--- How many words a selection is, for the word-or-passage rule: one for
+--- every run of non-space characters, and a run that holds CJK characters
+--- counts one for every four of them (such text has no spaces between its
+--- words). 0 for no text.
+function ChatGPTViewer.wordUnits(text)
+  if type(text) ~= "string" then return 0 end
+  local units = 0
+  for token in text:gmatch("%S+") do
+    local cjk = 0
+    for _c in token:gmatch("[\227-\237][\128-\191][\128-\191]") do cjk = cjk + 1 end
+    units = units + math.max(1, math.ceil(cjk / 4))
   end
-  local cjk = 0
-  for _c in text:gmatch("[\227-\237][\128-\191][\128-\191]") do
-    cjk = cjk + 1
-    if cjk > 4 then return false end
-  end
-  return tokens == 1
+  return units
+end
+
+--- Whether a selection is looked up as a word (the dictionary flow) and not
+--- handled as a passage: one word, or up to the number of words the reader
+--- set (features.short_selection_words: Highlight Settings, Short Selections
+--- as a Word; off = one). THE rule for a selection in the book (the highlight
+--- menu's wrapper in main.lua), a selection inside a KOAssistant window or
+--- one of KOReader's viewers, and the rows that open KOReader's dictionary.
+function ChatGPTViewer.countsAsWord(text, features)
+  local limit = tonumber(features and features.short_selection_words) or 1
+  if limit < 1 then limit = 1 end
+  local units = ChatGPTViewer.wordUnits(text)
+  return units >= 1 and units <= limit
+end
+
+--- KOReader's own dictionary window for a word, whatever the dictionary
+--- bypass and the X-Ray intercept are set to: the door from KOAssistant's
+--- answers back to the dictionaries the reader installed. The mark is the one
+--- the bypass's wrapper reads for a pick of KOReader's dictionary by name (it
+--- hands that one lookup to KOReader's own function); cleared here as well,
+--- for a reader with no wrapper installed.
+--- @param word string
+--- @param ui table|nil the caller's UI (the live reader or file browser is used where there is one)
+--- @param selection table|nil the passage in the book the answer belongs to
+---   ({ pos0, pos1, text, ... }): KOReader's window can then keep its own
+---   definition on it ("+Note"; DictButtons.takeKeepSelection takes it over
+---   when the window is built, which is after this call returns)
+--- @return boolean whether a lookup was started
+function ChatGPTViewer.lookupNative(word, ui, selection)
+  local live = ChatGPTViewer.liveUI(ui)
+  local dict = live and live.dictionary
+  if not dict or type(word) ~= "string" or not word:find("%S") then return false end
+  dict._koassistant_explicit_dictionary = true
+  dict._koassistant_keep_selection = type(selection) == "table" and selection or nil
+  dict:onLookupWord(word, false)
+  dict._koassistant_explicit_dictionary = nil
+  return true
+end
+
+--- The row that opens KOReader's dictionary for what an answer is about, where
+--- that text counts as a word (one name on every surface that offers it: the
+--- dictionary windows' action list, the minimal popup's mark, a saved note's
+--- menu). nil for a passage, or with no dictionary to open.
+--- @param selection table|nil the passage the answer belongs to (lookupNative)
+--- @return table|nil { text, callback }
+function ChatGPTViewer.nativeDictionaryRow(word, features, ui, selection)
+  if not ChatGPTViewer.countsAsWord(word, features) then return nil end
+  local live = ChatGPTViewer.liveUI(ui)
+  if not (live and live.dictionary) then return nil end
+  return {
+    text = _("Open KOReader's dictionary"),
+    callback = function() ChatGPTViewer.lookupNative(word, ui, selection) end,
+  }
 end
 
 --- @param elsewhere table|nil the selection was made in another window that
@@ -4602,8 +4680,9 @@ function ChatGPTViewer:handleTextSelection(text, hold_duration, start_idx, end_i
     return
   end
 
-  if ChatGPTViewer.isSingleWord(text) and not ChatGPTViewer.isLongHold(hold_duration) then
-    -- Single word + short hold: auto dictionary lookup (fast path)
+  if ChatGPTViewer.countsAsWord(text, self.configuration and self.configuration.features)
+      and not ChatGPTViewer.isLongHold(hold_duration) then
+    -- A word (one, or up to the reader's number) + short hold: dictionary lookup
     local ui = ChatGPTViewer.liveUI(self._ui or (self.configuration and self.configuration._rerun_ui))
     if ui and ui.dictionary then
       ui.dictionary._koassistant_non_reader_lookup = true
@@ -4648,6 +4727,9 @@ function ChatGPTViewer:showTextSelectionPopup(text, elsewhere)
       self_ref:appendSelectionToNotebook(selected_text)
     end,
     add_to_reply = add_to_reply,
+    save_selection = (self.canKeepNote and self:canKeepNote()) and function(selected_text)
+      self_ref:keepPartAsNote(selected_text)
+    end or nil,
     clear_highlight = elsewhere and elsewhere.clear_highlight or function()
       self_ref:clearTextHighlight()
     end,
@@ -4734,6 +4816,21 @@ function ChatGPTViewer.buildTextSelectionPopup(text, opts)
       end
     end,
   })
+
+  -- Save Selection to Note (B790): the selected part alone becomes the note
+  -- of the word or passage the answer is about (a card wants three words of a
+  -- definition, not the entry). Offered by a window that has such a place:
+  -- a chat, dictionary or translate window with its selection, KOReader's own
+  -- dictionary window after a lookup in the book.
+  if opts.save_selection then
+    table.insert(flat_buttons, {
+      text = _("Save Selection to Note"),
+      callback = function()
+        close_and_clear()
+        opts.save_selection(text)
+      end,
+    })
+  end
 
   -- Dictionary and Wikipedia: the live UI (B341), resolved when the row is
   -- tapped; the actions below keep the window's own
@@ -5202,6 +5299,47 @@ function ChatGPTViewer:keepAsNote(selected_content)
     self:_noteOrigin(history, spec, lead))
   if not saved then return nil, _("Failed to create highlight") end
   return saved
+end
+
+--- A part of this window's answer, as the reader selected it, kept as the
+--- note of the selection's highlight (B790). Recorded as an answer of this
+--- window's kind whose text is the part, so it is shown again and exported
+--- like any saved answer.
+-- @return boolean
+function ChatGPTViewer:keepPartAsNote(part)
+  local reader_ui, history, why = noteSource(self)
+  local function notify(text)
+    UIManager:show(Notification:new{ text = text, timeout = 2 })
+  end
+  if not reader_ui then
+    notify(why)
+    return false
+  end
+  if type(part) ~= "string" or not part:find("%S") then
+    notify(_("No response to save"))
+    return false
+  end
+  local _content, spec = self:_noteContent()
+  local HighlightNote = require("koassistant.chat.highlight_note")
+  local text = part:gsub("^%s+", ""):gsub("%s+$", "")
+  -- A part taken out of a drawn answer has the answer's lines as line breaks:
+  -- each a paragraph of the note, which is drawn as Markdown again (one line
+  -- break is a space there). A translation's note is plain text: as selected.
+  if self:noteKind() ~= "translate" then text = HighlightNote.linesAsParagraphs(text) end
+  local saved = HighlightNote.save(reader_ui, self.selection_data, text,
+    self:_noteOrigin(history, spec, 0))
+  if not saved then
+    notify(_("Failed to create highlight"))
+    return false
+  end
+  if saved.already then
+    notify(_("Already in this highlight's note"))
+  elseif saved.created then
+    notify(_("Saved as a note"))
+  else
+    notify(_("Added to the highlight's note"))
+  end
+  return true
 end
 
 --- Take a kept answer back out of its highlight (HighlightNote.remove). Says
