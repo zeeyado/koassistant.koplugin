@@ -6183,18 +6183,11 @@ function AskGPT:buildTranslationLanguageMenu()
   table.insert(menu_items, {
     text = T(_("Follow Primary (%1)"), getLanguageDisplay(effective_primary)),
     checked_func = function()
+      -- the resolver's own rule: this list is the one control now (the
+      -- Settings switch beside it is gone), so what it ticks is what a
+      -- translation uses
       local f = self_ref.settings:readSetting("features") or {}
-      -- Primary is selected when: toggle is on, OR translation_language is sentinel/nil
-      -- Prioritize the toggle as the source of truth
-      if f.translation_use_primary == true then
-        return true
-      end
-      if f.translation_use_primary == false then
-        return false
-      end
-      -- If toggle never set (nil), check translation_language
-      local trans = f.translation_language
-      return trans == nil or trans == "" or trans == "__PRIMARY__"
+      return require("koassistant.prompts.system_prompts").translationFollowsPrimary(f)
     end,
     radio = true,
     callback = function()
@@ -6223,8 +6216,8 @@ function AskGPT:buildTranslationLanguageMenu()
       text = getLanguageDisplay(lang),
       checked_func = function()
         local f = self_ref.settings:readSetting("features") or {}
-        -- Only checked if toggle is OFF and this language is selected
-        if f.translation_use_primary == true then
+        -- ticked only while translations do not follow the primary language
+        if require("koassistant.prompts.system_prompts").translationFollowsPrimary(f) then
           return false
         end
         return f.translation_language == lang_copy
@@ -19985,9 +19978,13 @@ function AskGPT:translateCurrentPage()
     return
   end
 
-  -- Get translate action
+  -- Get translate action: the reader's edited copy (a model, a temperature
+  -- or a behavior set in the action's editor), as the highlight menu and the
+  -- bypass run it; the shipped definition only where the service has none.
+  -- The page ran the shipped one whatever the reader had changed (B438).
   local Actions = require("koassistant.prompts.actions")
-  local translate_action = Actions.special and Actions.special.translate
+  local translate_action = (self.action_service and self.action_service:getAction("highlight", "translate"))
+    or (Actions.special and Actions.special.translate)
   if not translate_action then
     UIManager:show(InfoMessage:new{
       text = _("Translate action not found"),

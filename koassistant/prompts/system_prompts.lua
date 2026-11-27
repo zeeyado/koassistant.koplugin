@@ -695,6 +695,21 @@ function SystemPrompts.buildLanguageInstruction(user_languages, primary_override
     )
 end
 
+-- Whether translations go into the primary language: THE rule, read by the
+-- resolver below, the Settings row that names the language and the list that
+-- picks it (they each spelled it, and the row and the list disagreed with the
+-- resolver for a stored language whose switch was never written).
+-- `translation_use_primary` is written by that list alone since its own
+-- Settings switch was removed: true or unset = follow, false = the picked one.
+-- @param config table with translation_use_primary, translation_language
+-- @return boolean
+function SystemPrompts.translationFollowsPrimary(config)
+    config = config or {}
+    local lang = config.translation_language
+    return config.translation_use_primary ~= false
+        or lang == "__PRIMARY__" or lang == nil or lang == ""
+end
+
 -- Get effective translation language
 -- @param config: {
 --   translation_use_primary: boolean,
@@ -710,14 +725,11 @@ function SystemPrompts.getEffectiveTranslationLanguage(config)
     local langs = config.interaction_languages or config.user_languages
     local primary, _ = SystemPrompts.parseUserLanguages(langs, config.primary_language)
 
-    -- Use primary if: toggle is on, OR translation_language is the __PRIMARY__ sentinel
-    local lang = config.translation_language
-    if config.translation_use_primary ~= false or
-       lang == "__PRIMARY__" or lang == nil or lang == "" then
+    if SystemPrompts.translationFollowsPrimary(config) then
         return primary
     end
 
-    return lang
+    return config.translation_language
 end
 
 -- Get effective dictionary language (for Dictionary action responses)

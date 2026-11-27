@@ -51,12 +51,12 @@ With **Show AI buttons** on (the default), KOAssistant adds its dictionary actio
 
 **Settings → Dictionary Settings** controls how lookups behave; which buttons the popup shows is set under **Settings → Menus & Buttons** (above). Every row with its default is on [Settings Reference](Settings-Reference#dictionary-settings).
 
-- **Response Language** (**Settings → Dictionary Settings → Response Language**): the language definitions are written in. By default it follows your translation language (the row reads "Response Language: (Follow Translation)"); it can follow your primary language instead, be one of your languages, or a language you type (**Custom...**). A book can have its own: Book Settings → Languages → Dictionary language. See [Languages](Languages#translation-and-dictionary-languages).
+- **Dictionary Language** (**Settings → Dictionary Settings → Dictionary Language**): the language definitions are written in. By default it follows your translation language (the row reads "Dictionary Language: Follow Translation (English)", with the language in use); it can follow your primary language instead, be one of your languages, or a language you type (**Custom...**). A book can have its own: Book Settings → Languages → Dictionary language. See [Languages](Languages#translation-and-dictionary-languages).
 - **Context Mode** and **Context Characters:** how much text around the word goes with a lookup ([Context mode](#context-mode)).
 - **Show Excerpt:** opens the answer with the passage around the word ([Show Excerpt](#show-excerpt)).
 - **Disable Auto-save for Dictionary** (on): lookups stay out of your chat history unless you save them ([Saving lookups and translations](#saving-lookups-and-translations)).
 - **Copy Content** and **Note Content:** what the window's **Copy** and **+Note** take. **Definition only** by default; the other choices are Follow global setting, Ask every time, Whole chat + metadata, Whole chat and Everything (debug). A definition saved as a note is shown with its formatting when you tap the highlighted word later ([Save to Note](Contexts-and-Chat#tapping-a-highlight-that-has-a-saved-answer)).
-- **Enable Streaming** (on): shows the answer as it is written.
+- **Enable Streaming** (on): shows the answer as it is written. A lookup whose action is one of the [Minimal Popup](Chat-Windows#minimal-popup)'s (Quick Define is, by default) arrives whole while the popup is on, whatever this row says.
 - **Bypass KOReader Dictionary**, **Bypass Action** and **Bypass: Follow Vocab Builder Auto-add:** the [dictionary bypass](#dictionary-bypass) and how it treats the [Vocabulary builder](#vocabulary-builder).
 
 > **Tip:** try dictionary actions and context modes in the [request inspector](Advanced-Configuration-and-Development#the-request-inspector) on a computer to find what works best for your reading, and consider [custom dictionary actions](#custom-dictionary-actions) for your language pair.
@@ -171,9 +171,9 @@ Translations are not auto-saved by default: like dictionary lookups, they are me
 
 **Settings → Translate Settings** sets the target language and shapes the translate window. Every row with its default is on [Settings Reference](Settings-Reference#translate-settings).
 
-- **Target language:** with **Translate to Primary Language** on (the default), translations go into your primary language. Turn it off to choose another under **Settings → Translate Settings → Translation Target**: one of your languages, or one you type (**Custom...**). A book can have its own target: Book Settings → Languages → Translation language ([Languages](Languages#per-book)).
+- **Translation Language:** translations go into your primary language until you pick another one under **Settings → Translate Settings → Translation Language**: one of your languages, or one you type (**Custom...**); **Follow Primary**, the list's first row, goes back. A book can have its own target: Book Settings → Languages → Translation language ([Languages](Languages#per-book)).
 - **Disable Auto-Save for Translate** (on): translations are not saved unless you save them through **→ Chat**.
-- **Enable Streaming** (on): shows the translation as it is written.
+- **Enable Streaming** (on): shows the translation as it is written. A translation of selected text arrives whole while Translate is one of the [Minimal Popup](Chat-Windows#minimal-popup)'s actions and the popup is on, whatever this row says (also when the answer is too long for the popup and the translate window opens); the row counts for Translate Page, and for selected text once the popup is off or Translate is taken off its list.
 - **Include Surrounding Context** (off): sends the text around the highlight with the translation, so the AI can resolve pronouns, tone and ambiguous words. It uses the mode of **Settings → Highlight Settings → Surrounding Context**, or a sentence when that is off. It never applies to full-page translation.
 - **Copy Content** and **Note Content:** what **Copy** and **Save to Note** take. **Translation only** by default; the other choices are Follow global setting, Ask every time (a picker each time, also when inherited from the global setting), Whole chat + metadata, Whole chat and Everything (debug). A saved translation shows in the Minimal Popup again when you tap the highlighted passage later ([Save to Note](Contexts-and-Chat#tapping-a-highlight-that-has-a-saved-answer)).
 - **Auto-save Translations as Notes** (off): every translation of text you select is saved automatically as a note on that text, with no tap. It is the same switch as Translate under **Settings → Highlight Settings → Auto-save Answers as Notes** ([saving answers automatically](Contexts-and-Chat#saving-answers-automatically)).
@@ -182,7 +182,7 @@ Translations are not auto-saved by default: like dictionary lookups, they are me
 
 ### Translate Page
 
-**KOAssistant: Translate Page** translates all the text on the page you see: it extracts the visible page's text, sends it to the Translate action, and opens the result in the translate window. It works with PDF, EPUB, DjVu and the other document formats KOReader opens.
+**KOAssistant: Translate Page** translates all the text on the page you see: it extracts the visible page's text, sends it to the Translate action, and opens the result in the translate window. It is the Translate action as you have set it up: a model, a behavior or a temperature you gave Translate in the action editor counts for the page too, and for the **Translate** row you get when you select text inside a KOAssistant window. It works with PDF, EPUB, DjVu and the other document formats KOReader opens.
 
 - Run it from a gesture (reader only; the gesture can be bound on **Settings → Gestures**) or from the **Translate Page** button of the Quick Actions panel ([Setup, Gestures and Panels](Setup-Gestures-and-Panels)).
 - The original text is hidden (**Hide for Full Page Translate**, on by default).
@@ -196,7 +196,7 @@ The dictionary and translation languages can follow other settings. On the [Quic
 - `↵` = following your primary language (for example "Translate: English ↵")
 - `↵T` = following your translation language (for example "Dictionary: English ↵T")
 
-A book's own language shows "(book)" instead. In the Settings menu the rows say it in words: "Response Language: (Follow Translation)" or "(Follow Primary)". How the languages work together: [Languages](Languages#translation-and-dictionary-languages).
+A book's own language shows "(book)" instead. In the Settings menu the rows say it in words: "Translation Language: Follow Primary (English)", "Dictionary Language: Follow Translation (English)" or "Follow Primary (English)". How the languages work together: [Languages](Languages#translation-and-dictionary-languages).
 
 ## Right-to-left languages
 

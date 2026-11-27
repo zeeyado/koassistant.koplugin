@@ -1516,16 +1516,23 @@ local SettingsSchema = {
                     id = "dictionary_language",
                     type = "submenu",
                     text_func = function(plugin)
+                        -- One name on every screen: "Dictionary Language" (it read
+                        -- "Response Language" here alone, which Book Settings uses
+                        -- for the language the AI answers in)
                         local f = plugin.settings:readSetting("features") or {}
-                        local lang = f.dictionary_language or "__FOLLOW_TRANSLATION__"
-                        if lang == "__FOLLOW_TRANSLATION__" then
-                            return _("Response Language: (Follow Translation)")
-                        elseif lang == "__FOLLOW_PRIMARY__" then
-                            return _("Response Language: (Follow Primary)")
+                        local lang = f.dictionary_language
+                        local primary = plugin:getEffectivePrimaryLanguage() or "English"
+                        if lang == "__FOLLOW_PRIMARY__" then
+                            return T(_("Dictionary Language: %1"), T(_("Follow Primary (%1)"), plugin:getLanguageDisplay(primary)))
+                        elseif lang == nil or lang == "" or lang == "__FOLLOW_TRANSLATION__" then
+                            local SystemPrompts = require("koassistant.prompts.system_prompts")
+                            local translation = SystemPrompts.translationFollowsPrimary(f) and primary or f.translation_language
+                            return T(_("Dictionary Language: %1"), T(_("Follow Translation (%1)"), plugin:getLanguageDisplay(translation)))
                         end
-                        return T(_("Response Language: %1"), plugin:getLanguageDisplay(lang))
+                        return T(_("Dictionary Language: %1"), plugin:getLanguageDisplay(lang))
                     end,
                     callback = "buildDictionaryLanguageMenu",
+                    help_text = _("The language dictionary answers are written in. It follows the Translation Language unless you pick another one here."),
                 },
                 {
                     id = "dictionary_context_mode",
@@ -1614,7 +1621,7 @@ local SettingsSchema = {
                     text = _("Enable Streaming"),
                     path = "features.dictionary_enable_streaming",
                     default = true,
-                    help_text = _("Stream dictionary responses in real-time. Disable to wait for complete response."),
+                    help_text = _("Show a dictionary answer while it arrives. Turn off to wait for the whole answer. An action that is one of the Minimal Popup's gives its answer whole while the popup is on, whatever this says."),
                 },
                 {
                     id = "dictionary_bypass_enabled",
@@ -1622,7 +1629,7 @@ local SettingsSchema = {
                     text = _("Bypass KOReader Dictionary"),
                     path = "features.dictionary_bypass_enabled",
                     default = false,
-                    help_text = _("Skip KOReader's dictionary and go directly to AI when tapping words. Can also be toggled via gesture."),
+                    help_text = _("A long-press on a word runs the Bypass Action in place of KOReader's dictionary. It needs KOReader's own setting Taps and gestures → Long-press on text → Dictionary on single word selection, which is on by default. KOReader's Dictionary button in the highlight menu still opens its dictionary. Can also be toggled with a gesture."),
                     on_change = function(new_value, plugin)
                         -- Re-sync the bypass when setting changes
                         if plugin.syncDictionaryBypass then
@@ -1644,7 +1651,7 @@ local SettingsSchema = {
                         return T(_("Bypass Action: %1"), name or T(_("%1 (no longer exists)"), action_id))
                     end,
                     callback = "buildDictionaryBypassActionMenu",
-                    help_text = _("Action to trigger when dictionary bypass is enabled. With Look up in X-Ray, a tapped word that has an X-Ray entry opens it directly; any other word falls through to the normal dictionary."),
+                    help_text = _("The action a long-pressed word runs while the dictionary bypass is on. With Look up in X-Ray, a word that has an X-Ray entry opens it directly; any other word goes to KOReader's dictionary."),
                 },
                 {
                     id = "dictionary_bypass_vocab_add",
@@ -1664,37 +1671,24 @@ local SettingsSchema = {
             text = _("Translate Settings"),
             emoji = "🌍",
             items = {
-                -- Translation target (moved from Language Settings)
-                {
-                    id = "translation_use_primary",
-                    type = "toggle",
-                    text = _("Translate to Primary Language"),
-                    path = "features.translation_use_primary",
-                    default = true,
-                    help_text = _("Use your primary language as the translation target. Disable to choose a different target."),
-                    on_change = function(new_value, plugin)
-                        local f = plugin.settings:readSetting("features") or {}
-                        if new_value then
-                            f.translation_language = "__PRIMARY__"
-                            plugin.settings:saveSetting("features", f)
-                            plugin.settings:flush()
-                        end
-                    end,
-                },
+                -- The translation language: ONE control, the list (its first row
+                -- follows the primary language). It was a switch plus the list
+                -- the switch revealed, and unticking the switch alone changed
+                -- nothing. `translation_use_primary` stays a key the list
+                -- writes (SystemPrompts.translationFollowsPrimary reads it).
                 {
                     id = "translation_language",
                     type = "submenu",
                     text_func = function(plugin)
                         local f = plugin.settings:readSetting("features") or {}
-                        local target = f.translation_language
-                        if target == "__PRIMARY__" or target == nil or target == "" then
+                        if require("koassistant.prompts.system_prompts").translationFollowsPrimary(f) then
                             local primary = plugin:getEffectivePrimaryLanguage() or "English"
-                            target = primary
+                            return T(_("Translation Language: %1"), T(_("Follow Primary (%1)"), plugin:getLanguageDisplay(primary)))
                         end
-                        return T(_("Translation Target: %1"), plugin:getLanguageDisplay(target))
+                        return T(_("Translation Language: %1"), plugin:getLanguageDisplay(f.translation_language))
                     end,
                     callback = "buildTranslationLanguageMenu",
-                    depends_on = { id = "translation_use_primary", value = false },
+                    help_text = _("The language Translate translates into. It follows your primary language unless you pick another one here."),
                     separator = true,
                 },
                 -- Translate view settings
@@ -1712,7 +1706,7 @@ local SettingsSchema = {
                     text = _("Enable Streaming"),
                     path = "features.translate_enable_streaming",
                     default = true,
-                    help_text = _("Stream translation responses in real-time."),
+                    help_text = _("Show a translation while it arrives. While Translate is one of the Minimal Popup's actions and the popup is on, a translation of selected text arrives whole, whatever this says."),
                 },
                 {
                     id = "translate_use_context",
@@ -1956,7 +1950,7 @@ local SettingsSchema = {
                     text = _("Enable Highlight Bypass"),
                     path = "features.highlight_bypass_enabled",
                     default = false,
-                    help_text = _("Immediately trigger an action when text is selected, skipping the highlight menu. Can also be toggled via gesture."),
+                    help_text = _("Selecting text runs the Bypass Action at once, in place of KOReader's highlight menu. It needs KOReader's own setting Taps and gestures → Long-press on text set to Ask with popup dialog, which is the default: with any other choice KOReader does that instead and the bypass does not run. A very long press still opens the menu. Can also be toggled with a gesture."),
                 },
                 {
                     id = "highlight_bypass_action",
@@ -1969,7 +1963,7 @@ local SettingsSchema = {
                         return T(_("Bypass Action: %1"), name or T(_("%1 (no longer exists)"), action_id))
                     end,
                     callback = "buildHighlightBypassActionMenu",
-                    help_text = _("Action to trigger when highlight bypass is enabled"),
+                    help_text = _("The action selected text runs while the highlight bypass is on."),
                     separator = true,
                 },
                 {

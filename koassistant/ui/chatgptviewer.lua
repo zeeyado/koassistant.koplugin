@@ -4801,7 +4801,10 @@ function ChatGPTViewer.buildTextSelectionPopup(text, opts)
         close_and_clear()
         local Actions = require("koassistant.prompts.actions")
         local Dialogs = require("koassistant.ui.dialogs")
-        local action = Actions.getById("translate")
+        -- the reader's edited Translate, as the highlight menu runs it; the
+        -- shipped definition only where the service has none (B438)
+        local action = (plugin.action_service and plugin.action_service:getAction("highlight", "translate"))
+          or Actions.getById("translate")
         if action then
           -- This selection came from an in-plugin viewer / dictionary popup, never the
           -- open document. Mark it (on a private copy — never mutate the shared config)

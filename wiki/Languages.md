@@ -25,8 +25,8 @@ Four settings work together:
 
 1. **Your Languages**: sent to the AI.
 2. **Primary Language**: the default response language, one of Your Languages.
-3. **Translation target** (**Settings → Translate Settings**): the target of the Translate action. **Translate to Primary Language** (on by default) makes it follow the primary language (`↵`); turned off, **Translation Target: …** sets it on its own, from a picker that lists Your Languages and the Additional Languages.
-4. **Dictionary language** (**Settings → Dictionary Settings → Response Language: …**): the response language of dictionary lookups; it follows the translation language by default (`↵T`), and can follow the primary (`↵`) or be set on its own, with the same picker.
+3. **Translation language** (**Settings → Translate Settings → Translation Language: …**): the language the Translate action translates into. It follows the primary language (`↵`) until you pick another one in its list, which holds **Follow Primary**, Your Languages, the Additional Languages and **Custom...**.
+4. **Dictionary language** (**Settings → Dictionary Settings → Dictionary Language: …**): the language dictionary answers are written in; it follows the translation language by default (`↵T`), and can follow the primary (`↵`) or be set on its own, with the same picker.
 
 The Translate and Dictionary buttons of Quick Settings show the symbols: `↵` after a language means it follows the primary language, `↵T` that the dictionary follows the translation language. Two example setups:
 
