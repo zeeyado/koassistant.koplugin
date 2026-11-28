@@ -278,7 +278,7 @@ local ProviderDefaults = {
     --               12288 context, so a bigger ask is an instant 400
     --   chutes      per-chute default is 1024, templates 2048-8192
     --   hyperbolic  no data of any kind; an honest unknown beats a confident guess
-    --   uberllm     floor 2000 across the gateway (33 of the 240 text models
+    --   martllm     floor 2000 across the gateway (33 of the 240 text models
     --               with a published cap are < 16384; /v1/models, public,
     --               max_output_tokens, 2026-11-12)
     -- The real fix for these is per-model ceilings (see _max_output_tokens) or a
@@ -346,10 +346,10 @@ local ProviderDefaults = {
         base_url = "https://ai-gateway.vercel.sh/v1/chat/completions",
         additional_parameters = { temperature = 0.7, max_tokens = 4096 }
     },
-    uberllm = {
-        provider = "uberllm",
-        model = getDefaultModel("uberllm"),
-        base_url = "https://api.uberllm.dev/v1/chat/completions",
+    martllm = {
+        provider = "martllm",
+        model = getDefaultModel("martllm"),
+        base_url = "https://api.martllm.com/v1/chat/completions",
         additional_parameters = { temperature = 0.7, max_tokens = 4096 }
     },
     -- OpenCode (#107, 2026-09-05): TWO providers on one account — Zen

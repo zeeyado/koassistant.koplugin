@@ -170,7 +170,7 @@ return {
     -- Get from: https://vercel.com/
     vercel = "YOUR_VERCEL_API_KEY",
 
-    -- UberLLM (OpenAI-compatible gateway, 200+ chat models behind one key)
-    -- Get from: https://uberllm.dev/signup
-    uberllm = "YOUR_UBERLLM_API_KEY",
+    -- MartLLM (OpenAI-compatible gateway, 200+ chat models behind one key)
+    -- Get from: https://martllm.com/signup
+    martllm = "YOUR_MARTLLM_API_KEY",
 }

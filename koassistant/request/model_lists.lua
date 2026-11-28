@@ -598,9 +598,9 @@ local ModelLists = {
         "openai/gpt-5.5",                           -- seed (unverified)
         "anthropic/claude-sonnet-5",                -- seed (unverified)
     },
-    uberllm = {
+    martllm = {
         -- vendor/model ids, as its public catalog spells them
-        -- (https://api.uberllm.dev/v1/models, no key needed).
+        -- (https://api.martllm.com/v1/models, no key needed).
         "deepseek/deepseek-v4.1-flash",             -- catalog 2026-11-12
         "anthropic/claude-sonnet-5",                -- catalog 2026-11-12
     },
@@ -726,7 +726,7 @@ local ModelLists = {
         hyperbolic = true, nebius = true, chutes = true, featherless = true,
         vercel = true,
         -- later community additions
-        uberllm = true,
+        martllm = true,
         -- opencode: CURATED from day one (2026-09-05, #107): keyed + battery
         -- green on every seed id; a meta router, so no tier placements.
         -- a2agent: CURATED from day one (2026-09-27, #108), same terms.
@@ -1151,9 +1151,9 @@ local ModelLists = {
             api_list = "https://ai-gateway.vercel.sh/v1/models",
             docs = "https://vercel.com/docs/ai-gateway",
         },
-        uberllm = {
-            api_list = "https://api.uberllm.dev/v1/models",   -- public
-            docs = "https://uberllm.dev/docs/quickstart",
+        martllm = {
+            api_list = "https://api.martllm.com/v1/models",   -- public
+            docs = "https://martllm.com/docs/quickstart",
         },
         opencode = {
             api_list = "https://opencode.ai/zen/v1/models",   -- public
