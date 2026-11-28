@@ -169,4 +169,8 @@ return {
     -- Vercel AI Gateway (200+ models behind one key)
     -- Get from: https://vercel.com/
     vercel = "YOUR_VERCEL_API_KEY",
+
+    -- MartLLM (OpenAI-compatible gateway, 200+ chat models behind one key)
+    -- Get from: https://martllm.com/signup
+    martllm = "YOUR_MARTLLM_API_KEY",
 }
